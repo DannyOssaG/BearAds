@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidad — Mirthos IA</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f6f9fc;
+    color: #0a2540;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  header {
+    background: #fff;
+    border-bottom: 1px solid #e6ebf1;
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-inner {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #635bff, #7c75ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-decoration: none;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #635bff, #7c75ff);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .back-btn {
+    font-size: 13px;
+    color: #425466;
+    text-decoration: none;
+    padding: 7px 14px;
+    border: 1px solid #e6ebf1;
+    border-radius: 7px;
+    background: #fff;
+  }
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  .hero {
+    background: #fff;
+    border: 1px solid #e6ebf1;
+    border-radius: 16px;
+    padding: 40px;
+    margin-bottom: 32px;
+    box-shadow: 0 1px 3px rgba(10,37,64,0.06);
+  }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(99,91,255,0.08);
+    color: #635bff;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0a2540;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: #425466;
+    margin-bottom: 20px;
+  }
+  .meta {
+    display: flex;
+    gap: 20px;
+    font-size: 12px;
+    color: #425466;
+    padding-top: 16px;
+    border-top: 1px solid #e6ebf1;
+  }
+  .meta span { display: flex; align-items: center; gap: 5px; }
+  .toc {
+    background: #fff;
+    border: 1px solid #e6ebf1;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 1px 3px rgba(10,37,64,0.04);
+  }
+  .toc-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #425466;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .toc ol { padding-left: 18px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a {
+    color: #635bff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .toc a:hover { text-decoration: underline; }
+  .section {
+    background: #fff;
+    border: 1px solid #e6ebf1;
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(10,37,64,0.04);
+  }
+  .section-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: #635bff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0a2540;
+    margin-bottom: 16px;
+    scroll-margin-top: 80px;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0a2540;
+    margin: 20px 0 8px;
+  }
+  p { margin-bottom: 14px; color: #2d4a6a; }
+  ul, ol { padding-left: 20px; margin-bottom: 14px; color: #2d4a6a; }
+  li { margin-bottom: 6px; }
+  .highlight {
+    background: rgba(99,91,255,0.05);
+    border: 1px solid rgba(99,91,255,0.15);
+    border-left: 3px solid #635bff;
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    color: #2d4a6a;
+  }
+  .contact-card {
+    background: linear-gradient(135deg, #635bff, #7c75ff);
+    border-radius: 12px;
+    padding: 28px;
+    color: #fff;
+    margin-top: 32px;
+  }
+  .contact-card h2 { color: #fff; }
+  .contact-card p { color: rgba(255,255,255,0.85); }
+  .contact-card a { color: #fff; font-weight: 700; }
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .contact-item {
+    background: rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .contact-item strong { display: block; font-size: 11px; letter-spacing: 0.5px; opacity: 0.75; margin-bottom: 4px; text-transform: uppercase; }
+  footer {
+    text-align: center;
+    padding: 32px 24px;
+    font-size: 12px;
+    color: #425466;
+    border-top: 1px solid #e6ebf1;
+    margin-top: 48px;
+    background: #fff;
+  }
+  @media (max-width: 600px) {
+    h1 { font-size: 24px; }
+    .hero, .section { padding: 24px; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .meta { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">🧠</div>
+      Mirthos
+    </a>
+    <a href="/" class="back-btn">← Volver a la app</a>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Legal</div>
+    <h1>Política de Privacidad</h1>
+    <p class="subtitle">Esta política describe cómo Mirthos IA recopila, usa y protege tu información personal cuando usas nuestra plataforma de marketing digital.</p>
+    <div class="meta">
+      <span>📅 Última actualización: 1 de enero de 2025</span>
+      <span>🌎 Aplica para: Colombia y LATAM</span>
+      <span>📧 Versión: 1.0</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Contenido</div>
+    <ol>
+      <li><a href="#s1">Quiénes somos</a></li>
+      <li><a href="#s2">Información que recopilamos</a></li>
+      <li><a href="#s3">Cómo usamos tu información</a></li>
+      <li><a href="#s4">Google y terceros</a></li>
+      <li><a href="#s5">Almacenamiento y seguridad</a></li>
+      <li><a href="#s6">Tus derechos</a></li>
+      <li><a href="#s7">Cookies y almacenamiento local</a></li>
+      <li><a href="#s8">Menores de edad</a></li>
+      <li><a href="#s9">Cambios a esta política</a></li>
+      <li><a href="#s10">Contacto</a></li>
+    </ol>
+  </div>
+
+  <div class="section" id="s1">
+    <div class="section-num">01</div>
+    <h2>Quiénes somos</h2>
+    <p><strong>Mirthos IA</strong> es una plataforma SaaS de marketing digital con inteligencia artificial, desarrollada por <strong>Two Creative</strong>, empresa con sede en Manizales, Colombia.</p>
+    <p>Actuamos como responsables del tratamiento de los datos personales que recopilamos a través de nuestra plataforma, de conformidad con la <strong>Ley 1581 de 2012</strong> (Ley de Protección de Datos Personales de Colombia) y el Decreto 1377 de 2013.</p>
+    <div class="highlight">
+      Mirthos es una herramienta profesional diseñada para empresas y emprendedores. No está dirigida al público general ni a menores de 18 años.
+    </div>
+  </div>
+
+  <div class="section" id="s2">
+    <div class="section-num">02</div>
+    <h2>Información que recopilamos</h2>
+
+    <h3>Información de cuenta</h3>
+    <ul>
+      <li>Nombre y dirección de correo electrónico (obtenidos a través de Google OAuth)</li>
+      <li>Foto de perfil de Google (opcional)</li>
+      <li>Información del negocio que ingresas voluntariamente (nombre, sitio web, industria)</li>
+    </ul>
+
+    <h3>Datos de uso de la plataforma</h3>
+    <ul>
+      <li>Sitios web analizados a través de la plataforma</li>
+      <li>Análisis e informes generados</li>
+      <li>Configuraciones de campañas y estrategias creadas</li>
+      <li>Historial de interacciones con los agentes de IA</li>
+    </ul>
+
+    <h3>Datos de servicios conectados</h3>
+    <p>Cuando conectas servicios de terceros, accedemos únicamente a los datos necesarios para el funcionamiento de la plataforma:</p>
+    <ul>
+      <li><strong>Google Search Console:</strong> datos de rendimiento orgánico de tu sitio web</li>
+      <li><strong>Google Analytics 4:</strong> métricas de tráfico y comportamiento de usuarios</li>
+      <li><strong>Google Ads:</strong> datos de campañas publicitarias (solo si lo autorizas)</li>
+      <li><strong>Meta Ads:</strong> datos de campañas en Facebook e Instagram (solo si lo autorizas)</li>
+    </ul>
+
+    <h3>Datos técnicos</h3>
+    <ul>
+      <li>Dirección IP y tipo de dispositivo</li>
+      <li>Navegador y sistema operativo</li>
+      <li>Fecha y hora de acceso</li>
+      <li>Páginas visitadas dentro de la plataforma</li>
+    </ul>
+  </div>
+
+  <div class="section" id="s3">
+    <div class="section-num">03</div>
+    <h2>Cómo usamos tu información</h2>
+    <p>Usamos tu información exclusivamente para:</p>
+    <ul>
+      <li>✅ Proveer y mejorar los servicios de Mirthos</li>
+      <li>✅ Personalizar el análisis y las recomendaciones de IA según tu negocio</li>
+      <li>✅ Generar reportes y análisis de marketing</li>
+      <li>✅ Enviarte el reporte semanal de score (si lo activas)</li>
+      <li>✅ Soporte técnico y comunicación relacionada con el servicio</li>
+      <li>✅ Cumplir obligaciones legales aplicables</li>
+    </ul>
+    <div class="highlight">
+      ❌ <strong>Nunca</strong> vendemos tu información personal a terceros.<br>
+      ❌ <strong>Nunca</strong> usamos tus datos para publicidad de otros productos.<br>
+      ❌ <strong>Nunca</strong> compartimos datos de tus clientes con otras empresas.
+    </div>
+  </div>
+
+  <div class="section" id="s4">
+    <div class="section-num">04</div>
+    <h2>Google y servicios de terceros</h2>
+    <p>Mirthos utiliza <strong>Google OAuth 2.0</strong> para autenticación. Al conectar tu cuenta de Google, autorizas a Mirthos a acceder a los siguientes datos según los permisos que otorgues:</p>
+    <ul>
+      <li>Perfil básico de Google (nombre, email, foto)</li>
+      <li>Search Console (datos de rendimiento SEO) — solo lectura</li>
+      <li>Google Analytics 4 — solo lectura</li>
+      <li>Google Ads — solo si lo autorizas explícitamente</li>
+    </ul>
+    <p>El uso de información recibida de las APIs de Google cumple con la <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank">Política de Datos de Usuario de los Servicios API de Google</a>, incluyendo los requisitos de uso limitado.</p>
+
+    <h3>Inteligencia Artificial</h3>
+    <p>Mirthos usa la API de <strong>Anthropic Claude</strong> para generar análisis y recomendaciones, y la API de <strong>OpenAI DALL-E</strong> para generar imágenes. Los datos enviados a estas APIs son procesados según sus respectivas políticas de privacidad. No usamos tus datos para entrenar modelos de IA.</p>
+  </div>
+
+  <div class="section" id="s5">
+    <div class="section-num">05</div>
+    <h2>Almacenamiento y seguridad</h2>
+
+    <h3>Dónde se almacenan tus datos</h3>
+    <ul>
+      <li><strong>Datos de sesión:</strong> en el servidor de Mirthos, encriptados en memoria</li>
+      <li><strong>Preferencias y configuración:</strong> en el almacenamiento local de tu navegador (localStorage)</li>
+      <li><strong>Datos de Google:</strong> no se almacenan permanentemente — se consultan en tiempo real</li>
+    </ul>
+
+    <h3>Medidas de seguridad</h3>
+    <ul>
+      <li>Conexiones HTTPS con certificado SSL</li>
+      <li>Tokens de acceso con expiración automática</li>
+      <li>Sin almacenamiento de contraseñas (usamos OAuth)</li>
+      <li>Acceso a datos restringido por autenticación</li>
+    </ul>
+
+    <h3>Retención de datos</h3>
+    <p>Conservamos tus datos mientras mantengas una cuenta activa en Mirthos. Puedes solicitar la eliminación en cualquier momento. Los datos en localStorage se eliminan cuando limpias el caché del navegador o visitas <strong>/admin/clear</strong>.</p>
+  </div>
+
+  <div class="section" id="s6">
+    <div class="section-num">06</div>
+    <h2>Tus derechos</h2>
+    <p>De conformidad con la Ley 1581 de 2012 de Colombia, tienes los siguientes derechos:</p>
+    <ul>
+      <li><strong>Acceso:</strong> conocer qué datos tenemos sobre ti</li>
+      <li><strong>Rectificación:</strong> corregir datos inexactos</li>
+      <li><strong>Supresión:</strong> solicitar la eliminación de tus datos</li>
+      <li><strong>Portabilidad:</strong> recibir tus datos en formato legible</li>
+      <li><strong>Oposición:</strong> oponerte al tratamiento en ciertos casos</li>
+      <li><strong>Revocación:</strong> retirar el consentimiento otorgado</li>
+    </ul>
+    <p>Para ejercer cualquiera de estos derechos, escríbenos a <strong>privacidad@mirthos.ai</strong> o usa el formulario de contacto en la plataforma.</p>
+    <div class="highlight">
+      Para revocar el acceso de Mirthos a tu cuenta de Google, ve a <a href="https://myaccount.google.com/permissions" target="_blank">myaccount.google.com/permissions</a> y elimina el acceso de Mirthos.
+    </div>
+  </div>
+
+  <div class="section" id="s7">
+    <div class="section-num">07</div>
+    <h2>Cookies y almacenamiento local</h2>
+    <p>Mirthos usa las siguientes tecnologías de almacenamiento:</p>
+    <ul>
+      <li><strong>Cookies de sesión:</strong> necesarias para mantener tu sesión iniciada. Se eliminan al cerrar el navegador.</li>
+      <li><strong>localStorage:</strong> guardamos tus preferencias, historial de análisis y configuración de la plataforma en tu dispositivo. Estos datos nunca se envían a nuestros servidores automáticamente.</li>
+    </ul>
+    <p>No usamos cookies de rastreo, publicidad ni analítica de terceros.</p>
+  </div>
+
+  <div class="section" id="s8">
+    <div class="section-num">08</div>
+    <h2>Menores de edad</h2>
+    <p>Mirthos es una plataforma de uso profesional exclusivamente para mayores de 18 años. No recopilamos intencionalmente información de menores de edad. Si detectamos que un menor ha creado una cuenta, eliminaremos su información de inmediato.</p>
+  </div>
+
+  <div class="section" id="s9">
+    <div class="section-num">09</div>
+    <h2>Cambios a esta política</h2>
+    <p>Nos reservamos el derecho de actualizar esta Política de Privacidad cuando sea necesario. Los cambios significativos serán notificados por correo electrónico o mediante aviso destacado en la plataforma con al menos 30 días de anticipación.</p>
+    <p>El uso continuado de Mirthos después de la fecha efectiva de los cambios constituye tu aceptación de la política actualizada.</p>
+  </div>
+
+  <div class="contact-card" id="s10">
+    <div class="section-num" style="color:rgba(255,255,255,0.7);">10</div>
+    <h2>Contacto y Responsable del Tratamiento</h2>
+    <p>Si tienes preguntas sobre esta política o quieres ejercer tus derechos, contáctanos:</p>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <strong>Empresa</strong>
+        Two Creative / Mirthos IA
+      </div>
+      <div class="contact-item">
+        <strong>Ubicación</strong>
+        Manizales, Caldas, Colombia
+      </div>
+      <div class="contact-item">
+        <strong>Email de privacidad</strong>
+        privacidad@mirthos.ai
+      </div>
+      <div class="contact-item">
+        <strong>Tiempo de respuesta</strong>
+        Máximo 15 días hábiles
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>Mirthos IA</strong> · Two Creative · Manizales, Colombia<br>
+  <span style="margin-top:6px;display:block;">Esta política cumple con la Ley 1581 de 2012 y el GDPR en lo aplicable.</span>
+</footer>
+
+</body>
+</html>

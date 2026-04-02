@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mirthos — AI Marketing Intelligence</title>
+<meta name="description" content="11 agentes IA que analizan tu sitio, crean campañas, generan contenido y escalan tu negocio. Marketing de agencia, precio de herramienta.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0e;
+  --bg2:#0d0f15;
+  --surface:#111318;
+  --surface2:#171a22;
+  --border:#1e2130;
+  --border2:#252838;
+  --ac:#60a5fa;
+  --ac2:#818cf8;
+  --gn:#4ade80;
+  --tx:#eceef5;
+  --t2:#8b91a8;
+  --mu:#464d63;
+  --wh:#ffffff;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',sans-serif;overflow-x:hidden;line-height:1.6}
+
+/* ── NOISE TEXTURE ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.4;
+}
+
+/* ── NAVBAR ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:18px 48px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid transparent;
+  transition:all 0.3s;backdrop-filter:blur(0px);
+}
+nav.scrolled{
+  background:rgba(8,10,14,0.9);
+  border-color:var(--border);
+  backdrop-filter:blur(20px);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-logo svg{flex-shrink:0}
+.nav-logo-text{font-family:'Outfit',sans-serif;font-weight:800;font-size:18px;color:var(--ac);}
+.nav-links{display:flex;align-items:center;gap:32px;}
+.nav-links a{font-size:13px;color:var(--t2);text-decoration:none;font-weight:500;transition:color 0.15s;}
+.nav-links a:hover{color:var(--tx)}
+.nav-cta{padding:9px 22px;background:var(--ac);color:#000;border-radius:8px;font-size:13px;font-weight:700;text-decoration:none;transition:all 0.15s;font-family:'Outfit',sans-serif;}
+.nav-cta:hover{background:#93c5fd;transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  position:relative;padding:120px 24px 80px;text-align:center;overflow:hidden;
+}
+.hero-glow{
+  position:absolute;top:20%;left:50%;transform:translateX(-50%);
+  width:800px;height:500px;
+  background:radial-gradient(ellipse at center, rgba(96,165,250,0.12) 0%, transparent 70%);
+  pointer-events:none;
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(96,165,250,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.03) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse at center,black 20%,transparent 80%);
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 16px;border:1px solid rgba(96,165,250,0.25);border-radius:20px;
+  background:rgba(96,165,250,0.06);font-size:12px;color:var(--ac);font-weight:600;
+  margin-bottom:28px;letter-spacing:0.5px;
+  animation:fadeUp 0.6s ease both;
+}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:var(--gn);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+
+.hero h1{
+  font-family:'Outfit',sans-serif;font-weight:900;
+  font-size:clamp(42px,7vw,88px);line-height:0.95;letter-spacing:-3px;
+  margin-bottom:24px;
+  animation:fadeUp 0.6s 0.1s ease both;
+}
+.hero h1 .line1{display:block;color:var(--wh);}
+.hero h1 .line2{display:block;color:var(--ac);}
+.hero h1 .line3{display:block;color:var(--t2);font-weight:300;font-size:0.7em;letter-spacing:-1px;}
+
+.hero-sub{
+  font-size:18px;color:var(--t2);max-width:560px;margin:0 auto 40px;
+  font-weight:300;line-height:1.7;
+  animation:fadeUp 0.6s 0.2s ease both;
+}
+.hero-sub strong{color:var(--tx);font-weight:500;}
+
+.hero-actions{
+  display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  animation:fadeUp 0.6s 0.3s ease both;
+}
+.btn-primary-lg{
+  padding:15px 36px;background:var(--ac);color:#000;border-radius:10px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:800;text-decoration:none;
+  transition:all 0.2s;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary-lg:hover{background:#93c5fd;transform:translateY(-2px);box-shadow:0 16px 40px rgba(96,165,250,0.3)}
+.btn-ghost-lg{
+  padding:15px 36px;border:1px solid var(--border2);color:var(--t2);border-radius:10px;
+  font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;text-decoration:none;
+  transition:all 0.2s;
+}
+.btn-ghost-lg:hover{border-color:var(--ac);color:var(--ac)}
+
+.hero-stats{
+  display:flex;align-items:center;justify-content:center;gap:40px;
+  margin-top:60px;padding-top:40px;border-top:1px solid var(--border);
+  animation:fadeUp 0.6s 0.4s ease both;
+}
+.stat-item{text-align:center;}
+.stat-num{font-family:'Outfit',sans-serif;font-size:32px;font-weight:900;color:var(--wh);}
+.stat-num span{color:var(--ac);}
+.stat-label{font-size:12px;color:var(--mu);font-weight:500;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+/* ── DEMO PREVIEW ── */
+.demo-section{padding:0 24px 100px;position:relative;}
+.demo-wrapper{
+  max-width:1000px;margin:0 auto;
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;
+  overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,0.6),0 0 0 1px rgba(96,165,250,0.08);
+  animation:fadeUp 0.8s 0.5s ease both;
+}
+.demo-bar{
+  padding:14px 20px;background:var(--surface2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.demo-dots{display:flex;gap:6px;}
+.demo-dot{width:12px;height:12px;border-radius:50%;}
+.demo-url{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:12px;color:var(--mu);font-family:monospace;}
+.demo-body{padding:24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.demo-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.demo-score{font-family:'Outfit',sans-serif;font-size:28px;font-weight:900;}
+.demo-label{font-size:10px;color:var(--mu);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.demo-bar2{height:4px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;}
+.demo-fill{height:100%;border-radius:2px;transition:width 2s ease;}
+.demo-insight{grid-column:1/-1;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.15);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:flex-start;}
+.demo-insight-icon{font-size:20px;flex-shrink:0;}
+.demo-insight-text{font-size:13px;color:var(--t2);line-height:1.6;}
+.demo-insight-text strong{color:var(--ac);font-weight:600;}
+
+/* ── SECTIONS ── */
+section{padding:100px 24px;position:relative;}
+.container{max-width:1100px;margin:0 auto;}
+.section-badge{
+  display:inline-block;padding:4px 14px;border:1px solid var(--border2);border-radius:20px;
+  font-size:11px;color:var(--mu);font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:20px;
+}
+.section-title{
+  font-family:'Outfit',sans-serif;font-weight:900;
+  font-size:clamp(32px,5vw,56px);letter-spacing:-2px;line-height:1;
+  margin-bottom:16px;
+}
+.section-sub{font-size:17px;color:var(--t2);font-weight:300;max-width:540px;line-height:1.7;}
+
+/* ── PROBLEM ── */
+.problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:60px;}
+.problem-list{display:flex;flex-direction:column;gap:16px;}
+.problem-item{
+  display:flex;gap:14px;padding:18px;
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+}
+.problem-x{width:24px;height:24px;border-radius:6px;background:rgba(248,113,113,0.1);color:#f87171;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.problem-text strong{color:var(--tx);font-size:14px;display:block;margin-bottom:3px;}
+.problem-text span{font-size:13px;color:var(--mu);}
+.solution-list{display:flex;flex-direction:column;gap:16px;}
+.solution-item{
+  display:flex;gap:14px;padding:18px;
+  background:rgba(96,165,250,0.04);border:1px solid rgba(96,165,250,0.12);border-radius:12px;
+}
+.solution-check{width:24px;height:24px;border-radius:6px;background:rgba(96,165,250,0.1);color:var(--ac);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.solution-text strong{color:var(--tx);font-size:14px;display:block;margin-bottom:3px;}
+.solution-text span{font-size:13px;color:var(--t2);}
+
+/* ── AGENTS ── */
+.agents-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:16px;margin-top:56px;
+}
+.agent-card-lp{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:24px;transition:all 0.2s;cursor:default;position:relative;overflow:hidden;
+}
+.agent-card-lp::before{
+  content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(135deg,var(--agent-color,var(--ac))08,transparent 60%);
+  opacity:0;transition:opacity 0.2s;
+}
+.agent-card-lp:hover{transform:translateY(-3px);border-color:var(--agent-color,var(--ac));box-shadow:0 16px 40px rgba(0,0,0,0.3);}
+.agent-card-lp:hover::before{opacity:1;}
+.agent-icon-lp{
+  width:44px;height:44px;border-radius:11px;
+  background:color-mix(in srgb,var(--agent-color,var(--ac)) 12%,transparent);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  margin-bottom:14px;
+}
+.agent-name-lp{font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;margin-bottom:6px;color:var(--wh);}
+.agent-desc-lp{font-size:13px;color:var(--t2);line-height:1.6;}
+.agent-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.agent-tag{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--mu);font-weight:600;}
+
+/* ── HOW IT WORKS ── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-top:56px;}
+.step{text-align:center;padding:32px 24px;}
+.step-num{
+  width:52px;height:52px;border-radius:50%;border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 20px;
+  font-family:'Outfit',sans-serif;font-weight:900;font-size:18px;color:var(--ac);
+}
+.step-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:17px;margin-bottom:8px;}
+.step-desc{font-size:14px;color:var(--t2);line-height:1.7;}
+.step-connector{width:100%;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent);margin-top:-26px;}
+
+/* ── PRICING ── */
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.price-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px;
+  position:relative;transition:all 0.2s;
+}
+.price-card.featured{
+  border-color:var(--ac);background:linear-gradient(135deg,rgba(96,165,250,0.06),var(--surface));
+  box-shadow:0 0 0 1px rgba(96,165,250,0.2),0 24px 60px rgba(96,165,250,0.1);
+}
+.price-featured-badge{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  padding:4px 16px;background:var(--ac);color:#000;border-radius:20px;
+  font-size:11px;font-weight:800;font-family:'Outfit',sans-serif;white-space:nowrap;
+}
+.price-plan{font-size:12px;color:var(--mu);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+.price-amount{font-family:'Outfit',sans-serif;font-weight:900;font-size:44px;letter-spacing:-2px;color:var(--wh);}
+.price-amount sup{font-size:20px;vertical-align:top;margin-top:10px;display:inline-block;color:var(--t2);}
+.price-amount sub{font-size:14px;color:var(--mu);font-weight:400;letter-spacing:0;}
+.price-desc{font-size:13px;color:var(--t2);margin:10px 0 24px;line-height:1.6;}
+.price-features{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+.price-feat{display:flex;gap:10px;font-size:13px;color:var(--t2);align-items:flex-start;}
+.price-feat-check{color:var(--gn);font-weight:700;flex-shrink:0;margin-top:1px;}
+.price-btn{
+  display:block;width:100%;padding:13px;text-align:center;border-radius:10px;
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;text-decoration:none;
+  transition:all 0.15s;
+}
+.price-btn-primary{background:var(--ac);color:#000;}
+.price-btn-primary:hover{background:#93c5fd;}
+.price-btn-ghost{border:1px solid var(--border2);color:var(--t2);}
+.price-btn-ghost:hover{border-color:var(--ac);color:var(--ac);}
+
+/* ── TESTIMONIALS ── */
+.testimonials-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.testi-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;
+}
+.testi-stars{color:#fbbf24;font-size:13px;margin-bottom:14px;}
+.testi-text{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:18px;font-style:italic;}
+.testi-author{display:flex;align-items:center;gap:10px;}
+.testi-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-family:'Outfit',sans-serif;}
+.testi-name{font-size:13px;font-weight:600;color:var(--tx);}
+.testi-role{font-size:11px;color:var(--mu);}
+
+/* ── CTA FINAL ── */
+.cta-section{
+  margin:0 24px 80px;
+  background:linear-gradient(135deg,rgba(96,165,250,0.08),rgba(129,140,248,0.05));
+  border:1px solid rgba(96,165,250,0.15);border-radius:24px;
+  padding:80px 48px;text-align:center;position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);
+  width:400px;height:200px;
+  background:radial-gradient(ellipse,rgba(96,165,250,0.15),transparent 70%);
+}
+.cta-title{font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(36px,5vw,60px);letter-spacing:-2px;margin-bottom:16px;}
+.cta-sub{font-size:17px;color:var(--t2);max-width:480px;margin:0 auto 36px;line-height:1.7;}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--border);padding:40px 48px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.footer-logo{font-family:'Outfit',sans-serif;font-weight:800;font-size:16px;color:var(--ac);}
+.footer-links{display:flex;gap:24px;}
+.footer-links a{font-size:13px;color:var(--mu);text-decoration:none;transition:color 0.15s;}
+.footer-links a:hover{color:var(--t2)}
+.footer-copy{font-size:12px;color:var(--mu);}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(32px);transition:all 0.7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  nav{padding:16px 20px;}
+  .nav-links{display:none;}
+  .problem-grid{grid-template-columns:1fr;}
+  .steps{grid-template-columns:1fr;}
+  .pricing-grid{grid-template-columns:1fr;}
+  .testimonials-grid{grid-template-columns:1fr;}
+  .hero-stats{gap:20px;flex-wrap:wrap;}
+  footer{flex-direction:column;gap:16px;text-align:center;}
+  .cta-section{padding:48px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a href="/index.html" class="nav-logo">
+    <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+      <rect width="34" height="34" rx="9" fill="#60a5fa" fill-opacity="0.12"/>
+      <circle cx="17" cy="17" r="9" stroke="#60a5fa" stroke-width="1.4" fill="none" opacity="0.35"/>
+      <path d="M11 23 L15.5 13 L17 17.5 L18.5 13 L23 23" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="17" cy="8" r="1.6" fill="#60a5fa"/>
+    </svg>
+    <span class="nav-logo-text">Mirthos</span>
+  </a>
+  <div class="nav-links">
+    <a href="#agentes">Agentes</a>
+    <a href="#como-funciona">Cómo funciona</a>
+    <a href="/index.html">Precios</a>
+  </div>
+  <a href="/index.html" class="nav-cta">Comenzar gratis →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-grid"></div>
+  <div style="position:relative;z-index:1;max-width:900px;">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      11 Agentes IA · Activos ahora
+    </div>
+    <h1>
+      <span class="line1">Marketing de agencia.</span>
+      <span class="line2">Precio de herramienta.</span>
+      <span class="line3">Velocidad de inteligencia artificial.</span>
+    </h1>
+    <p class="hero-sub">
+      Mirthos orquesta <strong>11 agentes IA especializados</strong> que analizan tu sitio, identifican competidores, crean campañas, generan contenido y escalan tu negocio — en minutos, no semanas.
+    </p>
+    <div class="hero-actions">
+      <a href="/index.html" class="btn-primary-lg">Analiza tu sitio gratis →</a>
+      <a href="#como-funciona" class="btn-ghost-lg">Ver cómo funciona</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num"><span>11</span></div>
+        <div class="stat-label">Agentes IA</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num"><span>60</span>s</div>
+        <div class="stat-label">Análisis completo</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num"><span>5</span>x</div>
+        <div class="stat-label">Más rápido que una agencia</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num"><span>PDF</span></div>
+        <div class="stat-label">Reporte descargable</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO PREVIEW -->
+<div class="demo-section">
+  <div class="demo-wrapper">
+    <div class="demo-bar">
+      <div class="demo-dots">
+        <div class="demo-dot" style="background:#f87171"></div>
+        <div class="demo-dot" style="background:#fbbf24"></div>
+        <div class="demo-dot" style="background:#4ade80"></div>
+      </div>
+      <div class="demo-url">app.mirthos.io · Analizar Sitio Web</div>
+    </div>
+    <div class="demo-body">
+      <div class="demo-card">
+        <div class="demo-score" style="color:#f87171">28</div>
+        <div class="demo-label">SEO Score</div>
+        <div class="demo-bar2"><div class="demo-fill" style="width:28%;background:#f87171"></div></div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-score" style="color:#fbbf24">54</div>
+        <div class="demo-label">Contenido</div>
+        <div class="demo-bar2"><div class="demo-fill" style="width:54%;background:#fbbf24"></div></div>
+      </div>
+      <div class="demo-card">
+        <div class="demo-score" style="color:#4ade80">72</div>
+        <div class="demo-label">CRO Score</div>
+        <div class="demo-bar2"><div class="demo-fill" style="width:72%;background:#4ade80"></div></div>
+      </div>
+      <div class="demo-insight">
+        <div class="demo-insight-icon">🎯</div>
+        <div class="demo-insight-text">
+          <strong>Agente SEO detectó:</strong> Sin H1 en ninguna página, cero visibilidad orgánica en 28 días (GSC conectado). Acción urgente: agregar H1 con keyword principal y instalar GA4. Potencial de recuperar +340 impresiones mensuales con 3 cambios técnicos.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEMA / SOLUCIÓN -->
+<section id="problema">
+  <div class="container">
+    <div class="section-badge">El problema</div>
+    <h2 class="section-title">El marketing digital<br>está roto para las PYMEs</h2>
+    <div class="problem-grid reveal">
+      <div>
+        <p class="section-sub" style="margin-bottom:28px;">Las agencias cobran miles de dólares. Las herramientas sueltas no se conectan. Los freelancers tardan semanas. Y tú sigues sin tráfico ni ventas.</p>
+        <div class="problem-list">
+          <div class="problem-item">
+            <div class="problem-x">✕</div>
+            <div class="problem-text"><strong>Agencias de marketing</strong><span>$2,000–$8,000/mes. Meses de onboarding. Resultados inciertos.</span></div>
+          </div>
+          <div class="problem-item">
+            <div class="problem-x">✕</div>
+            <div class="problem-text"><strong>Herramientas separadas</strong><span>SEMrush + Mailchimp + Buffer + Canva + ChatGPT = $400/mes y caos.</span></div>
+          </div>
+          <div class="problem-item">
+            <div class="problem-x">✕</div>
+            <div class="problem-text"><strong>Hacerlo tú mismo</strong><span>Semanas aprendiendo lo que cambia cada mes. Sin tiempo para tu negocio.</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="section-sub" style="margin-bottom:28px;color:var(--ac);">Mirthos lo hace todo por ti — con IA especializada por área, no una sola IA genérica.</p>
+        <div class="solution-list">
+          <div class="solution-item">
+            <div class="solution-check">✓</div>
+            <div class="solution-text"><strong>Análisis completo en 60 segundos</strong><span>SEO, SEM, contenido, CRO y tráfico — simultáneamente, con datos reales de Google.</span></div>
+          </div>
+          <div class="solution-item">
+            <div class="solution-check">✓</div>
+            <div class="solution-text"><strong>11 agentes coordinados</strong><span>Cada uno especializado. Todos compartiendo datos. Como un equipo de marketing completo.</span></div>
+          </div>
+          <div class="solution-item">
+            <div class="solution-check">✓</div>
+            <div class="solution-text"><strong>Accionable, no teórico</strong><span>Copies listos para publicar, secuencias de email completas, calendarios de contenido reales.</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<section id="agentes" style="background:var(--bg2);">
+  <div class="container">
+    <div class="section-badge">Los agentes</div>
+    <h2 class="section-title">11 especialistas IA<br>en tu equipo</h2>
+    <p class="section-sub">Cada agente tiene un rol específico, acceso a tus datos reales y la capacidad de generar entregables completos — no solo recomendaciones.</p>
+    <div class="agents-grid reveal">
+      <div class="agent-card-lp" style="--agent-color:#60a5fa">
+        <div class="agent-icon-lp" style="--agent-color:#60a5fa">🔍</div>
+        <div class="agent-name-lp">Agente SEO</div>
+        <div class="agent-desc-lp">Audita posicionamiento orgánico, detecta errores técnicos y crea plan de keywords con datos reales de Search Console.</div>
+        <div class="agent-tags"><span class="agent-tag">Técnico</span><span class="agent-tag">Keywords</span><span class="agent-tag">GSC</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#f87171">
+        <div class="agent-icon-lp" style="--agent-color:#f87171">📢</div>
+        <div class="agent-name-lp">Agente SEM</div>
+        <div class="agent-desc-lp">Diseña campañas de Google Ads y Shopping, sugiere keywords de alto ROI y estructura grupos de anuncios completos.</div>
+        <div class="agent-tags"><span class="agent-tag">Google Ads</span><span class="agent-tag">Shopping</span><span class="agent-tag">ROI</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#c084fc">
+        <div class="agent-icon-lp" style="--agent-color:#c084fc">✍️</div>
+        <div class="agent-name-lp">Agente de Contenido</div>
+        <div class="agent-desc-lp">Analiza el copywriting actual, detecta la propuesta de valor y reescribe headlines, descripciones y CTAs completos.</div>
+        <div class="agent-tags"><span class="agent-tag">Copy</span><span class="agent-tag">Headlines</span><span class="agent-tag">CTAs</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#fbbf24">
+        <div class="agent-icon-lp" style="--agent-color:#fbbf24">⚡</div>
+        <div class="agent-name-lp">Agente CRO</div>
+        <div class="agent-desc-lp">Identifica fricciones en el funnel de conversión, analiza el checkout y genera plan de optimización priorizado.</div>
+        <div class="agent-tags"><span class="agent-tag">Funnel</span><span class="agent-tag">Checkout</span><span class="agent-tag">UX</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#4ade80">
+        <div class="agent-icon-lp" style="--agent-color:#4ade80">📈</div>
+        <div class="agent-name-lp">Agente de Tráfico</div>
+        <div class="agent-desc-lp">Analiza canales de adquisición, identifica los más rentables para tu negocio y define quick wins con datos de GA4.</div>
+        <div class="agent-tags"><span class="agent-tag">GA4</span><span class="agent-tag">Canales</span><span class="agent-tag">Quick Wins</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#f87171">
+        <div class="agent-icon-lp" style="--agent-color:#f87171">🎯</div>
+        <div class="agent-name-lp">Agente de Competencia</div>
+        <div class="agent-desc-lp">Identifica competidores directos, analiza sus estrategias y detecta brechas de mercado que puedes explotar ahora.</div>
+        <div class="agent-tags"><span class="agent-tag">Competidores</span><span class="agent-tag">Brechas</span><span class="agent-tag">Estrategia</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#c084fc">
+        <div class="agent-icon-lp" style="--agent-color:#c084fc">📱</div>
+        <div class="agent-name-lp">Agente Social</div>
+        <div class="agent-desc-lp">Genera calendarios de contenido completos, copys para posts, hashtags y guiones para Reels y TikToks listos para publicar.</div>
+        <div class="agent-tags"><span class="agent-tag">Instagram</span><span class="agent-tag">TikTok</span><span class="agent-tag">Calendario</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#34d399">
+        <div class="agent-icon-lp" style="--agent-color:#34d399">💰</div>
+        <div class="agent-name-lp">Agente Financiero</div>
+        <div class="agent-desc-lp">Proyecta ROI por canal, calcula presupuesto óptimo de marketing, CPA objetivo y ROAS esperado con números reales.</div>
+        <div class="agent-tags"><span class="agent-tag">ROI</span><span class="agent-tag">Presupuesto</span><span class="agent-tag">CPA</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#fbbf24">
+        <div class="agent-icon-lp" style="--agent-color:#fbbf24">📣</div>
+        <div class="agent-name-lp">Agente de Anuncios</div>
+        <div class="agent-desc-lp">Crea copies completos para Meta Ads y Google Ads — headlines, descripciones, CTAs y segmentaciones de audiencia.</div>
+        <div class="agent-tags"><span class="agent-tag">Meta Ads</span><span class="agent-tag">Google Ads</span><span class="agent-tag">Copy</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#60a5fa">
+        <div class="agent-icon-lp" style="--agent-color:#60a5fa">✉️</div>
+        <div class="agent-name-lp">Agente de Email</div>
+        <div class="agent-desc-lp">Diseña secuencias completas de email marketing — bienvenida, carrito abandonado, post-compra y reactivación.</div>
+        <div class="agent-tags"><span class="agent-tag">Klaviyo</span><span class="agent-tag">Automatización</span><span class="agent-tag">Flows</span></div>
+      </div>
+      <div class="agent-card-lp" style="--agent-color:#4ade80">
+        <div class="agent-icon-lp" style="--agent-color:#4ade80">🚀</div>
+        <div class="agent-name-lp">Agente de Tráfico Calificado</div>
+        <div class="agent-desc-lp">Estrategia de adquisición con alta intención de compra. SEO transaccional, performance y reducción de CPA.</div>
+        <div class="agent-tags"><span class="agent-tag">Performance</span><span class="agent-tag">CPA</span><span class="agent-tag">Conversión</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section id="como-funciona">
+  <div class="container" style="text-align:center;">
+    <div class="section-badge">Proceso</div>
+    <h2 class="section-title">De URL a estrategia<br>en 3 pasos</h2>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Ingresas tu URL</div>
+        <div class="step-desc">Conectas tu Google Search Console y GA4 con un clic. Mirthos accede a tus datos reales de tráfico, posiciones y comportamiento.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Los agentes analizan</div>
+        <div class="step-desc">11 agentes IA trabajan en paralelo durante 60 segundos. Cada uno analiza su área con acceso a tus datos reales y al contexto del sitio.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Recibes tu plan completo</div>
+        <div class="step-desc">Reporte PDF descargable + acceso a chat con cada agente para generar copies, calendarios, emails y campañas listas para ejecutar.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="background:var(--bg2);">
+  <div class="container">
+    <div class="section-badge">Testimonios</div>
+    <h2 class="section-title">Lo que dicen<br>nuestros clientes</h2>
+    <div class="testimonials-grid reveal">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">"En 2 minutos Mirthos identificó que mi sitio no tenía H1 en ninguna página y que estaba perdiendo 400 clics mensuales. Mi agencia anterior nunca me dijo eso en 6 meses."</div>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(96,165,250,0.15);color:#60a5fa;">CM</div>
+          <div><div class="testi-name">Carlos M.</div><div class="testi-role">Tienda e-commerce · Colombia</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">"El Agente de Email me generó una secuencia de carrito abandonado completa en 3 minutos. La misma secuencia me cobró $800 un freelancer hace 4 meses."</div>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(192,132,252,0.15);color:#c084fc;">LP</div>
+          <div><div class="testi-name">Laura P.</div><div class="testi-role">SaaS B2B · México</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-text">"Conecté mi GSC y GA4, analicé mi sitio y en 60 segundos tenía un plan de acción con datos reales. Nunca pensé que algo así existiera a este precio."</div>
+        <div class="testi-author">
+          <div class="testi-avatar" style="background:rgba(74,222,128,0.15);color:#4ade80;">AR</div>
+          <div><div class="testi-name">Andrés R.</div><div class="testi-role">Agencia digital · España</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="precios">
+  <div class="container" style="text-align:center;">
+    <div class="section-badge">Precios</div>
+    <h2 class="section-title">Sin sorpresas.<br>Sin contratos.</h2>
+    <p class="section-sub" style="margin:0 auto 0;">Cancela cuando quieras. Todos los planes incluyen acceso completo a los 11 agentes.</p>
+    <div class="pricing-grid reveal">
+      <div class="price-card">
+        <div class="price-plan">Starter</div>
+        <div class="price-amount"><sup>$</sup>0<sub>/mes</sub></div>
+        <div class="price-desc">Para explorar la plataforma y entender el potencial de tus agentes IA.</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span>3 análisis de sitio por mes</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>5 agentes activos</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Reporte PDF básico</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Conexión Google (GSC + GA4)</div>
+          <div class="price-feat" style="color:var(--mu)"><span>—</span> Sin agentes especializados</div>
+        </div>
+        <a href="/index.html" class="price-btn price-btn-ghost">Comenzar gratis</a>
+      </div>
+      <div class="price-card featured">
+        <div class="price-featured-badge">Más popular</div>
+        <div class="price-plan">Pro</div>
+        <div class="price-amount"><sup>$</sup>49<sub>/mes</sub></div>
+        <div class="price-desc">Para negocios que quieren resultados reales con marketing IA completo.</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span>Análisis ilimitados</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>11 agentes especializados</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Reporte PDF completo</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Chat ilimitado con agentes</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Generación de copies y emails</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Historial de análisis</div>
+        </div>
+        <a href="/index.html" class="price-btn price-btn-primary">Empezar con Pro →</a>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">Agencia</div>
+        <div class="price-amount"><sup>$</sup>149<sub>/mes</sub></div>
+        <div class="price-desc">Para agencias y consultores que manejan múltiples clientes simultáneamente.</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span>Todo lo de Pro</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Hasta 20 sitios simultáneos</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>PDF con logo personalizado</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>API de acceso</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Soporte prioritario</div>
+        </div>
+        <a href="/index.html" class="price-btn price-btn-ghost">Contactar ventas</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<div class="cta-section reveal">
+  <h2 class="cta-title">Tu sitio tiene problemas<br>que no conoces aún.</h2>
+  <p class="cta-sub">Analiza tu sitio gratis ahora. En 60 segundos sabrás exactamente qué está frenando tu crecimiento y cómo solucionarlo.</p>
+  <a href="/index.html" class="btn-primary-lg" style="font-size:16px;padding:17px 44px;">
+    Analizar mi sitio gratis →
+  </a>
+  <div style="margin-top:20px;font-size:13px;color:var(--mu);">Sin tarjeta de crédito · Sin instalación · Resultados en 60 segundos</div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">Mirthos</div>
+    <div style="font-size:12px;color:var(--mu);margin-top:4px;">AI Marketing Intelligence Platform</div>
+  </div>
+  <div class="footer-links">
+    <a href="/index.html">Privacidad</a>
+    <a href="/index.html">Términos</a>
+    <a href="/index.html">Contacto</a>
+    <a href="/index.html">Blog</a>
+  </div>
+  <div class="footer-copy">© 2026 Mirthos. Todos los derechos reservados.</div>
+</footer>
+
+<script>
+// Navbar scroll
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>50);
+});
+
+// Reveal on scroll
+const observer=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// Demo bar animation
+setTimeout(()=>{
+  document.querySelectorAll('.demo-fill').forEach(el=>{
+    el.style.width=el.style.width;
+  });
+},500);
+</script>
+</body>
+</html>
