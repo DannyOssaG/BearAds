@@ -320,7 +320,7 @@ footer{
 
 <!-- NAV -->
 <nav id="navbar">
-  <a href="/index.html" class="nav-logo">
+  <a href="/auth/google" class="nav-logo">
     <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
       <rect width="34" height="34" rx="9" fill="#60a5fa" fill-opacity="0.12"/>
       <circle cx="17" cy="17" r="9" stroke="#60a5fa" stroke-width="1.4" fill="none" opacity="0.35"/>
@@ -332,9 +332,9 @@ footer{
   <div class="nav-links">
     <a href="#agentes">Agentes</a>
     <a href="#como-funciona">Cómo funciona</a>
-    <a href="/index.html">Precios</a>
+    <a href="/auth/google">Precios</a>
   </div>
-  <a href="/index.html" class="nav-cta">Comenzar gratis →</a>
+  <a href="/auth/google" class="nav-cta">Conectar con Google →</a>
 </nav>
 
 <!-- HERO -->
@@ -355,7 +355,7 @@ footer{
       Mirthos orquesta <strong>11 agentes IA especializados</strong> que analizan tu sitio, identifican competidores, crean campañas, generan contenido y escalan tu negocio — en minutos, no semanas.
     </p>
     <div class="hero-actions">
-      <a href="/index.html" class="btn-primary-lg">Analiza tu sitio gratis →</a>
+      <a href="/auth/google" class="btn-primary-lg">Analiza tu sitio gratis →</a>
       <a href="#como-funciona" class="btn-ghost-lg">Ver cómo funciona</a>
     </div>
     <div class="hero-stats">
@@ -614,7 +614,7 @@ footer{
           <div class="price-feat"><span class="price-feat-check">✓</span>Conexión Google (GSC + GA4)</div>
           <div class="price-feat" style="color:var(--mu)"><span>—</span> Sin agentes especializados</div>
         </div>
-        <a href="/index.html" class="price-btn price-btn-ghost">Comenzar gratis</a>
+        <a href="/auth/google" class="price-btn price-btn-ghost">Comenzar gratis</a>
       </div>
       <div class="price-card featured">
         <div class="price-featured-badge">Más popular</div>
@@ -629,7 +629,7 @@ footer{
           <div class="price-feat"><span class="price-feat-check">✓</span>Generación de copies y emails</div>
           <div class="price-feat"><span class="price-feat-check">✓</span>Historial de análisis</div>
         </div>
-        <a href="/index.html" class="price-btn price-btn-primary">Empezar con Pro →</a>
+        <a href="/auth/google" class="price-btn price-btn-primary">Empezar con Pro →</a>
       </div>
       <div class="price-card">
         <div class="price-plan">Agencia</div>
@@ -642,7 +642,7 @@ footer{
           <div class="price-feat"><span class="price-feat-check">✓</span>API de acceso</div>
           <div class="price-feat"><span class="price-feat-check">✓</span>Soporte prioritario</div>
         </div>
-        <a href="/index.html" class="price-btn price-btn-ghost">Contactar ventas</a>
+        <a href="/auth/google" class="price-btn price-btn-ghost">Contactar ventas</a>
       </div>
     </div>
   </div>
@@ -652,7 +652,7 @@ footer{
 <div class="cta-section reveal">
   <h2 class="cta-title">Tu sitio tiene problemas<br>que no conoces aún.</h2>
   <p class="cta-sub">Analiza tu sitio gratis ahora. En 60 segundos sabrás exactamente qué está frenando tu crecimiento y cómo solucionarlo.</p>
-  <a href="/index.html" class="btn-primary-lg" style="font-size:16px;padding:17px 44px;">
+  <a href="/auth/google" class="btn-primary-lg" style="font-size:16px;padding:17px 44px;">
     Analizar mi sitio gratis →
   </a>
   <div style="margin-top:20px;font-size:13px;color:var(--mu);">Sin tarjeta de crédito · Sin instalación · Resultados en 60 segundos</div>
@@ -665,10 +665,10 @@ footer{
     <div style="font-size:12px;color:var(--mu);margin-top:4px;">AI Marketing Intelligence Platform</div>
   </div>
   <div class="footer-links">
-    <a href="/index.html">Privacidad</a>
-    <a href="/index.html">Términos</a>
-    <a href="/index.html">Contacto</a>
-    <a href="/index.html">Blog</a>
+    <a href="/auth/google">Privacidad</a>
+    <a href="/auth/google">Términos</a>
+    <a href="/auth/google">Contacto</a>
+    <a href="/auth/google">Blog</a>
   </div>
   <div class="footer-copy">© 2026 Mirthos. Todos los derechos reservados.</div>
 </footer>
@@ -691,6 +691,12 @@ setTimeout(()=>{
     el.style.width=el.style.width;
   });
 },500);
+</script>
+<script>
+// Si viene del callback de Google OAuth, redirigir al app
+if (window.location.search.includes('connected=google')) {
+  window.location.href = '/';
+}
 </script>
 </body>
 </html>

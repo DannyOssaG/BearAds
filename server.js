@@ -1390,6 +1390,7 @@ app.get('/api/health', (req, res) => {
 
 // ── STATIC FILES (must be after API routes) ──
 app.use(express.static(path.join(__dirname, 'public'), {
+  index: false, // disable auto index.html
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('sw.js')) {
       res.setHeader('Service-Worker-Allowed', '/');
@@ -1400,6 +1401,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
     }
   }
 }));
+
+// ── ROOT: landing si no autenticado, app si autenticado ──
+app.get('/', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } else {
+    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+  }
+});
 
 // ── SPA FALLBACK ──
 app.get('*', (req, res) => {
