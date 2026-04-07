@@ -103,7 +103,7 @@ app.get('/api/debug/gsc-sites', async (req, res) => {
 async function scrapeSite(url) {
   try {
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Mirthos-Bot/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BearAds-Bot/1.0)' },
       signal: AbortSignal.timeout(12000)
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -375,20 +375,20 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
 
 
 const AGENT_PROMPTS = {
-  seo: `Eres el Agente SEO de Mirthos. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
+  seo: `Eres el Agente SEO de BearAds. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
 REGLAS: resumen max 180 chars. Cada detalle max 80 chars. Max 4 hallazgos. Max 3 oportunidades (cada una max 60 chars). Max 4 acciones (cada una max 80 chars).
 {"score":28,"resumen":"Sin H1, sin analítica, cero tráfico. Estructura básica existe pero falta implementación estratégica.","hallazgos":[{"tipo":"error","titulo":"Sin H1","detalle":"Ninguna página tiene H1. Google no puede identificar el tema."},{"tipo":"error","titulo":"Sin analítica","detalle":"Sin GTM ni GA4. Imposible medir rendimiento."},{"tipo":"ok","titulo":"SSL activo","detalle":"HTTPS correcto, requisito básico cumplido."}],"oportunidades":["Keywords long-tail por categoría de producto","Blog de guías de compra y comparativas","Fichas de producto con 300+ palabras"],"acciones":["Agregar H1 único en homepage con keyword principal","Instalar GA4 y GTM urgente","Reescribir title y meta description con keywords"]}`,
 
-  sem: `Eres el Agente SEM de Mirthos. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 5 keywords_sugeridas, máximo 5 acciones. Las acciones deben ser cortas (menos de 80 caracteres cada una).
+  sem: `Eres el Agente SEM de BearAds. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 5 keywords_sugeridas, máximo 5 acciones. Las acciones deben ser cortas (menos de 80 caracteres cada una).
 Ejemplo de respuesta: {"score":40,"resumen":"No hay evidencia de campañas SEM activas. El sitio tiene potencial para Google Ads en categorías de producto.","hallazgos":[{"tipo":"error","titulo":"Sin Google Ads detectado","detalle":"No se detecta pixel de conversión de Google Ads."},{"tipo":"advertencia","titulo":"Sin remarketing","detalle":"No hay pixel de remarketing configurado."},{"tipo":"ok","titulo":"FB Pixel activo","detalle":"El pixel de Facebook está instalado correctamente."}],"keywords_sugeridas":["comprar [producto] online","[producto] precio Colombia","[marca] tienda oficial","[producto] envío gratis","[categoría] barato"],"acciones":["Configurar Google Ads con campaña de Shopping","Instalar pixel de conversión de Google","Crear audiencias de remarketing en Meta"]}`,
 
-  contenido: `Eres el Agente de Contenido de Mirthos. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 4 acciones. Acciones cortas (menos de 80 caracteres).
+  contenido: `Eres el Agente de Contenido de BearAds. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 4 acciones. Acciones cortas (menos de 80 caracteres).
 Ejemplo de respuesta: {"score":55,"resumen":"El contenido del sitio es funcional pero carece de propuesta de valor diferenciada y copywriting persuasivo.","hallazgos":[{"tipo":"error","titulo":"Sin propuesta de valor clara","detalle":"El hero no comunica por qué comprar aquí y no en la competencia."},{"tipo":"advertencia","titulo":"Descripciones genéricas","detalle":"Los productos tienen descripciones cortas sin beneficios claros."},{"tipo":"ok","titulo":"Categorías organizadas","detalle":"La estructura de categorías es clara y navegable."}],"propuesta_valor":"No detectada — el sitio no comunica un diferenciador claro","acciones":["Crear headline principal con propuesta de valor única","Reescribir descripciones con beneficios y emociones","Agregar sección de garantías y confianza","Implementar reseñas de clientes en productos"]}`,
 
-  cro: `Eres el Agente CRO de Mirthos. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 3 fricciones, máximo 4 acciones. Todo corto y concreto.
+  cro: `Eres el Agente CRO de BearAds. RESPONDE ÚNICAMENTE CON JSON VÁLIDO. Sin texto antes ni después, sin markdown ni backticks. LÍMITES ESTRICTOS: máximo 4 hallazgos, máximo 3 fricciones, máximo 4 acciones. Todo corto y concreto.
 Ejemplo de respuesta: {"score":45,"resumen":"El funnel de conversión tiene fricciones importantes que reducen la tasa de compra. Se identificaron 3 puntos críticos.","hallazgos":[{"tipo":"error","titulo":"Checkout complejo","detalle":"El proceso de compra tiene demasiados pasos obligatorios."},{"tipo":"advertencia","titulo":"Sin badges de confianza","detalle":"No hay sellos de seguridad visibles cerca del botón de compra."},{"tipo":"ok","titulo":"Carrito persistente","detalle":"El carrito guarda productos entre sesiones."}],"fricciones":["Registro obligatorio antes de comprar","Falta de métodos de pago locales visibles","Sin indicador de progreso en el checkout"],"acciones":["Habilitar compra como invitado","Mostrar métodos de pago en página de producto","Agregar contador de stock para urgencia","Añadir badges de seguridad en checkout"]}`,
 
-  trafico: `Eres el Agente de Tráfico de Mirthos. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
+  trafico: `Eres el Agente de Tráfico de BearAds. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
 REGLAS: resumen max 180 chars. razon max 80 chars. Max 3 canales. Max 4 nexusai_puede (max 80 chars cada uno). Max 3 quick_wins (max 80 chars cada uno).
 {"score":15,"resumen":"Sin tráfico orgánico ni pagado. Sin analítica. Urgente implementar medición y canales de adquisición.","canales_recomendados":[{"canal":"Meta Ads","potencial":"muy_alto","razon":"Productos visuales ideales para feed ads. ROI medible desde día 1."},{"canal":"Google Shopping","potencial":"alto","razon":"Intención de compra alta. Feed de productos directo."}],"nexusai_puede":["Configurar FB Pixel y Conversions API","Crear campañas de catálogo en Meta Ads","Configurar Google Merchant Center y Shopping"],"quick_wins":["Instalar FB Pixel hoy — 1 hora","Lanzar campaña Meta $10/día con best sellers"],"datos_reales":false}`,
 
@@ -771,7 +771,7 @@ Dame:
 Sé específico con los números. En español.`;
 
     const reply = await callClaude(
-      'Eres el agente SEM de Mirthos, experto en optimización de Google Ads para LATAM.',
+      'Eres el agente SEM de BearAds, experto en optimización de Google Ads para LATAM.',
       prompt, 1500
     );
     res.json({ reply, analyzedAt: new Date().toISOString() });
@@ -854,7 +854,7 @@ app.post('/api/meta/optimize', async (req, res) => {
   ).join('\n');
 
   const reply = await callClaude(
-    'Eres el agente de Anuncios de Mirthos, experto en Meta Ads para LATAM.',
+    'Eres el agente de Anuncios de BearAds, experto en Meta Ads para LATAM.',
     `Analiza estas campañas reales de Meta Ads y optimiza:\n\n${summary}\n\nPresupuesto: $${budget || '?'}/mes\nObjetivo: ${goal || 'ventas'}\n\nDame: 1) Qué pausar 2) Qué escalar 3) Qué cambiar en los creativos 4) Ajuste de audiencias 5) Acciones esta semana. Con números específicos.`,
     1200
   );
@@ -985,7 +985,7 @@ Sé muy específico con números reales para LATAM. En español.`;
 
   try {
     const reply = await callClaude(
-      'Eres el Director Estratégico de Mirthos. Creas planes de marketing completos, específicos y ejecutables para PyMEs latinoamericanas. Siempre incluyes números reales, no rangos vagos.',
+      'Eres el Director Estratégico de BearAds. Creas planes de marketing completos, específicos y ejecutables para PyMEs latinoamericanas. Siempre incluyes números reales, no rangos vagos.',
       prompt, 4000
     );
     res.json({ plan: reply, generatedAt: new Date().toISOString() });
@@ -1045,7 +1045,7 @@ Todos listos para publicar. Adaptados para Colombia/LATAM.`;
 
   try {
     const copyReply = await callClaude(
-      'Eres el agente Creativo & Anuncios de Mirthos. Creas copies publicitarios que convierten para el mercado latinoamericano.',
+      'Eres el agente Creativo & Anuncios de BearAds. Creas copies publicitarios que convierten para el mercado latinoamericano.',
       copyPrompt, 2000
     );
 
@@ -1275,7 +1275,7 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 1500,
-        system: systemPrompt || 'Eres el Director Estratégico de Mirthos. Respondes en español, estratégico y conciso.',
+        system: systemPrompt || 'Eres el Director Estratégico de BearAds. Respondes en español, estratégico y conciso.',
         messages
       })
     });
@@ -1307,7 +1307,7 @@ app.get('/admin/clear', (req, res) => {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Limpiar datos — Mirthos</title>
+<title>Limpiar datos — BearAds</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: system-ui, sans-serif; background:#f6f9fc; display:flex; align-items:center; justify-content:center; min-height:100vh; }
@@ -1339,19 +1339,19 @@ app.get('/admin/clear', (req, res) => {
 </div>
 <script>
   // Show what will be deleted
-  var mirthosKeys = Object.keys(localStorage).filter(function(k) {
-    return k.startsWith('mirthos_') || k.startsWith('nexusai_');
+  var bearadsKeys = Object.keys(localStorage).filter(function(k) {
+    return k.startsWith('bearads_') || k.startsWith('nexusai_');
   });
-  if (mirthosKeys.length > 0) {
+  if (bearadsKeys.length > 0) {
     var list = document.getElementById('keys-list');
     list.style.display = 'block';
-    list.innerHTML = '<strong>' + mirthosKeys.length + ' registros encontrados:</strong><br>' + mirthosKeys.map(function(k) { return '• ' + k; }).join('<br>');
+    list.innerHTML = '<strong>' + bearadsKeys.length + ' registros encontrados:</strong><br>' + bearadsKeys.map(function(k) { return '• ' + k; }).join('<br>');
   }
 
   function clearData() {
     var deleted = 0;
     var keys = Object.keys(localStorage).filter(function(k) {
-      return k.startsWith('mirthos_') || k.startsWith('nexusai_');
+      return k.startsWith('bearads_') || k.startsWith('nexusai_');
     });
     keys.forEach(function(k) { localStorage.removeItem(k); deleted++; });
     
@@ -1363,7 +1363,7 @@ app.get('/admin/clear', (req, res) => {
       setTimeout(function() { window.location.href = '/'; }, 2000);
     } else {
       result.className = 'result err';
-      result.innerHTML = 'No se encontraron datos de Mirthos en este navegador.';
+      result.innerHTML = 'No se encontraron datos de BearAds en este navegador.';
     }
     document.getElementById('keys-list').style.display = 'none';
   }
@@ -1480,7 +1480,7 @@ Incluye:
 Tono: directo, ejecutivo, con números específicos. En español. Máximo 300 palabras.`;
 
   const aiInsights = await callClaude(
-    'Eres el Director Estratégico de Mirthos. Generas reportes ejecutivos de marketing concisos y accionables.',
+    'Eres el Director Estratégico de BearAds. Generas reportes ejecutivos de marketing concisos y accionables.',
     aiPrompt, 600
   );
 
@@ -1496,7 +1496,7 @@ Tono: directo, ejecutivo, con números específicos. En español. Máximo 300 pa
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reporte Semanal — Mirthos</title>
+<title>Reporte Semanal — BearAds</title>
 </head>
 <body style="margin:0;padding:0;background:#f0f2f5;font-family:'Inter',Arial,sans-serif;">
 <div style="max-width:600px;margin:0 auto;padding:20px;">
@@ -1563,8 +1563,8 @@ Tono: directo, ejecutivo, con números específicos. En español. Máximo 300 pa
 
   <!-- Footer -->
   <div style="text-align:center;padding:16px;">
-    <div style="font-size:12px;color:#9ca3af;">Generado por <strong>Mirthos IA</strong> · Marketing inteligente para LATAM</div>
-    <div style="font-size:11px;color:#d1d5db;margin-top:6px;">Recibes este reporte porque configuraste el score semanal en Mirthos.</div>
+    <div style="font-size:12px;color:#9ca3af;">Generado por <strong>BearAds IA</strong> · Marketing inteligente para LATAM</div>
+    <div style="font-size:11px;color:#d1d5db;margin-top:6px;">Recibes este reporte porque configuraste el score semanal en BearAds.</div>
   </div>
 
 </div>
@@ -1579,7 +1579,7 @@ async function sendWeeklyReport(subscription) {
     const { html, subject } = await generateWeeklyReport(subscription);
     const transporter = getEmailTransporter();
     await transporter.sendMail({
-      from: `"Mirthos IA" <${process.env.EMAIL_USER}>`,
+      from: `"BearAds IA" <${process.env.EMAIL_USER}>`,
       to: subscription.email,
       subject,
       html
@@ -1663,7 +1663,7 @@ app.delete('/api/email/unsubscribe', (req, res) => {
 app.set('trust proxy', 1);
 
 app.listen(PORT, () => {
-  console.log(`\n✅ Mirthos v2 en http://localhost:${PORT}`);
+  console.log(`\n✅ BearAds v2 en http://localhost:${PORT}`);
   console.log(`🔑 Anthropic: ${process.env.ANTHROPIC_API_KEY ? '✓' : '✗'}`);
   console.log(`🎨 OpenAI/DALL-E: ${process.env.OPENAI_API_KEY ? '✓' : '✗ (agregar OPENAI_API_KEY para imágenes)'}`);
   console.log(`📢 Google Ads: ${process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? '✓' : '✗ (agregar credenciales en .env)'}`);
