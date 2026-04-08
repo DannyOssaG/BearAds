@@ -1,8 +1,10 @@
 // MIRTHOS-SERVER-BUILD-20260318-V3
 require('dotenv').config();
 const express = require('express');
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
+const crypto = require('crypto');
 const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
@@ -12,8 +14,121 @@ const { google } = require('googleapis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const DATA_DIR = path.join(__dirname, 'data');
+const OAUTH_USERS_FILE = path.join(DATA_DIR, 'oauth-users.json');
+const SESSION_STORE_FILE = path.join(DATA_DIR, 'sessions.json');
+const EMAIL_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'email-subscriptions.json');
 
-app.use(cors());
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
+function readJsonFile(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (error) {
+    console.error('Failed to read JSON store:', filePath, error.message);
+    return fallback;
+  }
+}
+
+function writeJsonFile(filePath, value) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  } catch (error) {
+    console.error('Failed to write JSON store:', filePath, error.message);
+  }
+}
+
+class FileSessionStore extends session.Store {
+  constructor(filePath) {
+    super();
+    this.filePath = filePath;
+    this.sessions = readJsonFile(filePath, {});
+  }
+
+  get(sid, cb) {
+    const raw = this.sessions[sid];
+    if (!raw) return cb(null, null);
+    try {
+      cb(null, JSON.parse(raw));
+    } catch (error) {
+      cb(error);
+    }
+  }
+
+  set(sid, sess, cb = () => {}) {
+    try {
+      this.sessions[sid] = JSON.stringify(sess);
+      writeJsonFile(this.filePath, this.sessions);
+      cb(null);
+    } catch (error) {
+      cb(error);
+    }
+  }
+
+  destroy(sid, cb = () => {}) {
+    delete this.sessions[sid];
+    writeJsonFile(this.filePath, this.sessions);
+    cb(null);
+  }
+
+  touch(sid, sess, cb = () => {}) {
+    this.set(sid, sess, cb);
+  }
+}
+
+const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const sessionStore = new FileSessionStore(SESSION_STORE_FILE);
+const oauthUsers = readJsonFile(OAUTH_USERS_FILE, {});
+
+if (!process.env.SESSION_SECRET) {
+  console.warn('SESSION_SECRET not set. Generated an ephemeral secret for this process.');
+}
+
+function saveOAuthUsers() {
+  writeJsonFile(OAUTH_USERS_FILE, oauthUsers);
+}
+
+function upsertOAuthUser(profile, accessToken, refreshToken) {
+  const userId = profile.id || crypto.randomUUID();
+  const existing = oauthUsers[userId] || {};
+
+  oauthUsers[userId] = {
+    id: userId,
+    name: profile.displayName,
+    email: profile.emails?.[0]?.value,
+    photo: profile.photos?.[0]?.value,
+    accessToken: accessToken || existing.accessToken || null,
+    refreshToken: refreshToken || existing.refreshToken || null,
+    updatedAt: new Date().toISOString()
+  };
+
+  saveOAuthUsers();
+  return userId;
+}
+
+app.set('trust proxy', 1);
+
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+app.use(cors(allowedOrigins.length ? {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+  credentials: true
+} : false));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 app.use(express.json({ limit: '10mb' }));
 
 // ── PING (diagnostico) ──
@@ -21,17 +136,24 @@ app.get('/api/ping', (req, res) => res.json({ pong: true, version: 'v2', time: n
 
 // ── SESSION ──
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'mirthos-secret-2025',
+  secret: sessionSecret,
+  name: 'mirthos.sid',
+  store: sessionStore,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }
+  cookie: {
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction
+  }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser((userId, done) => done(null, oauthUsers[userId] || false));
 
 // ── GOOGLE OAUTH (GSC + GA4) ──
 passport.use(new GoogleStrategy({
@@ -45,14 +167,8 @@ passport.use(new GoogleStrategy({
     'https://www.googleapis.com/auth/adwords'
   ]
 }, (accessToken, refreshToken, profile, done) => {
-  return done(null, {
-    id: profile.id,
-    name: profile.displayName,
-    email: profile.emails?.[0]?.value,
-    photo: profile.photos?.[0]?.value,
-    accessToken,
-    refreshToken
-  });
+  const userId = upsertOAuthUser(profile, accessToken, refreshToken);
+  return done(null, { id: userId });
 }));
 
 // ── AUTH ROUTES ──
@@ -73,7 +189,12 @@ app.get('/auth/google/callback',
 );
 
 app.get('/auth/logout', (req, res) => {
-  req.logout(() => res.redirect('/'));
+  req.logout(() => {
+    req.session.destroy(() => {
+      res.clearCookie('mirthos.sid');
+      res.redirect('/');
+    });
+  });
 });
 
 app.get('/auth/status', (req, res) => {
@@ -1413,7 +1534,10 @@ app.get('/', (req, res) => {
 
 // ── SPA FALLBACK ──
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  if (req.isAuthenticated()) {
+    return res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'landing.html'));
 });
 
 // ── GLOBAL ERROR HANDLER (must be last) ──
@@ -1441,9 +1565,18 @@ function getEmailTransporter() {
   });
 }
 
-// In-memory store for email subscriptions
-// In production this should be a database
-const emailSubscriptions = new Map();
+// File-backed store for email subscriptions.
+// This removes data loss on restart, but a real database is still recommended.
+const emailSubscriptions = new Map(
+  Object.entries(readJsonFile(EMAIL_SUBSCRIPTIONS_FILE, {}))
+);
+
+function persistEmailSubscriptions() {
+  writeJsonFile(
+    EMAIL_SUBSCRIPTIONS_FILE,
+    Object.fromEntries(emailSubscriptions.entries())
+  );
+}
 
 async function generateWeeklyReport(subscription) {
   const { email, siteUrl, ga4PropertyId, accessToken, businessName } = subscription;
@@ -1614,6 +1747,7 @@ app.post('/api/email/subscribe', async (req, res) => {
     accessToken,
     subscribedAt: new Date().toISOString()
   });
+  persistEmailSubscriptions();
 
   console.log('✓ Email subscription saved for:', email);
   res.json({ success: true, message: 'Reporte configurado. Recibirás el próximo lunes a las 8am.' });
@@ -1656,11 +1790,9 @@ app.get('/api/email/subscriptions', (req, res) => {
 app.delete('/api/email/unsubscribe', (req, res) => {
   const { email } = req.body;
   emailSubscriptions.delete(email);
+  persistEmailSubscriptions();
   res.json({ success: true });
 });
-
-
-app.set('trust proxy', 1);
 
 app.listen(PORT, () => {
   console.log(`\n✅ BearAds v2 en http://localhost:${PORT}`);
