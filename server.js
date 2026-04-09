@@ -1533,7 +1533,12 @@ app.get('/', (req, res) => {
 });
 
 // ── SPA FALLBACK ──
-app.get('*', (req, res) => {
+// Express 5 no longer accepts `app.get('*')` with path-to-regexp v8.
+// We only serve the SPA shell for unmatched GET/HEAD requests.
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
+
   if (req.isAuthenticated()) {
     return res.sendFile(path.join(__dirname, 'public', 'index.html'));
   }
