@@ -4882,8 +4882,10 @@ function getFindingColor(tipo) {
 
 function renderFindings(containerId, findings) {
   const el = document.getElementById(containerId);
-  if (!el || !findings) return;
-  el.innerHTML = findings.map(f => `
+  const safeFindings = Array.isArray(findings) ? findings : [];
+  if (!el) return;
+  if (!safeFindings.length) { el.innerHTML = ''; return; }
+  el.innerHTML = safeFindings.map(f => `
     <div class="finding-item">
       <div class="finding-dot" style="background:${getFindingColor(f.tipo)}"></div>
       <div>
@@ -4895,14 +4897,18 @@ function renderFindings(containerId, findings) {
 
 function renderActions(containerId, actions) {
   const el = document.getElementById(containerId);
-  if (!el || !actions) return;
-  el.innerHTML = actions.map(a => `<div class="action-item">${esc(a)}</div>`).join('');
+  const safeActions = Array.isArray(actions) ? actions : [];
+  if (!el) return;
+  if (!safeActions.length) { el.innerHTML = ''; return; }
+  el.innerHTML = safeActions.map(a => `<div class="action-item">${esc(a)}</div>`).join('');
 }
 
 function renderTags(containerId, items, color) {
   const el = document.getElementById(containerId);
-  if (!el || !items) return;
-  el.innerHTML = items.map(i => `
+  const safeItems = Array.isArray(items) ? items : [];
+  if (!el) return;
+  if (!safeItems.length) { el.innerHTML = ''; return; }
+  el.innerHTML = safeItems.map(i => `
     <span style="padding:3px 10px;border-radius:6px;font-size:10px;background:${color}15;border:1px solid ${color}30;color:${color};">${esc(i)}</span>`
   ).join('');
 }
@@ -5011,8 +5017,9 @@ function renderResults(data) {
   renderFindings('findings-cro', data.cro?.hallazgos);
   renderActions('actions-cro', data.cro?.acciones);
   const fricEl = document.getElementById('frictions-cro');
-  if (fricEl && data.cro?.fricciones) {
-    fricEl.innerHTML = data.cro.fricciones.map(f => `
+  const croFrictions = Array.isArray(data.cro?.fricciones) ? data.cro.fricciones : [];
+  if (fricEl) {
+    fricEl.innerHTML = croFrictions.map(f => `
       <div style="display:flex;gap:8px;padding:8px 10px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.15);border-radius:8px;font-size:11px;color:var(--text);">
         <span style="color:var(--danger);flex-shrink:0;">⚠</span>${esc(f)}
       </div>`).join('');
@@ -5022,8 +5029,9 @@ function renderResults(data) {
   // Tráfico detail
   document.getElementById('summary-trafico').textContent = data.trafico?.resumen || '';
   const chEl = document.getElementById('channels-trafico');
-  if (chEl && data.trafico?.canales_recomendados) {
-    chEl.innerHTML = data.trafico.canales_recomendados.map(c => `
+  const trafficChannels = Array.isArray(data.trafico?.canales_recomendados) ? data.trafico.canales_recomendados : [];
+  if (chEl) {
+    chEl.innerHTML = trafficChannels.map(c => `
       <div class="channel-item">
         <div class="channel-name">
           ${esc(c.canal)}
@@ -5033,12 +5041,14 @@ function renderResults(data) {
       </div>`).join('');
   }
   const nxEl = document.getElementById('bearads-trafico');
-  if (nxEl && data.trafico?.bearads_puede) {
-    nxEl.innerHTML = data.trafico.bearads_puede.map(n => `<div class="bearads-item">${esc(n)}</div>`).join('');
+  const trafficBearads = Array.isArray(data.trafico?.bearads_puede) ? data.trafico.bearads_puede : [];
+  if (nxEl) {
+    nxEl.innerHTML = trafficBearads.map(n => `<div class="bearads-item">${esc(n)}</div>`).join('');
   }
   const qwEl = document.getElementById('quickwins-trafico');
-  if (qwEl && data.trafico?.quick_wins) {
-    qwEl.innerHTML = data.trafico.quick_wins.map(q => `<div class="action-item">${esc(q)}</div>`).join('');
+  const trafficQuickWins = Array.isArray(data.trafico?.quick_wins) ? data.trafico.quick_wins : [];
+  if (qwEl) {
+    qwEl.innerHTML = trafficQuickWins.map(q => `<div class="action-item">${esc(q)}</div>`).join('');
   }
 
   // Render real traffic data if available
