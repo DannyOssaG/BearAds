@@ -1,4 +1,10 @@
 {
+  "name": "bearads",
+  "private": true,
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
