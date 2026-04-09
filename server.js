@@ -19,6 +19,10 @@ const DATA_DIR = path.join(__dirname, 'data');
 const OAUTH_USERS_FILE = path.join(DATA_DIR, 'oauth-users.json');
 const SESSION_STORE_FILE = path.join(DATA_DIR, 'sessions.json');
 const EMAIL_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'email-subscriptions.json');
+const APP_USERS_FILE = path.join(DATA_DIR, 'app-users.json');
+const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
+const MEMBERSHIPS_FILE = path.join(DATA_DIR, 'memberships.json');
+const INVITES_FILE = path.join(DATA_DIR, 'user-invites.json');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -38,6 +42,11 @@ function writeJsonFile(filePath, value) {
   } catch (error) {
     console.error('Failed to write JSON store:', filePath, error.message);
   }
+}
+
+function replaceJsonStore(target, nextValue) {
+  Object.keys(target).forEach(key => delete target[key]);
+  Object.assign(target, nextValue || {});
 }
 
 class FileSessionStore extends session.Store {
@@ -81,6 +90,20 @@ class FileSessionStore extends session.Store {
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const sessionStore = new FileSessionStore(SESSION_STORE_FILE);
 const oauthUsers = readJsonFile(OAUTH_USERS_FILE, {});
+const appUsers = readJsonFile(APP_USERS_FILE, {});
+const workspaces = readJsonFile(WORKSPACES_FILE, {});
+const memberships = readJsonFile(MEMBERSHIPS_FILE, {});
+const userInvites = readJsonFile(INVITES_FILE, {});
+const TRIAL_DAYS = Math.max(1, parseInt(process.env.TRIAL_DAYS || '15', 10));
+const PLATFORM_OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.BEARADS_OWNER_EMAILS || '')
+  .split(',')
+  .map(email => email.trim().toLowerCase())
+  .filter(Boolean);
+const PRIMARY_OWNER_EMAIL = normalizeOwnerEmail(
+  process.env.PRIMARY_OWNER_EMAIL ||
+  process.env.BEARADS_PRIMARY_OWNER_EMAIL ||
+  'dannydlog@gmail.com'
+);
 
 if (!process.env.SESSION_SECRET) {
   console.warn('SESSION_SECRET not set. Generated an ephemeral secret for this process.');
@@ -90,14 +113,426 @@ function saveOAuthUsers() {
   writeJsonFile(OAUTH_USERS_FILE, oauthUsers);
 }
 
+function saveAppUsers() {
+  writeJsonFile(APP_USERS_FILE, appUsers);
+}
+
+function saveWorkspaces() {
+  writeJsonFile(WORKSPACES_FILE, workspaces);
+}
+
+function saveMemberships() {
+  writeJsonFile(MEMBERSHIPS_FILE, memberships);
+}
+
+function saveInvites() {
+  writeJsonFile(INVITES_FILE, userInvites);
+}
+
+function normalizeOwnerEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function refreshPersistentState() {
+  replaceJsonStore(oauthUsers, readJsonFile(OAUTH_USERS_FILE, {}));
+  replaceJsonStore(appUsers, readJsonFile(APP_USERS_FILE, {}));
+  replaceJsonStore(workspaces, readJsonFile(WORKSPACES_FILE, {}));
+  replaceJsonStore(memberships, readJsonFile(MEMBERSHIPS_FILE, {}));
+  replaceJsonStore(userInvites, readJsonFile(INVITES_FILE, {}));
+  syncPlatformOwners();
+}
+
+function syncPlatformOwners() {
+  let changed = false;
+  Object.values(appUsers).forEach(user => {
+    const normalizedEmail = normalizeEmail(user.email);
+    const shouldBeOwner = PLATFORM_OWNER_EMAILS.includes(normalizedEmail) || normalizedEmail === PRIMARY_OWNER_EMAIL;
+    if (shouldBeOwner && user.platformRole !== 'owner') {
+      user.platformRole = 'owner';
+      user.updatedAt = nowIso();
+      changed = true;
+    }
+  });
+  if (changed) saveAppUsers();
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function slugify(value) {
+  return String(value || 'workspace')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 48) || 'workspace';
+}
+
+function addDays(dateLike, days) {
+  const date = new Date(dateLike);
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
+}
+
+function membershipKey(workspaceId, userId) {
+  return `${workspaceId}:${userId}`;
+}
+
+function getWorkspaceMembers(workspaceId) {
+  return Object.values(memberships)
+    .filter(membership => membership.workspaceId === workspaceId && membership.status !== 'removed');
+}
+
+function getUserMemberships(userId) {
+  return Object.values(memberships)
+    .filter(membership => membership.userId === userId && membership.status !== 'removed');
+}
+
+function getPrimaryMembership(userId) {
+  return getUserMemberships(userId)
+    .sort((a, b) => {
+      const roleOrder = { owner: 0, admin: 1, billing: 2, developer: 3, member_paid: 4, member_trial: 5, member: 6, manager: 7, viewer: 8 };
+      return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+    })[0] || null;
+}
+
+function resolveMembershipRole(role, workspace = null) {
+  const normalized = String(role || '').toLowerCase();
+  if (normalized === 'manager') return 'admin';
+  if (normalized === 'viewer') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
+  if (normalized === 'member') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
+  if (normalized === 'trial') return 'member_trial';
+  if (normalized === 'paid') return 'member_paid';
+  return normalized || (workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid');
+}
+
+function defaultMemberRoleForWorkspace(workspace) {
+  return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
+}
+
+function getEffectiveMembershipRole(membership, workspace = null) {
+  if (!membership) return null;
+  if (workspace?.ownerUserId && membership.userId === workspace.ownerUserId) return 'owner';
+  return resolveMembershipRole(membership.role, workspace);
+}
+
+function rolePermissions(role = 'member_trial') {
+  const resolvedRole = resolveMembershipRole(role);
+  return {
+    canView: true,
+    canEdit: ['owner', 'admin', 'developer', 'billing', 'member_paid', 'member_trial'].includes(resolvedRole),
+    canAccessAdminPanel: ['owner', 'admin', 'developer', 'billing'].includes(resolvedRole),
+    canManageUsers: ['owner', 'admin'].includes(resolvedRole),
+    canSuspendUsers: ['owner', 'admin', 'billing'].includes(resolvedRole),
+    canManageBilling: ['owner', 'billing'].includes(resolvedRole),
+    canAccessTechnical: ['owner', 'developer'].includes(resolvedRole),
+    canAccessGrowth: ['owner', 'admin'].includes(resolvedRole),
+    canRunAutomations: ['owner', 'admin'].includes(resolvedRole),
+    isOwner: resolvedRole === 'owner',
+    role: resolvedRole
+  };
+}
+
+function createWorkspace(name, ownerUserId, createdBy) {
+  const workspaceId = crypto.randomUUID();
+  const now = nowIso();
+  const workspace = {
+    id: workspaceId,
+    name: name || 'BearAds Workspace',
+    slug: slugify(name || 'bearads-workspace'),
+    createdAt: now,
+    updatedAt: now,
+    ownerUserId,
+    createdBy: createdBy || ownerUserId,
+    subscription: {
+      plan: 'trial',
+      status: 'trialing',
+      trialStartedAt: now,
+      trialEndsAt: addDays(now, TRIAL_DAYS),
+      startedAt: now,
+      source: 'new-user'
+    },
+    settings: {
+      autopilotEnabled: false,
+      benchmarkMode: true,
+      preferredPlatforms: ['google', 'meta', 'ga4', 'gsc']
+    }
+  };
+  workspaces[workspaceId] = workspace;
+  saveWorkspaces();
+  return workspace;
+}
+
+function findInviteByEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+  return Object.values(userInvites).find(invite =>
+    invite.status === 'pending' && normalizeEmail(invite.email) === normalizedEmail
+  ) || null;
+}
+
+function findAppUser(profile) {
+  const googleId = profile?.id;
+  const email = normalizeEmail(profile?.emails?.[0]?.value);
+  return Object.values(appUsers).find(user =>
+    (googleId && user.googleId === googleId) ||
+    (email && normalizeEmail(user.email) === email)
+  ) || null;
+}
+
+function ensureMembership(workspaceId, userId, role, invitedBy = null) {
+  const key = membershipKey(workspaceId, userId);
+  const existing = memberships[key];
+  const now = nowIso();
+  const workspace = workspaces[workspaceId] || null;
+  memberships[key] = {
+    workspaceId,
+    userId,
+    role: resolveMembershipRole(role || existing?.role || defaultMemberRoleForWorkspace(workspace), workspace),
+    invitedBy: invitedBy || existing?.invitedBy || null,
+    status: 'active',
+    joinedAt: existing?.joinedAt || now,
+    updatedAt: now
+  };
+  saveMemberships();
+  return memberships[key];
+}
+
+function buildSessionUser(userId) {
+  refreshPersistentState();
+  const user = appUsers[userId];
+  const oauth = oauthUsers[userId] || {};
+  if (!user) return false;
+  const rawMembership = getPrimaryMembership(userId);
+  const workspace = rawMembership ? workspaces[rawMembership.workspaceId] : null;
+  const membership = rawMembership ? { ...rawMembership, role: getEffectiveMembershipRole(rawMembership, workspace) } : null;
+  return {
+    ...user,
+    accessToken: oauth.accessToken || null,
+    refreshToken: oauth.refreshToken || null,
+    membership,
+    workspace
+  };
+}
+
+function rehydrateRequestUser(req) {
+  if (!req?.user?.id) return null;
+  const freshUser = buildSessionUser(req.user.id);
+  if (freshUser) req.user = freshUser;
+  return freshUser;
+}
+
+function isPlatformOwner(user) {
+  return user?.platformRole === 'owner' || user?.membership?.role === 'owner';
+}
+
+function isPrimaryPlatformOwner(user) {
+  return normalizeEmail(user?.email) === PRIMARY_OWNER_EMAIL;
+}
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    googleId: user.googleId || null,
+    name: user.name,
+    email: user.email,
+    photo: user.photo || null,
+    platformRole: user.platformRole || 'member',
+    status: user.status || 'active',
+    createdAt: user.createdAt,
+    lastLoginAt: user.lastLoginAt || null
+  };
+}
+
+function sanitizeWorkspace(workspace) {
+  if (!workspace) return null;
+  const subscription = workspace.subscription || {};
+  const trialEndsAt = subscription.trialEndsAt || null;
+  const now = Date.now();
+  const remainingTrialDays = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - now) / (24 * 60 * 60 * 1000)))
+    : 0;
+  return {
+    id: workspace.id,
+    name: workspace.name,
+    slug: workspace.slug,
+    ownerUserId: workspace.ownerUserId,
+    createdAt: workspace.createdAt,
+    profile: workspace.profile || {},
+    subscription: {
+      ...subscription,
+      remainingTrialDays
+    },
+    settings: workspace.settings || {}
+  };
+}
+
+function matchesUserQuery(user, query) {
+  const normalized = normalizeEmail(query || '').trim();
+  if (!normalized) return true;
+  const haystack = [
+    user?.id,
+    user?.googleId,
+    user?.email,
+    user?.name
+  ].filter(Boolean).map(value => String(value).toLowerCase());
+  return haystack.some(value => value.includes(normalized));
+}
+
+function ensureUserAccessModel(profile) {
+  const now = nowIso();
+  const email = normalizeEmail(profile?.emails?.[0]?.value);
+  const displayName = profile?.displayName || email || 'Usuario BearAds';
+  let user = findAppUser(profile);
+  const existingUsersCount = Object.keys(appUsers).length;
+  const platformOwner = PLATFORM_OWNER_EMAILS.includes(email) || existingUsersCount === 0;
+
+  if (!user) {
+    const userId = profile?.id || crypto.randomUUID();
+    user = {
+      id: userId,
+      googleId: profile?.id || null,
+      email,
+      name: displayName,
+      photo: profile?.photos?.[0]?.value || null,
+      platformRole: platformOwner ? 'owner' : 'member',
+      status: 'active',
+      createdAt: now,
+      lastLoginAt: now
+    };
+    appUsers[userId] = user;
+  } else {
+    user.googleId = profile?.id || user.googleId || null;
+    user.email = email || user.email;
+    user.name = displayName || user.name;
+    user.photo = profile?.photos?.[0]?.value || user.photo || null;
+    user.lastLoginAt = now;
+    if (!user.platformRole) user.platformRole = platformOwner ? 'owner' : 'member';
+  }
+
+  const invite = findInviteByEmail(email);
+  let membership = getPrimaryMembership(user.id);
+
+  if (invite && workspaces[invite.workspaceId]) {
+    membership = ensureMembership(invite.workspaceId, user.id, invite.role || 'member', invite.invitedBy || null);
+    invite.status = 'accepted';
+    invite.acceptedAt = now;
+    invite.acceptedBy = user.id;
+    saveInvites();
+  }
+
+  if (!membership) {
+    const workspace = createWorkspace(
+      user.platformRole === 'owner' ? `BearAds HQ · ${displayName}` : displayName,
+      user.id,
+      user.id
+    );
+    membership = ensureMembership(workspace.id, user.id, 'owner', user.id);
+  }
+
+  const workspace = workspaces[membership.workspaceId];
+  if (workspace) {
+    workspace.updatedAt = now;
+    workspace.ownerUserId = workspace.ownerUserId || user.id;
+    workspace.subscription = workspace.subscription || {
+      plan: 'trial',
+      status: 'trialing',
+      trialStartedAt: now,
+      trialEndsAt: addDays(now, TRIAL_DAYS),
+      startedAt: now,
+      source: 'new-user'
+    };
+    saveWorkspaces();
+  }
+
+  saveAppUsers();
+  return user.id;
+}
+
+function migrateLegacyUsers() {
+  Object.values(oauthUsers).forEach(legacyUser => {
+    if (appUsers[legacyUser.id]) return;
+    const pseudoProfile = {
+      id: legacyUser.id,
+      displayName: legacyUser.name || legacyUser.email || 'Usuario BearAds',
+      emails: legacyUser.email ? [{ value: legacyUser.email }] : [],
+      photos: legacyUser.photo ? [{ value: legacyUser.photo }] : []
+    };
+    ensureUserAccessModel(pseudoProfile);
+  });
+}
+
+function requireAuth(req, res, next) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+  return next();
+}
+
+function requireAdminPanelAccess(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const permissions = rolePermissions(currentUser.membership?.role);
+  if (isPlatformOwner(currentUser) || permissions.canAccessAdminPanel) return next();
+  return res.status(403).json({ error: 'Permisos insuficientes' });
+}
+
+function requirePlatformOwner(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  if (isPlatformOwner(currentUser)) return next();
+  return res.status(403).json({ error: 'Solo disponible para owner de plataforma' });
+}
+
+function requireUserManagement(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const permissions = rolePermissions(currentUser.membership?.role);
+  if (isPlatformOwner(currentUser) || permissions.canManageUsers) return next();
+  return res.status(403).json({ error: 'No puedes gestionar usuarios' });
+}
+
+function requireUserOperations(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const permissions = rolePermissions(currentUser.membership?.role);
+  if (isPlatformOwner(currentUser) || permissions.canManageUsers || permissions.canSuspendUsers) return next();
+  return res.status(403).json({ error: 'No puedes operar usuarios' });
+}
+
+function requireBillingAccess(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const permissions = rolePermissions(currentUser.membership?.role);
+  if (isPlatformOwner(currentUser) || permissions.canManageBilling) return next();
+  return res.status(403).json({ error: 'No puedes acceder a billing' });
+}
+
+function requireGrowthAccess(req, res, next) {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const permissions = rolePermissions(currentUser.membership?.role);
+  if (isPlatformOwner(currentUser) || permissions.canAccessGrowth) return next();
+  return res.status(403).json({ error: 'No puedes acceder a growth' });
+}
+
+migrateLegacyUsers();
+syncPlatformOwners();
+
 function upsertOAuthUser(profile, accessToken, refreshToken) {
-  const userId = profile.id || crypto.randomUUID();
+  const userId = ensureUserAccessModel(profile);
   const existing = oauthUsers[userId] || {};
 
   oauthUsers[userId] = {
     id: userId,
     name: profile.displayName,
-    email: profile.emails?.[0]?.value,
+    email: normalizeEmail(profile.emails?.[0]?.value),
     photo: profile.photos?.[0]?.value,
     accessToken: accessToken || existing.accessToken || null,
     refreshToken: refreshToken || existing.refreshToken || null,
@@ -153,7 +588,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser((userId, done) => done(null, oauthUsers[userId] || false));
+passport.deserializeUser((userId, done) => done(null, buildSessionUser(userId) || false));
 
 // ── GOOGLE OAUTH (GSC + GA4) ──
 passport.use(new GoogleStrategy({
@@ -198,11 +633,477 @@ app.get('/auth/logout', (req, res) => {
 });
 
 app.get('/auth/status', (req, res) => {
+  rehydrateRequestUser(req);
   if (req.isAuthenticated()) {
-    res.json({ connected: true, user: { name: req.user.name, email: req.user.email, photo: req.user.photo } });
+    res.json({
+      connected: true,
+      user: sanitizeUser(req.user),
+      membership: req.user.membership || null,
+      workspace: sanitizeWorkspace(req.user.workspace),
+      permissions: rolePermissions(req.user.membership?.role),
+      isPlatformOwner: isPlatformOwner(req.user)
+    });
   } else {
     res.json({ connected: false });
   }
+});
+
+app.get('/api/session', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const membership = currentUser.membership || null;
+  const workspace = sanitizeWorkspace(currentUser.workspace);
+  res.json({
+    authenticated: true,
+    user: sanitizeUser(currentUser),
+    membership,
+    workspace,
+    permissions: rolePermissions(membership?.role),
+    isPlatformOwner: isPlatformOwner(currentUser)
+  });
+});
+
+app.patch('/api/profile', requireAuth, (req, res) => {
+  const user = appUsers[req.user.id];
+  const membership = req.user.membership;
+  const workspace = membership ? workspaces[membership.workspaceId] : null;
+  if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+  const nextName = String(req.body.name || '').trim();
+  const nextPhoto = String(req.body.photo || '').trim();
+  const nextBusinessName = String(req.body.businessName || '').trim();
+  const nextIndustry = String(req.body.industry || '').trim();
+  const nextWebsite = String(req.body.website || '').trim();
+
+  if (nextName) user.name = nextName;
+  if (nextPhoto) user.photo = nextPhoto;
+  user.updatedAt = nowIso();
+
+  if (workspace) {
+    workspace.name = nextBusinessName || workspace.name;
+    workspace.updatedAt = nowIso();
+    workspace.profile = {
+      ...(workspace.profile || {}),
+      businessName: nextBusinessName || workspace.profile?.businessName || workspace.name,
+      industry: nextIndustry || workspace.profile?.industry || '',
+      website: nextWebsite || workspace.profile?.website || ''
+    };
+    saveWorkspaces();
+  }
+
+  saveAppUsers();
+
+  res.json({
+    success: true,
+    user: sanitizeUser(user),
+    workspace: sanitizeWorkspace(workspace),
+    membership
+  });
+});
+
+app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const targetWorkspaceId = req.query.workspaceId && isPlatformOwner(req.user)
+    ? req.query.workspaceId
+    : currentUser.membership?.workspaceId;
+  const workspace = workspaces[targetWorkspaceId];
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const permissions = rolePermissions(currentUser.membership?.role);
+  const workspaceMembers = getWorkspaceMembers(targetWorkspaceId).map(membership => {
+    const resolvedRole = getEffectiveMembershipRole(membership, workspace);
+    return {
+      ...membership,
+      role: resolvedRole,
+      user: sanitizeUser(appUsers[membership.userId])
+    };
+  });
+  const pendingInvites = Object.values(userInvites)
+    .filter(invite => invite.workspaceId === targetWorkspaceId && invite.status === 'pending');
+  const canViewUserList = isPlatformOwner(currentUser) || permissions.canManageUsers || permissions.canSuspendUsers;
+  const membersByRole = workspaceMembers.reduce((acc, membership) => {
+    acc[membership.role] = (acc[membership.role] || 0) + 1;
+    return acc;
+  }, {});
+
+  res.json({
+    workspace: sanitizeWorkspace(workspace),
+    members: canViewUserList ? workspaceMembers : [],
+    pendingInvites: permissions.canManageUsers ? pendingInvites : [],
+    stats: {
+      totalMembers: workspaceMembers.length,
+      owners: workspaceMembers.filter(m => m.role === 'owner').length,
+      admins: workspaceMembers.filter(m => m.role === 'admin').length,
+      activeInvites: pendingInvites.length,
+      membersByRole,
+      trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
+      paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length
+    },
+    permissions
+  });
+});
+
+app.get('/api/admin/users', requireUserManagement, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const targetWorkspaceId = req.query.workspaceId && isPlatformOwner(req.user)
+    ? req.query.workspaceId
+    : currentUser.membership?.workspaceId;
+  const workspace = workspaces[targetWorkspaceId];
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const members = getWorkspaceMembers(targetWorkspaceId).map(membership => ({
+    ...membership,
+    role: getEffectiveMembershipRole(membership, workspace),
+    permissions: rolePermissions(getEffectiveMembershipRole(membership, workspace)),
+    user: sanitizeUser(appUsers[membership.userId])
+  }));
+
+  res.json({
+    workspace: sanitizeWorkspace(workspace),
+    members,
+    invites: Object.values(userInvites).filter(invite =>
+      invite.workspaceId === targetWorkspaceId && invite.status === 'pending'
+    )
+  });
+});
+
+app.get('/api/admin/global-users', requirePlatformOwner, (req, res) => {
+  rehydrateRequestUser(req);
+  const query = String(req.query.q || '').trim();
+  const items = Object.values(appUsers)
+    .filter(user => matchesUserQuery(user, query))
+    .map(user => {
+      const membershipsForUser = getUserMemberships(user.id).map(membership => {
+        const workspace = workspaces[membership.workspaceId] || null;
+        return {
+          workspaceId: membership.workspaceId,
+          workspaceName: workspace?.name || 'Workspace desconocido',
+          role: getEffectiveMembershipRole(membership, workspace),
+          status: membership.status || 'active',
+          plan: workspace?.subscription?.plan || 'trial'
+        };
+      });
+      return {
+        user: sanitizeUser(user),
+        memberships: membershipsForUser
+      };
+    })
+    .sort((a, b) => String(a.user?.name || a.user?.email || '').localeCompare(String(b.user?.name || b.user?.email || '')));
+
+  res.json({
+    total: items.length,
+    items
+  });
+});
+
+app.post('/api/admin/invite', requireUserManagement, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const email = normalizeEmail(req.body.email);
+  const name = String(req.body.name || '').trim();
+  const workspaceId = req.user.membership?.workspaceId;
+  if (!workspaceId || !workspaces[workspaceId]) {
+    return res.status(400).json({ error: 'Workspace no disponible' });
+  }
+  const workspace = workspaces[workspaceId];
+  const role = resolveMembershipRole(
+    req.body.role || defaultMemberRoleForWorkspace(workspace),
+    workspace
+  );
+  const validRoles = ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  if (!email) return res.status(400).json({ error: 'Email requerido' });
+  if (!validRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido' });
+  const requesterPermissions = rolePermissions(currentUser.membership?.role);
+  const privilegedRoles = ['owner', 'admin', 'developer', 'billing'];
+  if (role === 'owner' && !isPrimaryPlatformOwner(currentUser)) {
+    return res.status(403).json({ error: 'Solo Danny puede asignar el rol dueño' });
+  }
+  if (!isPlatformOwner(req.user) && !requesterPermissions.isOwner && privilegedRoles.includes(role)) {
+    return res.status(403).json({ error: 'Solo el owner puede asignar roles privilegiados' });
+  }
+
+  const existingUser = Object.values(appUsers).find(user => normalizeEmail(user.email) === email);
+  if (existingUser) {
+    ensureMembership(workspaceId, existingUser.id, role, currentUser.id);
+    return res.json({
+      success: true,
+      attachedExistingUser: true,
+      member: {
+        ...memberships[membershipKey(workspaceId, existingUser.id)],
+        user: sanitizeUser(existingUser)
+      }
+    });
+  }
+
+  const inviteId = crypto.randomUUID();
+  userInvites[inviteId] = {
+    id: inviteId,
+    email,
+    name,
+    role,
+    workspaceId,
+    invitedBy: currentUser.id,
+    status: 'pending',
+    createdAt: nowIso()
+  };
+  saveInvites();
+  res.json({ success: true, invite: userInvites[inviteId] });
+});
+
+app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const targetUserId = req.params.userId;
+  const targetRole = req.body.role ? String(req.body.role).toLowerCase() : null;
+  const targetStatus = req.body.status ? String(req.body.status).toLowerCase() : null;
+  const allowedRoles = ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  const allowedStatus = ['active', 'suspended'];
+
+  const requestedWorkspaceId = String(req.body.workspaceId || '').trim();
+  const workspaceId = requestedWorkspaceId && isPlatformOwner(currentUser)
+    ? requestedWorkspaceId
+    : currentUser.membership?.workspaceId;
+  const key = membershipKey(workspaceId, targetUserId);
+  const membership = memberships[key];
+  const targetUser = appUsers[targetUserId];
+
+  if (!membership || !targetUser) return res.status(404).json({ error: 'Usuario no encontrado en este workspace' });
+  if (targetRole && !allowedRoles.includes(targetRole)) return res.status(400).json({ error: 'Rol inválido' });
+  if (targetStatus && !allowedStatus.includes(targetStatus)) return res.status(400).json({ error: 'Estado inválido' });
+  const requesterPermissions = rolePermissions(currentUser.membership?.role);
+  const workspace = workspaces[workspaceId];
+  const currentRole = getEffectiveMembershipRole(membership, workspace);
+  const isWorkspaceOwnerMembership = workspace?.ownerUserId === targetUserId;
+  const privilegedRoles = ['owner', 'admin', 'developer', 'billing'];
+  const targetIsPrimaryOwner = isPrimaryPlatformOwner(targetUser);
+  const currentIsPrimaryOwner = isPrimaryPlatformOwner(currentUser);
+
+  if (targetIsPrimaryOwner && (targetRole || targetStatus)) {
+    return res.status(403).json({ error: 'Danny no puede ser modificado ni suspendido' });
+  }
+
+  if (targetRole) {
+    if (!isPlatformOwner(currentUser) && !requesterPermissions.canManageUsers) {
+      return res.status(403).json({ error: 'No puedes cambiar roles' });
+    }
+    if (!currentIsPrimaryOwner && (targetRole === 'owner' || currentRole === 'owner')) {
+      return res.status(403).json({ error: 'Solo Danny puede asignar o quitar el rol dueño' });
+    }
+    if (!isPlatformOwner(currentUser) && targetRole === 'owner') {
+      return res.status(403).json({ error: 'Solo el owner puede asignar el rol dueño' });
+    }
+  }
+
+  if (targetStatus) {
+    if (!isPlatformOwner(currentUser) && !requesterPermissions.canSuspendUsers) {
+      return res.status(403).json({ error: 'No puedes suspender perfiles' });
+    }
+    if (requesterPermissions.canManageBilling && !requesterPermissions.canManageUsers) {
+      if (privilegedRoles.includes(currentRole)) {
+        return res.status(403).json({ error: 'Billing solo puede suspender perfiles de clientes' });
+      }
+      const securityCheck = req.body.securityCheck || {};
+      const billingReason = String(securityCheck.reason || '').trim();
+      const billingValid = Boolean(
+        billingReason &&
+        securityCheck.invoiceVerified === true &&
+        securityCheck.customerContacted === true &&
+        securityCheck.gracePeriodConfirmed === true &&
+        securityCheck.identityConfirmed === true &&
+        securityCheck.finalConfirmation === true
+      );
+      if (!billingValid) {
+        return res.status(400).json({ error: 'Falta completar la validación de seguridad de facturación' });
+      }
+      membership.billingReview = {
+        reason: billingReason,
+        invoiceVerified: true,
+        customerContacted: true,
+        gracePeriodConfirmed: true,
+        identityConfirmed: true,
+        finalConfirmation: true,
+        reviewedBy: currentUser.id,
+        reviewedAt: nowIso()
+      };
+    }
+  }
+
+  if (currentRole === 'owner' && currentUser.id !== targetUserId && !isPlatformOwner(currentUser)) {
+    return res.status(403).json({ error: 'No puedes modificar otro owner' });
+  }
+  if (isWorkspaceOwnerMembership && targetRole && targetRole !== 'owner') {
+    if (!currentIsPrimaryOwner) {
+      return res.status(400).json({ error: 'Primero transfiere el ownership antes de quitar el rol owner' });
+    }
+    workspace.ownerUserId = currentUser.id;
+    workspace.updatedAt = nowIso();
+    saveWorkspaces();
+  }
+  if (!isPlatformOwner(currentUser) && !requesterPermissions.isOwner) {
+    if (targetRole && targetRole === 'owner') {
+      return res.status(403).json({ error: 'Solo el owner puede modificar el rol dueño' });
+    }
+    if (requesterPermissions.canManageUsers && privilegedRoles.includes(currentRole) && currentRole !== 'admin') {
+      return res.status(403).json({ error: 'Solo el owner puede modificar ese perfil privilegiado' });
+    }
+  }
+
+  if (targetRole) membership.role = targetRole;
+  membership.updatedAt = nowIso();
+  if (targetStatus) targetUser.status = targetStatus;
+  if (targetRole === 'owner' && workspaces[workspaceId]) {
+    workspaces[workspaceId].ownerUserId = targetUserId;
+    workspaces[workspaceId].updatedAt = nowIso();
+    saveWorkspaces();
+  }
+
+  saveMemberships();
+  saveAppUsers();
+
+  res.json({
+    success: true,
+    member: {
+      ...membership,
+      permissions: rolePermissions(getEffectiveMembershipRole(membership, workspace)),
+      user: sanitizeUser(targetUser)
+    }
+  });
+});
+
+app.get('/api/admin/workspaces', requirePlatformOwner, (req, res) => {
+  const items = Object.values(workspaces).map(workspace => ({
+    ...sanitizeWorkspace(workspace),
+    memberCount: getWorkspaceMembers(workspace.id).length
+  }));
+  res.json({ workspaces: items });
+});
+
+app.patch('/api/admin/workspace-settings', requireAdminPanelAccess, (req, res) => {
+  const workspaceId = req.user.membership?.workspaceId;
+  const workspace = workspaces[workspaceId];
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  workspace.settings = {
+    ...(workspace.settings || {}),
+    ...(req.body.settings || {})
+  };
+  workspace.updatedAt = nowIso();
+  saveWorkspaces();
+
+  res.json({
+    success: true,
+    workspace: sanitizeWorkspace(workspace)
+  });
+});
+
+app.get('/api/admin/growth-insights', requireGrowthAccess, async (req, res) => {
+  const workspace = req.user.workspace;
+  const members = workspace ? getWorkspaceMembers(workspace.id).length : 0;
+  const prompt = `Analiza este workspace de BearAds y recomienda cómo escalarlo con autogestión:
+
+Workspace: ${workspace?.name || 'Sin nombre'}
+Plan: ${workspace?.subscription?.plan || 'trial'}
+Estado: ${workspace?.subscription?.status || 'trialing'}
+Trial termina: ${workspace?.subscription?.trialEndsAt || 'n/a'}
+Miembros activos: ${members}
+Integraciones preferidas: ${(workspace?.settings?.preferredPlatforms || []).join(', ') || 'ninguna'}
+
+Responde en español, máximo 250 palabras, con:
+1. Qué automatizar ahora
+2. Qué plataformas externas integrar o vigilar
+3. Qué métrica debe revisar el owner esta semana
+4. La mejora de producto más importante`;
+
+  try {
+    const insight = await callClaude(
+      'Eres el operador de crecimiento de BearAds. Das recomendaciones concretas para escalar un workspace SaaS de marketing IA.',
+      prompt,
+      500
+    );
+    res.json({ insight });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
+  const workspace = req.user.workspace;
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  const workspaceMembers = getWorkspaceMembers(workspace.id).map(membership => ({
+    ...membership,
+    role: getEffectiveMembershipRole(membership, workspace),
+    user: sanitizeUser(appUsers[membership.userId])
+  }));
+  res.json({
+    workspace: sanitizeWorkspace(workspace),
+    stats: {
+      trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
+      paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length,
+      totalMembers: workspaceMembers.length
+    },
+    billingNotes: workspace.billingNotes || [],
+    paymentStatus: workspace.paymentStatus || {
+      status: workspace.subscription?.status === 'trialing' ? 'trialing' : 'active',
+      reason: '',
+      updatedAt: workspace.updatedAt || workspace.createdAt || nowIso()
+    }
+  });
+});
+
+app.patch('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = currentUser.workspace;
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const nextPlan = String(req.body.plan || workspace.subscription?.plan || '').trim().toLowerCase();
+  const nextStatus = String(req.body.status || workspace.subscription?.status || '').trim().toLowerCase();
+  const reason = String(req.body.reason || '').trim();
+  const note = String(req.body.note || '').trim();
+  const validPlans = ['trial', 'starter', 'pro', 'agency'];
+  const validStatus = ['trialing', 'active', 'past_due', 'paused', 'canceled'];
+
+  if (nextPlan && !validPlans.includes(nextPlan)) return res.status(400).json({ error: 'Plan inválido' });
+  if (nextStatus && !validStatus.includes(nextStatus)) return res.status(400).json({ error: 'Estado de pago inválido' });
+
+  workspace.subscription = {
+    ...(workspace.subscription || {}),
+    plan: nextPlan || workspace.subscription?.plan || 'trial',
+    status: nextStatus || workspace.subscription?.status || 'trialing'
+  };
+
+  if (workspace.subscription.status === 'active' && workspace.subscription.plan === 'trial') {
+    workspace.subscription.plan = 'starter';
+  }
+
+  if (workspace.subscription.status !== 'trialing') {
+    workspace.subscription.activatedAt = workspace.subscription.activatedAt || nowIso();
+  }
+
+  workspace.paymentStatus = {
+    status: workspace.subscription.status,
+    reason,
+    updatedAt: nowIso(),
+    updatedBy: currentUser.id
+  };
+
+  if (note) {
+    workspace.billingNotes = Array.isArray(workspace.billingNotes) ? workspace.billingNotes : [];
+    workspace.billingNotes.unshift({
+      id: crypto.randomUUID(),
+      note,
+      reason,
+      createdAt: nowIso(),
+      createdBy: currentUser.id
+    });
+    workspace.billingNotes = workspace.billingNotes.slice(0, 20);
+  }
+
+  workspace.updatedAt = nowIso();
+  saveWorkspaces();
+
+  res.json({
+    success: true,
+    workspace: sanitizeWorkspace(workspace),
+    paymentStatus: workspace.paymentStatus,
+    billingNotes: workspace.billingNotes || []
+  });
 });
 
 app.get('/api/debug/gsc-sites', async (req, res) => {

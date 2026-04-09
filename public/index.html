@@ -1903,8 +1903,8 @@ tr:hover td { background: var(--surface2); }
     <div class="user-card" onclick="openProfilePanel()" style="transition:all 0.15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='var(--surface2)'">
       <div class="user-avatar" id="sidebar-user-avatar">AC</div>
       <div class="user-info">
-        <div class="user-name" id="sidebar-user-name">Admin CEO</div>
-        <div class="user-plan" id="sidebar-user-plan">PRO PLAN</div>
+        <div class="user-name" id="sidebar-user-name">BearAds User</div>
+        <div class="user-plan" id="sidebar-user-plan">TRIAL PLAN</div>
       </div>
       <span style="font-size:13px;color:var(--muted);">⚙</span>
     </div>
@@ -1943,7 +1943,23 @@ tr:hover td { background: var(--surface2); }
 ════════════════════════════════════════ -->
 <div class="page active" id="page-dashboard">
   <div class="page-title">Dashboard</div>
-  <div class="page-sub">Resumen de tu actividad y métricas en tiempo real</div>
+  <div class="page-sub">Mira qué hacer ahora y avanza paso a paso</div>
+
+  <div id="dashboard-guide" style="margin:18px 0 16px;background:linear-gradient(135deg,rgba(123,167,232,0.14),rgba(94,201,160,0.12));border:1px solid rgba(123,167,232,0.18);border-radius:16px;padding:18px;">
+    <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div id="dash-guide-badge" style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.72);font-size:10px;font-weight:800;letter-spacing:0.6px;color:#35507f;margin-bottom:10px;">MODO GUIADO</div>
+        <div id="dash-guide-title" style="font-size:24px;font-weight:800;color:var(--text);line-height:1.15;">Vamos paso a paso</div>
+        <div id="dash-guide-copy" style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.7;">BearAds te dirá qué hacer primero para que no te pierdas entre tantos módulos.</div>
+      </div>
+      <div style="min-width:210px;max-width:260px;background:rgba(255,255,255,0.7);border:1px solid rgba(123,167,232,0.14);border-radius:14px;padding:14px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#51627f;">ESTADO DEL PLAN</div>
+        <div id="dash-guide-plan" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:6px;">TRIAL</div>
+        <div id="dash-guide-plan-copy" style="font-size:12px;color:#51627f;margin-top:4px;line-height:1.6;">Tu prueba gratuita está activa.</div>
+      </div>
+    </div>
+    <div id="dash-guide-actions" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px;"></div>
+  </div>
 
   <!-- KPI Cards -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;">
@@ -3654,6 +3670,8 @@ const DB = {
   push: (k, item, max = 50) => { const arr = DB.get(k, []); arr.unshift(item); DB.set(k, arr.slice(0, max)); }
 };
 
+const ONBOARDING_KEY = 'onboarding_state';
+
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, function(ch) {
     return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[ch];
@@ -4171,10 +4189,93 @@ document.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════
 function scoreColor(s) { return s>=70?'#5ec9a0':s>=50?'#fbbf24':'#f87171'; }
 
+function getDashboardGuideState() {
+  const analyses = getAnalysisHistory();
+  const hasProfile = Boolean((userProfile?.biz || '').trim() && (userProfile?.url || '').trim());
+  const hasAnalysis = analyses.length > 0;
+  const hasGoogle = Boolean(appSession?.user?.googleId);
+  const workspace = appSession?.workspace || {};
+  const remainingTrialDays = workspace?.subscription?.remainingTrialDays || 0;
+  return {
+    hasProfile,
+    hasAnalysis,
+    hasGoogle,
+    workspace,
+    remainingTrialDays
+  };
+}
+
+function renderDashboardGuide() {
+  const badge = document.getElementById('dash-guide-badge');
+  const title = document.getElementById('dash-guide-title');
+  const copy = document.getElementById('dash-guide-copy');
+  const plan = document.getElementById('dash-guide-plan');
+  const planCopy = document.getElementById('dash-guide-plan-copy');
+  const actions = document.getElementById('dash-guide-actions');
+  if (!badge || !title || !copy || !plan || !planCopy || !actions) return;
+
+  const state = getDashboardGuideState();
+  const workspace = state.workspace || {};
+  const isTrial = workspace?.subscription?.status === 'trialing';
+  const completedCount = [state.hasProfile, state.hasAnalysis, state.hasGoogle].filter(Boolean).length;
+
+  badge.textContent = completedCount === 3 ? 'LISTO PARA CRECER' : 'MODO GUIADO';
+  title.textContent = completedCount === 3
+    ? 'Tu cuenta ya está lista para avanzar'
+    : 'Haz estas 3 cosas y BearAds empezará a ayudarte mejor';
+  copy.textContent = completedCount === 3
+    ? 'Ya tienes la base hecha. Ahora usa campañas, agentes y automatizaciones con más contexto.'
+    : 'No necesitas entender toda la plataforma. Solo completa estos pasos en orden.';
+  plan.textContent = isTrial ? 'TRIAL' : formatPlanLabel(workspace).toUpperCase();
+  planCopy.textContent = isTrial
+    ? 'Te quedan ' + state.remainingTrialDays + ' días para probar BearAds con todo el contexto de tu negocio.'
+    : 'Tu plan actual está activo. Sigue optimizando y escalando tu operación.';
+
+  const items = [
+    {
+      done: state.hasProfile,
+      title: '1. Completa tu negocio',
+      copy: state.hasProfile ? 'Tu perfil base ya está listo.' : 'Agrega nombre del negocio y sitio web para personalizar la ayuda.',
+      button: state.hasProfile ? 'Editar perfil' : 'Completar perfil',
+      action: "openProfilePanel()",
+      accent: '#7ba7e8'
+    },
+    {
+      done: state.hasAnalysis,
+      title: '2. Analiza tu sitio',
+      copy: state.hasAnalysis ? 'Ya hiciste al menos un análisis.' : 'BearAds necesita un primer diagnóstico para darte recomendaciones más precisas.',
+      button: state.hasAnalysis ? 'Ver último análisis' : 'Hacer análisis',
+      action: state.hasAnalysis ? "showPage('analyze')" : "showPage('analyze')",
+      accent: '#5ec9a0'
+    },
+    {
+      done: state.hasGoogle,
+      title: '3. Conecta Google',
+      copy: state.hasGoogle ? 'Google ya está conectado.' : 'Conecta Google para ver datos reales de tráfico, clicks y keywords.',
+      button: state.hasGoogle ? 'Ver integraciones' : 'Conectar ahora',
+      action: state.hasGoogle ? "showPage('integrations')" : "showPage('integrations')",
+      accent: '#fb923c'
+    }
+  ];
+
+  actions.innerHTML = items.map(function(item) {
+    return '<div style="background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:14px;padding:14px;">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;">' + esc(item.title) + '</div>'
+      + '<div style="font-size:11px;font-weight:800;color:' + (item.done ? '#0f9f6e' : '#51627f') + ';">' + (item.done ? 'LISTO' : 'PENDIENTE') + '</div>'
+      + '</div>'
+      + '<div style="margin-top:8px;font-size:12px;color:#51627f;line-height:1.7;min-height:58px;">' + esc(item.copy) + '</div>'
+      + '<button onclick="' + item.action + '" style="width:100%;margin-top:10px;padding:10px 12px;background:' + (item.done ? 'rgba(15,23,42,0.04)' : item.accent) + ';border:' + (item.done ? '1px solid rgba(15,23,42,0.08)' : 'none') + ';border-radius:10px;color:' + (item.done ? '#0f172a' : '#ffffff') + ';font-size:12px;font-weight:800;cursor:pointer;">' + esc(item.button) + '</button>'
+      + '</div>';
+  }).join('');
+}
+
 function refreshDashboard() {
   const analyses = getAnalysisHistory();
   const deliverables = getDeliverables();
   const $ = id => document.getElementById(id);
+
+  renderDashboardGuide();
 
   if ($('dash-kpi-analyses')) $('dash-kpi-analyses').textContent = analyses.length;
   if ($('dash-kpi-deliverables')) $('dash-kpi-deliverables').textContent = deliverables.length;
@@ -5683,7 +5784,7 @@ function closeModal(id) {
   if (el) el.style.display = 'none';
 }
 document.addEventListener('click', e => {
-  ['profile-modal','plan-modal','director-chat-modal','superadmin-modal'].forEach(id => {
+  ['onboarding-modal','profile-modal','plan-modal','director-chat-modal','superadmin-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el && e.target === el) closeModal(id);
   });
@@ -5693,9 +5794,185 @@ document.addEventListener('click', e => {
 // PROFILE
 // ══════════════════════════════════════════
 let userProfile = DB.get('user_profile', {
-  name: 'Admin CEO', email: 'admin@bearads.ai',
-  biz: '', url: '', industry: 'E-commerce', plan: 'PRO'
+  name: 'BearAds User', email: '',
+  biz: '', url: '', industry: 'E-commerce', plan: 'TRIAL'
 });
+let appSession = null;
+let saWorkspaceData = null;
+
+function formatPlanLabel(workspace) {
+  const sub = workspace?.subscription || {};
+  if (sub.status === 'trialing') {
+    const days = typeof sub.remainingTrialDays === 'number' ? sub.remainingTrialDays : '';
+    return days || days === 0 ? `TRIAL ${days}D` : 'TRIAL';
+  }
+  return (sub.plan || userProfile.plan || 'PRO').toUpperCase();
+}
+
+async function fetchAppSession() {
+  try {
+    const res = await fetch('/api/session', { credentials: 'same-origin' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+function applyProfileToUI(profile, workspace) {
+  const initials = (profile.name || 'BA').split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
+  const av = document.getElementById('sidebar-user-avatar');
+  const nm = document.getElementById('sidebar-user-name');
+  const pl = document.getElementById('sidebar-user-plan');
+  if (av) av.textContent = initials;
+  if (nm) nm.textContent = profile.name;
+  if (pl) pl.textContent = formatPlanLabel(workspace) + ' PLAN';
+}
+
+const SA_TABS = ['audit', 'qa', 'ai', 'users', 'growth', 'billing'];
+const SA_ROLE_LABELS = {
+  owner: 'Dueño',
+  admin: 'Administrador',
+  developer: 'Desarrollador',
+  billing: 'Facturación',
+  member_trial: 'Usuario Trial',
+  member_paid: 'Usuario Pago'
+};
+
+function getCurrentSAPermissions() {
+  return appSession?.permissions || {};
+}
+
+function isGlobalOwner(session = appSession) {
+  return !!(session?.isPlatformOwner || session?.user?.platformRole === 'owner');
+}
+
+function isPrimaryRootOwner(session = appSession) {
+  return String(session?.user?.email || '').trim().toLowerCase() === 'dannydlog@gmail.com';
+}
+
+function canAccessAdminPanel(session = appSession) {
+  return !!(session?.isPlatformOwner || session?.permissions?.canAccessAdminPanel);
+}
+
+function canAccessSATab(tab, session = appSession) {
+  const permissions = session?.permissions || {};
+  if (isGlobalOwner(session)) return true;
+  if (tab === 'users') return !!(permissions.canManageUsers || permissions.canSuspendUsers);
+  if (tab === 'growth') return !!permissions.canAccessGrowth;
+  if (tab === 'billing') return !!permissions.canManageBilling;
+  if (['audit', 'qa', 'ai'].includes(tab)) return !!permissions.canAccessTechnical;
+  return false;
+}
+
+function getAvailableSATabs(session = appSession) {
+  return SA_TABS.filter(function(tab) { return canAccessSATab(tab, session); });
+}
+
+function getDefaultSATab(session = appSession) {
+  const available = getAvailableSATabs(session);
+  if (available.includes('users')) return 'users';
+  if (available.includes('billing')) return 'billing';
+  if (available.includes('qa')) return 'qa';
+  if (available.includes('growth')) return 'growth';
+  return available[0] || 'audit';
+}
+
+function formatSARole(role) {
+  return SA_ROLE_LABELS[role] || String(role || 'user').replace(/_/g, ' ');
+}
+
+function getAssignableRoles(session = appSession) {
+  if (isPrimaryRootOwner(session)) {
+    return ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  }
+  if (isGlobalOwner(session) || session?.permissions?.isOwner) {
+    return ['admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  }
+  if (session?.permissions?.canManageUsers) {
+    return ['admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  }
+  return [];
+}
+
+function buildRoleOptions(selectedRole) {
+  return getAssignableRoles().map(function(role) {
+    return '<option value="' + role + '"' + (selectedRole === role ? ' selected' : '') + '>' + formatSARole(role).toUpperCase() + '</option>';
+  }).join('');
+}
+
+function syncInviteRoleOptions() {
+  const select = document.getElementById('sa-invite-role');
+  if (!select) return;
+  const previousValue = select.value;
+  const options = getAssignableRoles();
+  select.innerHTML = options.map(function(role) {
+    return '<option value="' + role + '">' + formatSARole(role).toUpperCase() + '</option>';
+  }).join('');
+  select.value = options.includes(previousValue) ? previousValue : options[0];
+}
+
+function renderSAAccess() {
+  SA_TABS.forEach(function(tab) {
+    const btn = document.getElementById('sa-tab-' + tab);
+    if (btn) btn.style.display = canAccessSATab(tab) ? 'block' : 'none';
+  });
+  const inviteGrid = document.getElementById('sa-users-invite-grid');
+  if (inviteGrid) inviteGrid.style.display = getCurrentSAPermissions().canManageUsers ? 'grid' : 'none';
+  syncInviteRoleOptions();
+}
+
+function canSuspendProfiles(session = appSession) {
+  return !!(isGlobalOwner(session) || session?.permissions?.canSuspendUsers);
+}
+
+function isDannyProtectedUser(user) {
+  return String(user?.email || '').trim().toLowerCase() === 'dannydlog@gmail.com';
+}
+
+function collectBillingSecurityCheck(status) {
+  if (status !== 'suspended') return null;
+  const reason = window.prompt('Motivo de facturación. Ej: pago vencido, contracargo, fraude o revisión manual.');
+  if (!reason || !reason.trim()) {
+    showToast('Debes registrar el motivo de suspensión');
+    return null;
+  }
+  if (!window.confirm('¿Confirmas que verificaste la factura o el problema de pago en el sistema?')) return null;
+  if (!window.confirm('¿Confirmas que el cliente ya fue contactado por email o soporte?')) return null;
+  if (!window.confirm('¿Confirmas que se cumplió el período de gracia definido por BearAds?')) return null;
+  if (!window.confirm('¿Confirmas que validaste identidad/cuenta correcta antes de suspender?')) return null;
+  if (!window.confirm('Última validación: ¿quieres suspender este perfil por un motivo de facturación?')) return null;
+  return {
+    reason: reason.trim(),
+    invoiceVerified: true,
+    customerContacted: true,
+    gracePeriodConfirmed: true,
+    identityConfirmed: true,
+    finalConfirmation: true
+  };
+}
+
+async function refreshAppSession() {
+  const session = await fetchAppSession();
+  if (!session || !session.user) return null;
+  appSession = session;
+  userProfile = {
+    name: session.user.name || 'BearAds User',
+    email: session.user.email || '',
+    biz: session.workspace?.profile?.businessName || session.workspace?.name || '',
+    url: session.workspace?.profile?.website || '',
+    industry: session.workspace?.profile?.industry || 'E-commerce',
+    plan: formatPlanLabel(session.workspace)
+  };
+  DB.set('user_profile', userProfile);
+  applyProfileToUI(userProfile, session.workspace);
+  const saBtn = document.getElementById('superadmin-btn');
+  if (saBtn) {
+    saBtn.style.display = canAccessAdminPanel(session) ? 'flex' : 'none';
+  }
+  renderSAAccess();
+  return session;
+}
 
 function openProfilePanel() {
   const p = userProfile;
@@ -5716,42 +5993,119 @@ function openProfilePanel() {
 }
 
 function saveProfile() {
-  userProfile = {
-    name: document.getElementById('profile-name-input')?.value.trim() || 'Admin CEO',
+  var nextProfile = {
+    name: document.getElementById('profile-name-input')?.value.trim() || 'BearAds User',
     email: document.getElementById('profile-email-input')?.value.trim() || '',
     biz: document.getElementById('profile-biz-input')?.value.trim() || '',
     url: document.getElementById('profile-url-input')?.value.trim() || '',
     industry: document.getElementById('profile-industry')?.value || 'E-commerce',
-    plan: userProfile.plan || 'PRO'
+    plan: userProfile.plan || 'TRIAL'
   };
-  DB.set('user_profile', userProfile);
-  // Update sidebar
-  const initials = userProfile.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-  const av = document.getElementById('sidebar-user-avatar');
-  const nm = document.getElementById('sidebar-user-name');
-  const pl = document.getElementById('sidebar-user-plan');
-  if (av) av.textContent = initials;
-  if (nm) nm.textContent = userProfile.name;
-  if (pl) pl.textContent = userProfile.plan + ' PLAN';
-  // Save URL as primary site for auto-analysis
-  if (userProfile.url) {
-    const urlInput = document.getElementById('analyze-url');
-    if (urlInput && !urlInput.value) urlInput.value = userProfile.url;
-  }
-  closeModal('profile-modal');
-  showToast('Perfil guardado');
+
+  var saveRemote = appSession ? fetch('/api/profile', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({
+      name: nextProfile.name,
+      businessName: nextProfile.biz,
+      website: nextProfile.url,
+      industry: nextProfile.industry
+    })
+  }).then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('No se pudo guardar')); }) : Promise.resolve(null);
+
+  saveRemote.then(async function() {
+    userProfile = nextProfile;
+    DB.set('user_profile', userProfile);
+    if (userProfile.url) {
+      const urlInput = document.getElementById('analyze-url');
+      if (urlInput && !urlInput.value) urlInput.value = userProfile.url;
+    }
+    await refreshAppSession();
+    closeModal('profile-modal');
+    showToast('Perfil guardado');
+  }).catch(function(err) {
+    showToast(err.message || 'No se pudo guardar el perfil');
+  });
 }
 
-function loadProfileOnStart() {
+async function loadProfileOnStart() {
+  await refreshAppSession();
   const p = userProfile;
   if (!p.name) return;
-  const initials = p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-  const av = document.getElementById('sidebar-user-avatar');
-  const nm = document.getElementById('sidebar-user-name');
-  const pl = document.getElementById('sidebar-user-plan');
-  if (av) av.textContent = initials;
-  if (nm) nm.textContent = p.name;
-  if (pl) pl.textContent = (p.plan||'PRO') + ' PLAN';
+  applyProfileToUI(p, appSession?.workspace || null);
+  maybeOpenOnboarding();
+}
+
+function getOnboardingState() {
+  return DB.get(ONBOARDING_KEY, { completed: false, dismissedAt: null });
+}
+
+function setOnboardingState(nextState) {
+  DB.set(ONBOARDING_KEY, {
+    ...(getOnboardingState() || {}),
+    ...(nextState || {})
+  });
+}
+
+function maybeOpenOnboarding() {
+  if (!appSession?.user) return;
+  const onboarding = getOnboardingState();
+  if (onboarding?.completed) return;
+  setTimeout(function() {
+    renderOnboardingModal();
+    openModal('onboarding-modal');
+  }, 250);
+}
+
+function completeOnboarding() {
+  setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
+  closeModal('onboarding-modal');
+  showToast('Listo. Ya sabes por dónde empezar.');
+}
+
+function skipOnboarding() {
+  setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
+  closeModal('onboarding-modal');
+}
+
+function renderOnboardingModal() {
+  const root = document.getElementById('onboarding-steps');
+  if (!root) return;
+  const state = getDashboardGuideState();
+  const steps = [
+    {
+      title: 'Completa tu perfil',
+      copy: 'Escribe el nombre de tu negocio y tu web. Asi BearAds deja de hablar generico.',
+      button: 'Abrir perfil',
+      action: "closeModal('onboarding-modal');openProfilePanel();",
+      done: state.hasProfile
+    },
+    {
+      title: 'Haz tu primer analisis',
+      copy: 'Con un solo analisis BearAds entiende mejor tu sitio y te da prioridades claras.',
+      button: 'Ir a analizar',
+      action: "closeModal('onboarding-modal');showPage('analyze');",
+      done: state.hasAnalysis
+    },
+    {
+      title: 'Conecta Google',
+      copy: 'Si conectas Google veras trafico, clicks y keywords reales en vez de solo estimaciones.',
+      button: 'Ir a integraciones',
+      action: "closeModal('onboarding-modal');showPage('integrations');",
+      done: state.hasGoogle
+    }
+  ];
+  root.innerHTML = steps.map(function(step, index) {
+    return '<div style="padding:14px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;">Paso ' + (index + 1) + '. ' + esc(step.title) + '</div>'
+      + '<div style="font-size:10px;font-weight:800;color:' + (step.done ? '#0f9f6e' : '#51627f') + ';">' + (step.done ? 'HECHO' : 'PENDIENTE') + '</div>'
+      + '</div>'
+      + '<div style="margin-top:8px;font-size:12px;color:#51627f;line-height:1.7;">' + esc(step.copy) + '</div>'
+      + '<button onclick="' + step.action + '" style="margin-top:10px;padding:10px 12px;background:' + (step.done ? 'rgba(15,23,42,0.04)' : 'var(--accent)') + ';border:' + (step.done ? '1px solid rgba(15,23,42,0.08)' : 'none') + ';border-radius:10px;color:' + (step.done ? '#0f172a' : '#ffffff') + ';font-size:12px;font-weight:800;cursor:pointer;">' + esc(step.button) + '</button>'
+      + '</div>';
+  }).join('');
 }
 
 // ══════════════════════════════════════════
@@ -5764,6 +6118,21 @@ function openPlanPanel() {
   const ud = document.getElementById('plan-usage-deliverables');
   if (ua) ua.textContent = analyses.length + ' / ∞';
   if (ud) ud.textContent = deliverables.length;
+  const currentPlan = document.getElementById('current-plan-title');
+  const trialMeta = document.getElementById('plan-trial-meta');
+  const upgradeBtn = document.getElementById('plan-upgrade-btn');
+  const workspace = appSession?.workspace;
+  if (currentPlan) currentPlan.textContent = workspace?.subscription?.status === 'trialing' ? '⚡ Tu Trial Activo' : '⚡ Tu Plan';
+  if (trialMeta) {
+    if (workspace?.subscription?.status === 'trialing') {
+      trialMeta.textContent = 'Prueba gratuita de 15 días · ' + (workspace.subscription.remainingTrialDays || 0) + ' días restantes';
+    } else {
+      trialMeta.textContent = 'Plan actual: ' + formatPlanLabel(workspace);
+    }
+  }
+  if (upgradeBtn) {
+    upgradeBtn.textContent = workspace?.subscription?.status === 'trialing' ? '🚀 Activar plan después del trial' : '🚀 Mejorar a Agency';
+  }
   openModal('plan-modal');
 }
 
@@ -5811,7 +6180,7 @@ async function sendDirectorMessage() {
   const profile = userProfile;
   const analysis = currentAnalysis;
   let ctx = `Eres el Director Estratégico de BearAds, la plataforma de marketing IA más avanzada para LATAM.\n`;
-  if (profile.name !== 'Admin CEO') ctx += `Usuario: ${profile.name}. Negocio: ${profile.biz||'no especificado'}. Industria: ${profile.industry}. URL: ${profile.url||'no especificada'}.\n`;
+  if (profile.name || profile.biz || profile.url) ctx += `Usuario: ${profile.name||'sin nombre'}. Negocio: ${profile.biz||'no especificado'}. Industria: ${profile.industry}. URL: ${profile.url||'no especificada'}.\n`;
   if (analysis) ctx += `Último análisis: ${analysis.url} — Score ${analysis.globalScore}/100. SEO: ${analysis.seo?.score}, CRO: ${analysis.cro?.score}.\n`;
   ctx += `Da respuestas concretas, accionables y directas. Máximo 300 palabras. En español.`;
 
@@ -5859,18 +6228,37 @@ function renderDirectorModalChat() {
 // ══════════════════════════════════════════
 // SUPERADMIN
 // ══════════════════════════════════════════
-const SA_CODE = '1234'; // Change this to secure code
-let saAuthenticated = DB.get('sa_auth', false);
 let saCurrentTab = 'platform';
+let saGlobalUsersData = [];
 
-function openSuperAdmin() {
-  if (!saAuthenticated) {
-    const code = prompt('🔐 Código de Superadministrador:');
-    if (code !== SA_CODE) { showToast('Código incorrecto'); return; }
-    saAuthenticated = true;
-    DB.set('sa_auth', true);
+function getSAUserSearchQuery() {
+  return document.getElementById('sa-user-search')?.value.trim().toLowerCase() || '';
+}
+
+function matchesSAUserSearch(user, extraValues) {
+  const query = getSAUserSearchQuery();
+  if (!query) return true;
+  const haystack = [
+    user?.id,
+    user?.googleId,
+    user?.email,
+    user?.name
+  ].concat(extraValues || []).filter(Boolean).map(function(value) {
+    return String(value).toLowerCase();
+  });
+  return haystack.some(function(value) { return value.includes(query); });
+}
+
+async function openSuperAdmin() {
+  const session = await refreshAppSession();
+  if (!session) { showToast('Inicia sesión para acceder al panel admin'); return; }
+  if (!canAccessAdminPanel(session)) {
+    showToast('No tienes permisos para abrir el panel admin');
+    return;
   }
-  loadSAPlatformStats();
+  await loadSAPlatformStats();
+  renderSAAccess();
+  setSATab(getDefaultSATab(session));
   openModal('superadmin-modal');
 }
 
@@ -5888,18 +6276,309 @@ function switchSATab(tab) {
   if (tab === 'leads') loadSALeadsModule();
 }
 
-function loadSAPlatformStats() {
-  const analyses = getAnalysisHistory();
-  const deliverables = getDeliverables();
-  const ta = document.getElementById('sa-total-analyses');
-  const td = document.getElementById('sa-total-deliverables');
-  if (ta) ta.textContent = analyses.length;
-  if (td) td.textContent = deliverables.length;
+async function loadSAPlatformStats() {
+  try {
+    const res = await fetch('/api/admin/overview', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar admin');
+    saWorkspaceData = data;
+    const title = document.getElementById('sa-workspace-title');
+    const meta = document.getElementById('sa-workspace-meta');
+    const ta = document.getElementById('sa-total-analyses');
+    const td = document.getElementById('sa-total-deliverables');
+    if (title) title.textContent = data.workspace?.name || 'Admin BearAds';
+    if (meta) {
+      const trial = data.workspace?.subscription?.status === 'trialing'
+        ? `Trial: ${data.workspace.subscription.remainingTrialDays || 0} días`
+        : `Plan: ${(data.workspace?.subscription?.plan || 'pro').toUpperCase()}`;
+      meta.textContent = `${trial} · ${data.stats?.totalMembers || 0} usuarios`;
+    }
+    if (ta) ta.textContent = getAnalysisHistory().length;
+    if (td) td.textContent = getDeliverables().length;
+    renderSAAccess();
+    await loadSAGlobalUsers();
+    renderSAUsers();
+    if (canAccessSATab('growth')) loadSAGrowthInsights();
+    if (canAccessSATab('billing')) loadSABillingOverview();
+  } catch (e) {
+    showToast(e.message || 'No se pudo cargar el panel admin');
+  }
+}
+
+function renderSAUsers() {
+  const list = document.getElementById('sa-users-list');
+  if (!list) return;
+  const isPlatformOwnerUser = isGlobalOwner();
+  if (isPlatformOwnerUser) {
+    const results = saGlobalUsersData.filter(function(item) {
+      return matchesSAUserSearch(item.user, (item.memberships || []).map(function(m) {
+        return [m.workspaceName, m.workspaceId, m.role, m.plan].join(' ');
+      }));
+    });
+    if (!results.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No encontré usuarios con ese nombre, correo, ID o dependencia.</div>';
+      return;
+    }
+    list.innerHTML = results.map(function(item) {
+      const user = item.user || {};
+      const memberships = item.memberships || [];
+      const isDannyProtected = isDannyProtectedUser(user);
+      const membershipHtml = memberships.length
+        ? memberships.map(function(membership) {
+            const roleOptions = buildRoleOptions(membership.role);
+            const isOwnerMembership = membership.role === 'owner';
+            return '<div style="padding:8px 10px;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:8px;">'
+              + '<div style="font-size:11px;font-weight:700;color:#0f172a;">' + esc(membership.workspaceName || 'Workspace') + '</div>'
+              + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Plan: ' + esc(String(membership.plan || 'trial').toUpperCase()) + '</div>'
+              + '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">ID dependencia: ' + esc(membership.workspaceId || '') + '</div>'
+              + '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'
+              + '<select onchange="updateGlobalAdminUserRole(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value)" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
+              + '</div>'
+              + '</div>';
+          }).join('')
+        : '<div style="font-size:11px;color:#64748b;">Sin dependencias activas.</div>';
+      const canSuspend = canSuspendProfiles();
+      return '<div style="padding:12px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
+        + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px;">'
+        + '<div><div style="font-size:13px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
+        + '<div style="text-align:right;"><div style="font-size:11px;color:#64748b;">ID: ' + esc(user.id || '') + '</div><div style="font-size:11px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;margin-top:4px;">' + esc(user.status === 'suspended' ? 'Suspendido' : 'Activo') + '</div>' + (isDannyProtected ? '<div style="margin-top:8px;font-size:10px;color:#7f1d1d;font-weight:700;">Protegido</div>' : '<button onclick="toggleGlobalAdminUserStatus(\'' + user.id + '\', \'' + (user.status === 'suspended' ? 'active' : 'suspended') + '\', \'' + (memberships[0]?.workspaceId || '') + '\')" ' + (canSuspend ? '' : 'disabled ') + 'style="margin-top:8px;padding:6px 8px;background:' + (user.status === 'suspended' ? 'rgba(94,201,160,0.12)' : 'rgba(224,112,112,0.1)') + ';border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#0f172a;' + (canSuspend ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">' + (user.status === 'suspended' ? 'Reactivar' : 'Suspender') + '</button>') + '</div>'
+        + '</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;">' + membershipHtml + '</div>'
+        + '</div>';
+    }).join('');
+    return;
+  }
+  const members = saWorkspaceData?.members || [];
+  const filteredMembers = members.filter(function(member) {
+    const user = member.user || {};
+    return matchesSAUserSearch(user, [member.role, user.platformRole]);
+  });
+  if (!filteredMembers.length) {
+    list.innerHTML = getCurrentSAPermissions().canManageUsers
+      ? '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No encontré usuarios con ese filtro dentro de tu dependencia.</div>'
+      : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">Tu rol no puede gestionar usuarios.</div>';
+    return;
+  }
+  const canManageUsers = !!getCurrentSAPermissions().canManageUsers;
+  const canSuspend = canSuspendProfiles();
+  list.innerHTML = filteredMembers.map(function(member) {
+    const user = member.user || {};
+    const isDannyProtected = isDannyProtectedUser(user);
+    const isProtectedOwner = member.role === 'owner' && !isGlobalOwner();
+    const roleOptions = buildRoleOptions(member.role);
+    const status = user.status === 'suspended' ? 'Suspendido' : 'Activo';
+    return '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
+      + '<div><div style="font-size:12px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
+      + '<div style="font-size:11px;color:#64748b;"><div>' + esc(formatSARole(member.role)) + '</div><div style="margin-top:4px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;">' + esc(status) + '</div></div>'
+      + '<select onchange="updateAdminUserRole(\'' + member.userId + '\', this.value)" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
+      + (isDannyProtected
+        ? '<div style="padding:6px 8px;border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#7f1d1d;background:rgba(224,112,112,0.06);text-align:center;font-weight:700;">Protegido</div>'
+        : '<button onclick="toggleAdminUserStatus(\'' + member.userId + '\', \'' + (user.status === 'suspended' ? 'active' : 'suspended') + '\')" ' + (canSuspend && !isProtectedOwner ? '' : 'disabled ') + 'style="padding:6px 8px;background:' + (user.status === 'suspended' ? 'rgba(94,201,160,0.12)' : 'rgba(224,112,112,0.1)') + ';border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#0f172a;' + (canSuspend && !isProtectedOwner ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">' + (user.status === 'suspended' ? 'Reactivar' : 'Suspender') + '</button>')
+      + '</div>';
+  }).join('');
+}
+
+async function loadSAGlobalUsers() {
+  if (!isGlobalOwner()) {
+    saGlobalUsersData = [];
+    return;
+  }
+  try {
+    const res = await fetch('/api/admin/global-users', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar usuarios globales');
+    saGlobalUsersData = Array.isArray(data.items) ? data.items : [];
+  } catch (e) {
+    saGlobalUsersData = [];
+  }
+}
+
+async function inviteAdminUser() {
+  const email = document.getElementById('sa-invite-email')?.value.trim();
+  const name = document.getElementById('sa-invite-name')?.value.trim();
+  const role = document.getElementById('sa-invite-role')?.value || 'member_trial';
+  if (!email) { showToast('Ingresa un email'); return; }
+  const res = await fetch('/api/admin/invite', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ email: email, name: name, role: role })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo invitar'); return; }
+  document.getElementById('sa-invite-email').value = '';
+  document.getElementById('sa-invite-name').value = '';
+  await loadSAPlatformStats();
+  showToast(data.attachedExistingUser ? 'Usuario agregado al workspace' : 'Invitación creada');
+}
+
+async function updateAdminUserRole(userId, role) {
+  if (!role) return;
+  const res = await fetch('/api/admin/users/' + userId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ role: role })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo actualizar el rol'); return; }
+  await loadSAPlatformStats();
+}
+
+async function updateGlobalAdminUserRole(userId, workspaceId, role) {
+  const res = await fetch('/api/admin/users/' + userId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ role: role, workspaceId: workspaceId })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo actualizar el rol'); return; }
+  await loadSAPlatformStats();
+  showToast('Rol actualizado');
+}
+
+async function toggleAdminUserStatus(userId, status) {
+  const payload = { status: status };
+  const permissions = getCurrentSAPermissions();
+  if (permissions.canManageBilling && !permissions.canManageUsers) {
+    const securityCheck = collectBillingSecurityCheck(status);
+    if (status === 'suspended' && !securityCheck) return;
+    if (securityCheck) payload.securityCheck = securityCheck;
+  }
+  const res = await fetch('/api/admin/users/' + userId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo actualizar el estado'); return; }
+  await loadSAPlatformStats();
+}
+
+async function toggleGlobalAdminUserStatus(userId, status, workspaceId) {
+  const payload = { status: status, workspaceId: workspaceId };
+  const permissions = getCurrentSAPermissions();
+  if (permissions.canManageBilling && !permissions.canManageUsers) {
+    const securityCheck = collectBillingSecurityCheck(status);
+    if (status === 'suspended' && !securityCheck) return;
+    if (securityCheck) payload.securityCheck = securityCheck;
+  }
+  const res = await fetch('/api/admin/users/' + userId, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo actualizar el estado'); return; }
+  await loadSAPlatformStats();
+}
+
+async function loadSAGrowthInsights() {
+  const box = document.getElementById('sa-growth-result');
+  if (!box) return;
+  if (!canAccessSATab('growth')) {
+    box.innerHTML = '<span style="color:#64748b;">Tu rol no puede ver growth.</span>';
+    return;
+  }
+  box.innerHTML = '<em style="color:rgba(224,112,112,0.45);">⏳ Analizando crecimiento y autogestión...</em>';
+  try {
+    const res = await fetch('/api/admin/growth-insights', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo generar insight');
+    box.innerHTML = '<div style="white-space:pre-wrap;line-height:1.8;">' + escPreserve(data.insight || '') + '</div>';
+  } catch (e) {
+    box.innerHTML = '<span style="color:#e07070;">' + esc(e.message || 'Error') + '</span>';
+  }
+}
+
+async function loadSABillingOverview() {
+  const box = document.getElementById('sa-billing-result');
+  if (!box) return;
+  if (!canAccessSATab('billing')) {
+    box.innerHTML = '<span style="color:#64748b;">Tu rol no puede ver facturación.</span>';
+    return;
+  }
+  box.innerHTML = '<em style="color:rgba(224,112,112,0.45);">⏳ Cargando estado de facturación...</em>';
+  try {
+    const res = await fetch('/api/admin/billing-overview', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar billing');
+    const workspace = data.workspace || {};
+    const stats = data.stats || {};
+    const subscription = workspace.subscription || {};
+    const paymentStatus = data.paymentStatus || {};
+    const billingNotes = Array.isArray(data.billingNotes) ? data.billingNotes : [];
+    box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">'
+      + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">PLAN</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(formatPlanLabel(workspace)) + '</div></div>'
+      + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">USUARIOS TRIAL</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(String(stats.trialUsers || 0)) + '</div></div>'
+      + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">USUARIOS PAGO</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(String(stats.paidUsers || 0)) + '</div></div>'
+      + '</div>'
+      + '<div style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;">'
+      + '<div><strong>Estado:</strong> ' + esc(subscription.status || 'trialing') + '</div>'
+      + '<div><strong>Total usuarios:</strong> ' + esc(String(stats.totalMembers || 0)) + '</div>'
+      + '<div><strong>Fin del trial:</strong> ' + esc(subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString('es-CO') : 'No aplica') + '</div>'
+      + '<div><strong>Motivo actual:</strong> ' + esc(paymentStatus.reason || 'Sin novedad') + '</div>'
+      + '<div><strong>Próximo paso:</strong> revisar pagos fallidos, upgrades del trial y activacion del plan comercial.</div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">'
+      + '<select id="sa-billing-plan" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;">'
+      + '<option value="trial"' + ((subscription.plan || 'trial') === 'trial' ? ' selected' : '') + '>TRIAL</option>'
+      + '<option value="starter"' + ((subscription.plan || '') === 'starter' ? ' selected' : '') + '>STARTER</option>'
+      + '<option value="pro"' + ((subscription.plan || '') === 'pro' ? ' selected' : '') + '>PRO</option>'
+      + '<option value="agency"' + ((subscription.plan || '') === 'agency' ? ' selected' : '') + '>AGENCY</option>'
+      + '</select>'
+      + '<select id="sa-billing-status" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;">'
+      + '<option value="trialing"' + ((subscription.status || 'trialing') === 'trialing' ? ' selected' : '') + '>TRIALING</option>'
+      + '<option value="active"' + ((subscription.status || '') === 'active' ? ' selected' : '') + '>ACTIVE</option>'
+      + '<option value="past_due"' + ((subscription.status || '') === 'past_due' ? ' selected' : '') + '>PAST DUE</option>'
+      + '<option value="paused"' + ((subscription.status || '') === 'paused' ? ' selected' : '') + '>PAUSED</option>'
+      + '<option value="canceled"' + ((subscription.status || '') === 'canceled' ? ' selected' : '') + '>CANCELED</option>'
+      + '</select>'
+      + '</div>'
+      + '<input id="sa-billing-reason" type="text" placeholder="Motivo o novedad de facturacion" value="' + esc(paymentStatus.reason || '') + '" style="width:100%;margin-top:10px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+      + '<textarea id="sa-billing-note" rows="3" placeholder="Nota interna: llamada, promesa de pago, upgrade confirmado..." style="width:100%;margin-top:10px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;resize:vertical;"></textarea>'
+      + '<button onclick="saveBillingOverview()" style="width:100%;margin-top:10px;padding:10px 12px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Guardar estado de facturacion</button>'
+      + '<div style="margin-top:12px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">'
+      + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">NOTAS RECIENTES</div>'
+      + (billingNotes.length
+          ? billingNotes.slice(0, 5).map(function(item) {
+              return '<div style="padding:8px 0;border-bottom:1px solid rgba(224,112,112,0.08);font-size:11px;color:#334155;">'
+                + '<div style="font-weight:700;color:#0f172a;">' + esc(item.reason || 'Nota interna') + '</div>'
+                + '<div style="margin-top:3px;">' + esc(item.note || '') + '</div>'
+                + '<div style="margin-top:4px;color:#64748b;font-size:10px;">' + esc(new Date(item.createdAt).toLocaleString('es-CO')) + '</div>'
+                + '</div>';
+            }).join('')
+          : '<div style="font-size:11px;color:#64748b;">Sin notas todavia.</div>')
+      + '</div>';
+  } catch (e) {
+    box.innerHTML = '<span style="color:#e07070;">' + esc(e.message || 'Error') + '</span>';
+  }
+}
+
+async function saveBillingOverview() {
+  const plan = document.getElementById('sa-billing-plan')?.value;
+  const status = document.getElementById('sa-billing-status')?.value;
+  const reason = document.getElementById('sa-billing-reason')?.value.trim() || '';
+  const note = document.getElementById('sa-billing-note')?.value.trim() || '';
+  const res = await fetch('/api/admin/billing-overview', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ plan: plan, status: status, reason: reason, note: note })
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo guardar billing'); return; }
+  showToast('Billing actualizado');
+  await refreshAppSession();
+  await loadSAPlatformStats();
 }
 
 async function runPlatformAudit() {
   const result = document.getElementById('sa-audit-result');
-  if (result) result.innerHTML = '<em style="color:rgba(224,112,112,0.5);">⏳ La IA está auditando la plataforma...</em>';
+  if (result) result.innerHTML = '<em style="color:rgba(127,29,29,0.7);">⏳ La IA está auditando la plataforma...</em>';
   const analyses = getAnalysisHistory();
   const deliverables = getDeliverables();
   const prompt = `Eres el sistema de auditoría interna de BearAds, plataforma SaaS de marketing IA para LATAM.
@@ -5926,7 +6605,7 @@ En español. Concreto y técnico.`;
     });
     const data = await res.json();
     _lastReply = data.reply || '';
-    if (result) result.innerHTML = `<div style="white-space:pre-wrap;color:rgba(220,225,240,0.8);">${escPreserve(data.reply)}</div>`;
+    if (result) result.innerHTML = `<div style="white-space:pre-wrap;color:#334155;">${escPreserve(data.reply)}</div>`;
   } catch(e) {
     if (result) result.innerHTML = '<span style="color:#e07070;">Error al conectar con la IA.</span>';
   }
@@ -5941,7 +6620,7 @@ async function saAskAI(question) {
   const resultIds = { agents: 'sa-ai-result', improve: 'sa-improve-result', competition: 'sa-competition-result' };
   const resultId = resultIds[saCurrentTab] || 'sa-ai-result';
   const result = document.getElementById(resultId);
-  if (result) result.innerHTML = '<em style="color:rgba(224,112,112,0.4);">⏳ Las IAs están analizando...</em>';
+  if (result) result.innerHTML = '<em style="color:rgba(127,29,29,0.7);">⏳ Las IAs están analizando...</em>';
 
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -6106,7 +6785,7 @@ document.addEventListener('keydown', e => {
   if (saKeySeq.length > 8) saKeySeq = saKeySeq.slice(-8);
   if (saKeySeq.includes('admin')) {
     const btn = document.getElementById('superadmin-btn');
-    if (btn) btn.style.display = 'flex';
+    if (btn && canAccessAdminPanel()) btn.style.display = 'flex';
     saKeySeq = '';
   }
 });
@@ -6114,8 +6793,8 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════
 // INIT ON LOAD
 // ══════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  loadProfileOnStart();
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadProfileOnStart();
   refreshDashboard();
   // Pre-fill analyze URL from profile
   const profileUrl = userProfile.url;
@@ -6822,12 +7501,12 @@ const PLATFORM_MODULES = [
 const PLATFORM_FAQ = [
   { q: '¿Los agentes funcionan sin analizar mi sitio primero?', a: 'Sí. Todos los agentes funcionan de forma independiente. Cuando abres un agente, selecciona "Contexto manual" y describe tu negocio. El agente generará entregables completos basado en esa información.' },
   { q: '¿Por qué no veo mis datos de Search Console?', a: 'Necesitas: 1) Conectar Google en Integraciones, 2) Tener tu sitio registrado en Search Console con tu cuenta de Google, 3) Ingresar la URL exacta del sitio al analizar. Ve a Integraciones → Conexiones → ingresa tu URL y clic "Ver Datos".' },
-  { q: '¿Los datos y entregables se guardan si cierro el navegador?', a: 'Sí. BearAds usa almacenamiento local del navegador (localStorage). Tus análisis, entregables, estrategias y configuraciones persisten entre sesiones en el mismo navegador.' },
+  { q: '¿Los datos y entregables se guardan si cierro el navegador?', a: 'Sí. BearAds guarda tu cuenta, rol, trial y workspace en el servidor. Parte del historial local sigue cacheado en el navegador para velocidad, pero la sesión y la estructura principal del usuario ya no dependen solo de localStorage.' },
   { q: '¿Puedo usar los creadores de campañas sin conectar Meta o Google?', a: 'Sí. Los generadores de campañas (Meta Ads, Google Ads, Email) funcionan completamente sin conexión a las plataformas. Generan el copy y la estrategia lista para que tú la implementes manualmente.' },
-  { q: '¿Cómo accedo al panel de SuperAdministrador?', a: 'Escribe "admin" con el teclado en cualquier pantalla. Aparecerá el botón rojo 🔐 SA en la esquina del sidebar. El código de acceso por defecto es 1234.' },
+  { q: '¿Cómo accedo al panel de administración?', a: 'Si tu usuario tiene rol de dueño, administrador, desarrollador o facturación, verás el botón rojo 🔐 SA en el sidebar. Cada rol abre solo las secciones que le corresponden según tus permisos reales.' },
   { q: '¿Cada cuánto debo volver a analizar mi sitio?', a: 'El sistema guarda el análisis por 24 horas y te ofrece usarlo sin repetir. Para seguimiento efectivo, analiza tu sitio 1 vez por semana o cuando hagas cambios importantes.' },
   { q: '¿Cuántos agentes puedo usar simultáneamente?', a: 'Todos los que quieras. Cada agente es independiente con su propio historial de chat. Puedes alternar entre ellos desde el menú lateral en cualquier momento.' },
-  { q: '¿El Director Estratégico recuerda conversaciones anteriores?', a: 'Sí. El chat del Director (botón "⚡ Activar Director" en la barra superior) guarda el historial en localStorage. Puedes limpiarlo con el botón 🗑 dentro del chat.' },
+  { q: '¿El Director Estratégico recuerda conversaciones anteriores?', a: 'Sí. El chat del Director mantiene historial reciente en el navegador para velocidad. Puedes limpiarlo con el botón 🗑 dentro del chat.' },
 ];
 
 let guideChatHistory = [];
@@ -8499,7 +9178,10 @@ async function sendWeeklyScoreNow() {
 // ══════════════════════════════════════════
 
 function setSATab(tab) {
-  ['audit','qa','ai'].forEach(function(t) {
+  if (!canAccessSATab(tab)) {
+    tab = getDefaultSATab();
+  }
+  SA_TABS.forEach(function(t) {
     var panel = document.getElementById('sa-panel-' + t);
     var btn = document.getElementById('sa-tab-' + t);
     if (panel) panel.style.display = t === tab ? 'block' : 'none';
@@ -8508,6 +9190,10 @@ function setSATab(tab) {
       btn.style.color = t === tab ? '#e07070' : 'rgba(224,112,112,0.4)';
     }
   });
+  saCurrentTab = tab;
+  if (tab === 'users') renderSAUsers();
+  if (tab === 'growth') loadSAGrowthInsights();
+  if (tab === 'billing') loadSABillingOverview();
 }
 
 var QA_SYSTEM = `Eres el agente QA y Seguridad de BearAds. Acceso: SUPERADMIN ONLY.
@@ -8621,6 +9307,25 @@ async function runQACustom() {
 
 </script>
 
+<!-- ONBOARDING MODAL -->
+<div id="onboarding-modal" style="display:none;position:fixed;inset:0;background:rgba(9,16,26,0.72);z-index:2100;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:min(780px,96vw);background:linear-gradient(135deg,#f8fbff,#eef7f4);border:1px solid rgba(123,167,232,0.18);border-radius:22px;padding:24px;box-shadow:0 24px 80px rgba(15,23,42,0.18);">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.76);font-size:10px;font-weight:800;letter-spacing:0.6px;color:#35507f;">BIENVENIDO A BEARADS</div>
+        <div style="margin-top:12px;font-size:28px;font-weight:900;color:#0f172a;line-height:1.12;">Empieza sin enredarte.</div>
+        <div style="margin-top:10px;font-size:14px;color:#51627f;line-height:1.8;">No necesitas aprender toda la plataforma hoy. Haz estos 3 pasos y BearAds empezara a darte resultados con contexto real.</div>
+      </div>
+      <button onclick="skipOnboarding()" style="background:none;border:none;color:#51627f;font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="onboarding-steps" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;"></div>
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;">
+      <div style="font-size:12px;color:#51627f;">Consejo: si te pierdes, vuelve al Dashboard y sigue el modo guiado.</div>
+      <button onclick="completeOnboarding()" style="padding:11px 16px;background:#0f172a;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Entendido, continuar</button>
+    </div>
+  </div>
+</div>
+
 <!-- PROFILE MODAL -->
 <div id="profile-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:460px;max-height:85vh;overflow-y:auto;padding:28px;">
@@ -8631,15 +9336,15 @@ async function runQACustom() {
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding:14px;background:var(--surface2);border-radius:10px;">
       <div id="profile-avatar-big" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#ffffff;flex-shrink:0;">AC</div>
       <div>
-        <div id="profile-name-display" style="font-size:15px;font-weight:700;">Admin CEO</div>
-        <div id="profile-email-display" style="font-size:12px;color:var(--muted);"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="eb8a8f868285ab8682999f838498c58a82">[email&#160;protected]</a></div>
+        <div id="profile-name-display" style="font-size:15px;font-weight:700;">BearAds User</div>
+        <div id="profile-email-display" style="font-size:12px;color:var(--muted);">Sin email</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <div><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">NOMBRE</label>
-        <input id="profile-name-input" type="text" value="Admin CEO" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;"/></div>
+        <input id="profile-name-input" type="text" value="BearAds User" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;"/></div>
       <div><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">EMAIL</label>
-        <input id="profile-email-input" type="email" value="admin@bearads.ai" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;"/></div>
+        <input id="profile-email-input" type="email" value="" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;"/></div>
       <div><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">NEGOCIO</label>
         <input id="profile-biz-input" type="text" placeholder="Ej: Mi Tienda Online" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;"/></div>
       <div><label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">SITIO WEB</label>
@@ -8660,9 +9365,10 @@ async function runQACustom() {
 <div id="plan-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:500px;padding:28px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <div style="font-size:17px;font-weight:800;">⚡ Tu Plan</div>
+      <div id="current-plan-title" style="font-size:17px;font-weight:800;">⚡ Tu Plan</div>
       <button onclick="document.getElementById('plan-modal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">✕</button>
     </div>
+    <div id="plan-trial-meta" style="font-size:12px;color:var(--muted);margin-bottom:14px;">Estado del plan</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;">
         <div style="font-size:12px;font-weight:700;margin-bottom:6px;">STARTER</div>
@@ -8686,7 +9392,7 @@ async function runQACustom() {
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span>Análisis</span><span id="plan-usage-analyses" style="color:var(--accent);font-weight:700;">0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Entregables</span><span id="plan-usage-deliverables" style="color:var(--accent);font-weight:700;">0</span></div>
     </div>
-    <button onclick="document.getElementById('plan-modal').style.display='none';showToast('Próximamente')" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">🚀 Mejorar a Agency</button>
+    <button id="plan-upgrade-btn" onclick="document.getElementById('plan-modal').style.display='none';showToast('Configuraremos billing real en la siguiente fase')" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">🚀 Mejorar a Agency</button>
   </div>
 </div>
 
@@ -8720,7 +9426,10 @@ async function runQACustom() {
 <div id="superadmin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;">
   <div style="background:#ffffff;border:1px solid #e07070;border-radius:16px;width:700px;height:80vh;display:flex;flex-direction:column;overflow:hidden;">
     <div style="padding:14px 20px;border-bottom:1px solid rgba(224,112,112,0.3);display:flex;align-items:center;gap:10px;background:rgba(224,112,112,0.05);">
-      <div style="font-size:14px;font-weight:800;color:#e07070;flex:1;">🔐 SUPERADMINISTRADOR — BEARADS</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;color:#e07070;" id="sa-workspace-title">🔐 PANEL ADMIN — BEARADS</div>
+        <div id="sa-workspace-meta" style="font-size:11px;color:#7f1d1d;margin-top:2px;">Cargando workspace...</div>
+      </div>
       <button onclick="runPlatformAudit()" style="font-size:11px;padding:5px 10px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.3);border-radius:5px;color:#e07070;cursor:pointer;">🔍 Auditar</button>
       <button onclick="document.getElementById('superadmin-modal').style.display='none'" style="background:none;border:none;color:#e07070;font-size:20px;cursor:pointer;">✕</button>
     </div>
@@ -8730,11 +9439,24 @@ async function runQACustom() {
         <button onclick="setSATab('audit')" id="sa-tab-audit" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid #e07070;font-size:11px;font-weight:700;color:#e07070;cursor:pointer;">🔍 Auditoría</button>
         <button onclick="setSATab('qa')" id="sa-tab-qa" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">🧪 QA & Testing</button>
         <button onclick="setSATab('ai')" id="sa-tab-ai" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">🧠 IAs Estratégicas</button>
+        <button onclick="setSATab('users')" id="sa-tab-users" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">👥 Usuarios</button>
+        <button onclick="setSATab('growth')" id="sa-tab-growth" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">📈 Growth</button>
+        <button onclick="setSATab('billing')" id="sa-tab-billing" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">💳 Billing</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;">
+        <div style="background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">
+          <div style="font-size:10px;font-weight:700;color:#7f1d1d;letter-spacing:0.6px;">ANÁLISIS LOCALES</div>
+          <div id="sa-total-analyses" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;">0</div>
+        </div>
+        <div style="background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">
+          <div style="font-size:10px;font-weight:700;color:#7f1d1d;letter-spacing:0.6px;">ENTREGABLES LOCALES</div>
+          <div id="sa-total-deliverables" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;">0</div>
+        </div>
       </div>
 
       <!-- TAB: Audit -->
       <div id="sa-panel-audit">
-        <div id="sa-audit-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:rgba(220,225,240,0.75);line-height:1.8;min-height:100px;">Haz clic en "Auditar" para analizar el estado del sistema.</div>
+        <div id="sa-audit-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;min-height:100px;">Haz clic en "Auditar" para analizar el estado del sistema.</div>
       </div>
 
       <!-- TAB: QA -->
@@ -8765,7 +9487,7 @@ async function runQACustom() {
           <input id="sa-qa-input" type="text" placeholder="Describe un bug o área a analizar..." onkeydown="if(event.key==='Enter')runQACustom()" style="flex:1;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <button onclick="runQACustom()" style="padding:9px 14px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;font-weight:700;">→</button>
         </div>
-        <div id="sa-qa-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:rgba(220,225,240,0.75);line-height:1.8;white-space:pre-wrap;min-height:80px;"></div>
+        <div id="sa-qa-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:80px;"></div>
       </div>
 
       <!-- TAB: AI Estratégicas -->
@@ -8774,7 +9496,38 @@ async function runQACustom() {
           <input id="sa-ai-input" type="text" placeholder="Pregunta estratégica para las IAs..." onkeydown="if(event.key==='Enter')saAskAI()" style="flex:1;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <button onclick="saAskAI()" style="padding:9px 14px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;font-weight:700;">→</button>
         </div>
-        <div id="sa-ai-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:rgba(220,225,240,0.75);line-height:1.8;white-space:pre-wrap;min-height:80px;"></div>
+        <div id="sa-ai-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:80px;"></div>
+      </div>
+
+      <div id="sa-panel-users" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;">
+          <input id="sa-user-search" type="text" placeholder="Buscar por correo, nombre, ID o dependencia..." oninput="renderSAUsers()" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
+          <div style="padding:9px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;white-space:nowrap;">Busca usuarios rápido</div>
+        </div>
+        <div id="sa-users-invite-grid" style="display:grid;grid-template-columns:1fr 1fr 140px auto;gap:8px;margin-bottom:12px;">
+          <input id="sa-invite-name" type="text" placeholder="Nombre" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
+          <input id="sa-invite-email" type="email" placeholder="usuario@empresa.com" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
+          <select id="sa-invite-role" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;">
+            <option value="member_trial">USUARIO TRIAL</option>
+            <option value="member_paid">USUARIO PAGO</option>
+          </select>
+          <button onclick="inviteAdminUser()" style="padding:9px 14px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;font-weight:700;">Invitar</button>
+        </div>
+        <div id="sa-users-list" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;min-height:120px;"></div>
+      </div>
+
+      <div id="sa-panel-growth" style="display:none;">
+        <div style="padding:10px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;margin-bottom:10px;">
+          Autogestión inicial: este módulo analiza el workspace, el trial, el equipo y te sugiere automatizaciones, integraciones y mejoras de crecimiento.
+        </div>
+        <div id="sa-growth-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:120px;"></div>
+      </div>
+
+      <div id="sa-panel-billing" style="display:none;">
+        <div style="padding:10px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;margin-bottom:10px;">
+          Vista de facturación: trial, usuarios pago, estado del plan y seguimiento comercial del workspace.
+        </div>
+        <div id="sa-billing-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:120px;"></div>
       </div>
     </div>
   </div>
