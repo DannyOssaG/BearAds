@@ -3832,7 +3832,8 @@ const ALL_AGENTS = [
     desc: 'Optimización para motores de IA generativa. El próximo SEO. Analiza tu visibilidad en ChatGPT, Perplexity y Google AI Overview y genera estrategias para que tu marca sea citada por la IA.',
     capabilities: [
       { icon: '🔎', label: 'Auditoría de visibilidad en IA', action: 'Analiza cómo está posicionada mi marca en ChatGPT, Perplexity y Google AI Overview y qué debo mejorar' },
-    ]
+    ],
+    quickActions: ['Auditoría GEO completa', 'Cómo salir en ChatGPT', 'Optimiza para AI Overview', 'Autoridad para motores de IA']
   }
 ];
 
@@ -3890,6 +3891,8 @@ function clearAgentContext() {
 function openAgentWorkspace(idx) {
   awCurrentAgent = ALL_AGENTS[idx];
   const ag = awCurrentAgent;
+  const capabilities = Array.isArray(ag?.capabilities) ? ag.capabilities : [];
+  const quickActions = Array.isArray(ag?.quickActions) ? ag.quickActions : [];
 
   const iconEl = document.getElementById('aw-icon');
   if (iconEl) { iconEl.textContent = ag.icon; iconEl.style.background = ag.color+'20'; iconEl.style.border = `1px solid ${ag.color}40`; }
@@ -3902,7 +3905,7 @@ function openAgentWorkspace(idx) {
 
   // Capabilities
   const capEl = document.getElementById('aw-capabilities');
-  if (capEl) capEl.innerHTML = ag.capabilities.map(c => `
+  if (capEl) capEl.innerHTML = capabilities.map(c => `
     <div onclick="useCapability('${c.action.replace(/'/g,"\\'")}')"
       style="padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:all 0.15s;"
       onmouseover="this.style.borderColor='${ag.color}';this.style.background='${ag.color}08'"
@@ -3916,12 +3919,12 @@ function openAgentWorkspace(idx) {
 
   // Quick actions
   const qaEl = document.getElementById('aw-quick-actions');
-  if (qaEl) qaEl.innerHTML = ag.quickActions.map(a =>
+  if (qaEl) qaEl.innerHTML = quickActions.length ? quickActions.map(a =>
     `<button onclick="useCapability('${a.replace(/'/g,"\\'")}')"
       style="padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;"
       onmouseover="this.style.borderColor='${ag.color}';this.style.color='${ag.color}'"
       onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">${a}</button>`
-  ).join('');
+  ).join('') : `<div style="font-size:11px;color:var(--muted);">Sin acciones rápidas disponibles para este agente.</div>`;
 
   // Analysis context info
   const ctxEl = document.getElementById('ctx-analysis-info');
