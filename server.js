@@ -1498,6 +1498,11 @@ async function getGA4Data(accessToken, propertyId) {
 
 // ── HELPER: CLAUDE ──
 async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    const error = new Error('El servicio de análisis IA no está configurado.');
+    error.statusCode = 503;
+    throw error;
+  }
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -1514,7 +1519,9 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
   });
   if (!response.ok) {
     const err = await response.json();
-    throw new Error(err.error?.message || 'Error API Anthropic');
+    const error = new Error(err.error?.message || 'Error API Anthropic');
+    error.statusCode = response.status || 502;
+    throw error;
   }
   const data = await response.json();
   return data.content[0].text;
@@ -1550,7 +1557,12 @@ REGLAS: resumen max 180 chars. razon max 80 chars. Max 3 canales. Max 4 nexusai_
 app.post('/api/analyze', async (req, res) => {
   const { url, ga4PropertyId } = req.body;
   if (!url) return res.status(400).json({ error: 'URL requerida' });
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API Key no configurada' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(503).json({
+      error: 'El análisis IA no está disponible en este momento.',
+      code: 'analysis_not_configured'
+    });
+  }
 
   let cleanUrl = url.trim();
   if (!cleanUrl.startsWith('http')) cleanUrl = 'https://' + cleanUrl;
@@ -1676,7 +1688,10 @@ Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`
 
   } catch (error) {
     console.error('  ✗ Error:', error.message);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({
+      error: error.message || 'No se pudo completar el análisis.',
+      code: error.statusCode === 503 ? 'analysis_unavailable' : 'analysis_error'
+    });
   }
 });
 
@@ -2531,6 +2546,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok', port: PORT,
     googleConnected: req.isAuthenticated(),
+    anthropic: !!process.env.ANTHROPIC_API_KEY,
     openai: !!process.env.OPENAI_API_KEY,
     googleAds: !!process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
   });

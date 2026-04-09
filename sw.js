@@ -1,5 +1,5 @@
-const CACHE = 'mirthos-v1';
-const STATIC = ['/'];
+const CACHE = 'mirthos-v2';
+const STATIC = [];
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -26,6 +26,18 @@ self.addEventListener('fetch', e => {
           headers: { 'Content-Type': 'application/json' }
         })
       )
+    );
+    return;
+  }
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(e.request).then(cached => cached || caches.match('/')))
     );
     return;
   }
