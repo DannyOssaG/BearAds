@@ -239,10 +239,59 @@ function rolePermissions(role = 'member_trial') {
   };
 }
 
+function defaultOnboardingState() {
+  return {
+    completed: false,
+    knowledgeLevel: '',
+    businessModel: '',
+    mainGoal: '',
+    platforms: [],
+    recommendedIntegrations: [],
+    createdAt: null,
+    updatedAt: null
+  };
+}
+
+function defaultIntegrationHub() {
+  return {
+    status: 'pending',
+    notes: '',
+    platforms: [],
+    connections: {
+      meta: null,
+      googleAds: null,
+      email: null,
+      ecom: null
+    }
+  };
+}
+
+function ensureWorkspaceState(workspace) {
+  if (!workspace) return null;
+  workspace.profile = workspace.profile || {};
+  workspace.settings = workspace.settings || {};
+  workspace.settings.preferredPlatforms = Array.isArray(workspace.settings.preferredPlatforms)
+    ? workspace.settings.preferredPlatforms
+    : ['google', 'meta', 'ga4', 'gsc'];
+  workspace.onboarding = {
+    ...defaultOnboardingState(),
+    ...(workspace.onboarding || {})
+  };
+  workspace.integrationHub = {
+    ...defaultIntegrationHub(),
+    ...(workspace.integrationHub || {}),
+    connections: {
+      ...defaultIntegrationHub().connections,
+      ...((workspace.integrationHub && workspace.integrationHub.connections) || {})
+    }
+  };
+  return workspace;
+}
+
 function createWorkspace(name, ownerUserId, createdBy) {
   const workspaceId = crypto.randomUUID();
   const now = nowIso();
-  const workspace = {
+  const workspace = ensureWorkspaceState({
     id: workspaceId,
     name: name || 'BearAds Workspace',
     slug: slugify(name || 'bearads-workspace'),
@@ -263,7 +312,7 @@ function createWorkspace(name, ownerUserId, createdBy) {
       benchmarkMode: true,
       preferredPlatforms: ['google', 'meta', 'ga4', 'gsc']
     }
-  };
+  });
   workspaces[workspaceId] = workspace;
   saveWorkspaces();
   return workspace;
@@ -309,7 +358,7 @@ function buildSessionUser(userId) {
   const oauth = oauthUsers[userId] || {};
   if (!user) return false;
   const rawMembership = getPrimaryMembership(userId);
-  const workspace = rawMembership ? workspaces[rawMembership.workspaceId] : null;
+  const workspace = rawMembership ? ensureWorkspaceState(workspaces[rawMembership.workspaceId]) : null;
   const membership = rawMembership ? { ...rawMembership, role: getEffectiveMembershipRole(rawMembership, workspace) } : null;
   return {
     ...user,
@@ -352,6 +401,7 @@ function sanitizeUser(user) {
 
 function sanitizeWorkspace(workspace) {
   if (!workspace) return null;
+  ensureWorkspaceState(workspace);
   const subscription = workspace.subscription || {};
   const trialEndsAt = subscription.trialEndsAt || null;
   const now = Date.now();
@@ -365,6 +415,8 @@ function sanitizeWorkspace(workspace) {
     ownerUserId: workspace.ownerUserId,
     createdAt: workspace.createdAt,
     profile: workspace.profile || {},
+    onboarding: workspace.onboarding || defaultOnboardingState(),
+    integrationHub: workspace.integrationHub || defaultIntegrationHub(),
     subscription: {
       ...subscription,
       remainingTrialDays
@@ -665,7 +717,7 @@ app.get('/api/session', requireAuth, (req, res) => {
 app.patch('/api/profile', requireAuth, (req, res) => {
   const user = appUsers[req.user.id];
   const membership = req.user.membership;
-  const workspace = membership ? workspaces[membership.workspaceId] : null;
+  const workspace = membership ? ensureWorkspaceState(workspaces[membership.workspaceId]) : null;
   if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
 
   const nextName = String(req.body.name || '').trim();
@@ -697,6 +749,80 @@ app.patch('/api/profile', requireAuth, (req, res) => {
     user: sanitizeUser(user),
     workspace: sanitizeWorkspace(workspace),
     membership
+  });
+});
+
+app.get('/api/workspace-setup', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(currentUser.workspace);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  res.json({
+    success: true,
+    workspace: sanitizeWorkspace(workspace)
+  });
+});
+
+app.patch('/api/workspace-setup', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const membership = currentUser.membership;
+  const workspace = membership ? ensureWorkspaceState(workspaces[membership.workspaceId]) : null;
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const onboarding = req.body.onboarding || {};
+  const integrationHub = req.body.integrationHub || {};
+  const allowedPlatforms = ['google', 'meta', 'googleAds', 'email', 'ecom', 'ga4', 'gsc', 'tiktok'];
+  const allowedKnowledge = ['principiante', 'intermedio', 'avanzado', 'agencia'];
+
+  if (Object.keys(onboarding).length) {
+    const nextKnowledge = String(onboarding.knowledgeLevel || '').trim().toLowerCase();
+    const nextBusinessModel = String(onboarding.businessModel || '').trim().slice(0, 120);
+    const nextMainGoal = String(onboarding.mainGoal || '').trim().slice(0, 160);
+    const nextPlatforms = Array.isArray(onboarding.platforms)
+      ? onboarding.platforms.map(value => String(value || '').trim()).filter(value => allowedPlatforms.includes(value)).slice(0, 8)
+      : workspace.onboarding.platforms;
+
+    workspace.onboarding = {
+      ...defaultOnboardingState(),
+      ...workspace.onboarding,
+      knowledgeLevel: allowedKnowledge.includes(nextKnowledge) ? nextKnowledge : workspace.onboarding.knowledgeLevel,
+      businessModel: nextBusinessModel || workspace.onboarding.businessModel,
+      mainGoal: nextMainGoal || workspace.onboarding.mainGoal,
+      platforms: nextPlatforms || [],
+      recommendedIntegrations: Array.from(new Set((nextPlatforms || []).filter(Boolean))).slice(0, 8),
+      completed: Boolean(onboarding.completed ?? workspace.onboarding.completed),
+      createdAt: workspace.onboarding.createdAt || nowIso(),
+      updatedAt: nowIso()
+    };
+    workspace.settings.preferredPlatforms = workspace.onboarding.platforms.length
+      ? workspace.onboarding.platforms
+      : workspace.settings.preferredPlatforms;
+  }
+
+  if (Object.keys(integrationHub).length) {
+    const nextPlatforms = Array.isArray(integrationHub.platforms)
+      ? integrationHub.platforms.map(value => String(value || '').trim()).filter(value => allowedPlatforms.includes(value)).slice(0, 8)
+      : workspace.integrationHub.platforms;
+    const nextConnections = integrationHub.connections || {};
+    workspace.integrationHub = {
+      ...defaultIntegrationHub(),
+      ...workspace.integrationHub,
+      status: String(integrationHub.status || workspace.integrationHub.status || 'pending'),
+      notes: String(integrationHub.notes || workspace.integrationHub.notes || '').slice(0, 400),
+      platforms: nextPlatforms || [],
+      connections: {
+        ...defaultIntegrationHub().connections,
+        ...workspace.integrationHub.connections,
+        ...nextConnections
+      }
+    };
+  }
+
+  workspace.updatedAt = nowIso();
+  saveWorkspaces();
+
+  res.json({
+    success: true,
+    workspace: sanitizeWorkspace(workspace)
   });
 });
 
@@ -2411,6 +2537,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── STATIC FILES (must be after API routes) ──
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.sendFile(path.join(__dirname, 'sw.js'));
+});
+
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  return res.sendFile(path.join(__dirname, 'manifest.json'));
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   index: false, // disable auto index.html
   setHeaders: (res, filePath) => {
@@ -2439,6 +2577,7 @@ app.get('/', (req, res) => {
 app.use((req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
+  if (path.extname(req.path)) return next();
 
   if (req.isAuthenticated()) {
     return res.sendFile(path.join(__dirname, 'public', 'index.html'));

@@ -2147,10 +2147,41 @@ tr:hover td { background: var(--surface2); }
 ══════════════════════════════════════════ -->
 <div class="page" id="page-campaigns">
   <div class="page-title">Gestor de Campañas</div>
-  <div class="page-sub">Crea, planifica y gestiona campañas de marketing con ayuda de IA</div>
+  <div class="page-sub">Empieza rápido con una plantilla simple y luego ajusta solo lo necesario</div>
 
   <!-- Integration status banner -->
   <div id="camp-integrations-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 20px;"></div>
+
+  <div style="margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(96,165,250,0.12),rgba(94,201,160,0.08));border:1px solid rgba(96,165,250,0.2);border-radius:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:1px;margin-bottom:8px;">EMPIEZA EN 1 PASO</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">Elige una campaña lista para usar</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;">Si no sabes por dónde comenzar, BearAds te deja una base hecha. Luego puedes ajustar objetivo, presupuesto y producto.</div>
+      </div>
+      <div id="camp-template-hint" style="min-width:240px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+        Usa una plantilla y la IA llenará la estructura completa para ti.
+      </div>
+    </div>
+    <div id="campaign-quick-start" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:16px;">
+      <button onclick="applyCampaignTemplate('meta-leads')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(96,165,250,0.2);background:rgba(123,167,232,0.09);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">📘 Conseguir leads</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Meta Ads para captar prospectos rápido con formulario o WhatsApp.</div>
+      </button>
+      <button onclick="applyCampaignTemplate('google-sales')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,0.2);background:rgba(251,191,36,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🔵 Vender más</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Google Ads para ventas o conversiones con intención de compra.</div>
+      </button>
+      <button onclick="applyCampaignTemplate('email-welcome')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(94,201,160,0.2);background:rgba(94,201,160,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">✉️ Activar contactos</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Secuencia de bienvenida para mover contactos nuevos a primera compra.</div>
+      </button>
+      <button onclick="applyCampaignTemplate('traffic-boost')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(192,132,252,0.2);background:rgba(192,132,252,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🚀 Traer tráfico</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Campaña simple para atraer visitas y validar interés rápido.</div>
+      </button>
+    </div>
+  </div>
 
   <!-- Tabs: Create / Active / History -->
   <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;">
@@ -2213,6 +2244,7 @@ tr:hover td { background: var(--surface2); }
           <button onclick="generateCampaign()" id="camp-btn" class="btn btn-primary" style="width:100%;padding:11px;font-size:12px;">
             ⚡ Generar Campaña con IA
           </button>
+          <div id="camp-auth-hint" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.7;"></div>
         </div>
       </div>
 
@@ -2246,7 +2278,7 @@ tr:hover td { background: var(--surface2); }
 ══════════════════════════════════════════ -->
 <div class="page" id="page-integrations">
   <div class="page-title">Integraciones & Centro de Campañas</div>
-  <div class="page-sub">Conecta tus plataformas y gestiona campañas de publicidad desde un solo lugar</div>
+  <div class="page-sub">Te guiamos paso a paso para conectar, revisar datos o lanzar una acción rápida</div>
 
   <!-- Connection Status Bar -->
   <div id="intg-status-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;align-items:center;">
@@ -2255,6 +2287,37 @@ tr:hover td { background: var(--surface2); }
     <div id="intg-meta-badge" style="font-size:11px;padding:4px 10px;border-radius:5px;font-weight:700;background:rgba(107,114,128,0.15);color:var(--muted);">● Meta — No conectado</div>
     <div id="intg-googleads-badge" style="font-size:11px;padding:4px 10px;border-radius:5px;font-weight:700;background:rgba(107,114,128,0.15);color:var(--muted);">● Google Ads — No conectado</div>
     <div style="margin-left:auto;font-size:11px;color:var(--muted);" id="intg-summary-text">Cargando estado...</div>
+  </div>
+
+  <div style="margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(94,201,160,0.1),rgba(96,165,250,0.08));border:1px solid rgba(94,201,160,0.16);border-radius:14px;">
+    <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div style="font-size:11px;font-weight:800;color:#5ec9a0;letter-spacing:1px;margin-bottom:8px;">¿QUÉ QUIERES HACER AHORA?</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">BearAds ordena tus integraciones por tarea</div>
+        <div id="intg-guide-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">Empieza conectando tus fuentes principales. Después podrás crear campañas o automatizaciones sin cambiar de módulo.</div>
+      </div>
+      <div style="min-width:220px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+        Menos pestañas, más intención: elige una tarea y BearAds te lleva al lugar correcto.
+      </div>
+    </div>
+    <div id="intg-quick-actions" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:16px;">
+      <button onclick="setIntegrationFocus('connections')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(94,201,160,0.2);background:rgba(94,201,160,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🔗 Conectar plataformas</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Google, Meta, email y e-commerce en un solo paso.</div>
+      </button>
+      <button onclick="setIntegrationFocus('meta')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(96,165,250,0.2);background:rgba(123,167,232,0.09);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">📘 Crear campaña Meta</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Define producto, audiencia y presupuesto con una guía simple.</div>
+      </button>
+      <button onclick="setIntegrationFocus('google-ads')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,0.2);background:rgba(251,191,36,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🔵 Crear campaña Google</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Empieza con intención de compra y keywords recomendadas por IA.</div>
+      </button>
+      <button onclick="setIntegrationFocus('email-mkt')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(94,201,160,0.2);background:rgba(94,201,160,0.08);cursor:pointer;color:var(--text);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">✉️ Automatizar emails</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;">Crea secuencias de bienvenida, abandono o reactivación.</div>
+      </button>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -3089,13 +3152,27 @@ tr:hover td { background: var(--surface2); }
 </div>
 <div class="page" id="page-agents">
   <div class="page-title">Agentes Especializados</div>
-  <div class="page-sub">Configura cada agente, define el contexto de tu negocio y genera entregables reales</div>
+  <div class="page-sub">Elige lo que necesitas lograr y BearAds te muestra solo los agentes más útiles</div>
 
   <!-- CONTEXT BANNER -->
   <div id="agents-context-banner" style="display:none;margin-bottom:20px;padding:12px 16px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;display:flex;align-items:center;gap:10px;">
     <span style="font-size:16px;">🔗</span>
     <div style="flex:1;font-size:12px;color:var(--text2);">Usando contexto del análisis de <strong id="agents-context-url" style="color:var(--accent)"></strong></div>
     <button onclick="clearAgentContext()" style="font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;">✕ Quitar contexto</button>
+  </div>
+
+  <div style="margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(192,132,252,0.1),rgba(96,165,250,0.08));border:1px solid rgba(192,132,252,0.18);border-radius:14px;">
+    <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div style="font-size:11px;font-weight:800;color:#c084fc;letter-spacing:1px;margin-bottom:8px;">ELIGE TU OBJETIVO</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">No necesitas revisar 12 agentes al tiempo</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;">Filtra por la meta que tienes hoy y BearAds prioriza los agentes correctos. Si ya sabes cuál buscas, usa el buscador.</div>
+      </div>
+      <input id="agents-search" type="text" placeholder="Buscar por nombre o problema..." oninput="setAgentSearch(this.value)"
+        style="min-width:220px;flex:1;max-width:280px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;"/>
+    </div>
+    <div id="agents-goal-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;"></div>
+    <div id="agents-results-meta" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
   </div>
 
   <!-- AGENT CARDS GRID -->
@@ -3691,6 +3768,32 @@ function safeUrl(url) {
   return '';
 }
 
+function getAuthCtaHtml(message) {
+  return `<div style="padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;">
+    <div style="font-size:13px;font-weight:700;color:#f3c1c1;margin-bottom:6px;">Necesitas volver a autenticarte</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px;">${esc(message || 'Tu sesión ya no está activa. Vuelve a entrar para seguir usando BearAds.')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="/auth/google" style="padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;">🔗 Entrar con Google</a>
+      <button onclick="refreshAppSession().then(()=>showToast('Sesión actualizada'))" style="padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">🔄 Reintentar</button>
+      <button disabled style="padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;">✉️ Registro con correo (próximamente)</button>
+    </div>
+  </div>`;
+}
+
+async function parseApiResponse(res) {
+  let data = {};
+  try {
+    data = await res.json();
+  } catch (error) {}
+  if (!res.ok) {
+    const err = new Error(data.error || data.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.payload = data;
+    throw err;
+  }
+  return data;
+}
+
 function getAnalysisHistory()  { return DB.get('analyses', []); }
 function getDeliverables()     { return DB.get('deliverables', []); }
 
@@ -3854,6 +3957,32 @@ const ALL_AGENTS = [
     quickActions: ['Auditoría GEO completa', 'Cómo salir en ChatGPT', 'Optimiza para AI Overview', 'Autoridad para motores de IA']
   }
 ];
+let activeAgentGoal = 'all';
+let agentSearchTerm = '';
+const AGENT_GOALS = {
+  director: ['start', 'scale'],
+  seo: ['traffic', 'visibility'],
+  sem: ['sales', 'traffic'],
+  contenido: ['visibility', 'conversion'],
+  creativo: ['sales', 'automation'],
+  trafico: ['traffic', 'scale'],
+  cro: ['conversion', 'sales'],
+  automatizacion: ['automation', 'scale'],
+  financiero: ['scale', 'sales'],
+  anuncios: ['sales', 'traffic'],
+  email: ['automation', 'conversion'],
+  geo: ['visibility', 'traffic']
+};
+const AGENT_GOAL_LABELS = {
+  all: 'Todos',
+  start: 'Empezar',
+  sales: 'Vender más',
+  traffic: 'Conseguir tráfico',
+  conversion: 'Mejorar conversión',
+  automation: 'Automatizar',
+  visibility: 'Ser más visible',
+  scale: 'Escalar'
+};
 
 // ══════════════════════════════════════════
 // AGENT WORKSPACE — modal with chat
@@ -3867,8 +3996,17 @@ let activeTutCardIdx = null;
 function initAgentsPage() {
   const grid = document.getElementById('full-agents-grid');
   if (!grid) return;
-  grid.innerHTML = ALL_AGENTS.map((ag, i) => `
-    <div onclick="openAgentWorkspace(${i})"
+  renderAgentGoalChips();
+  const filteredAgents = getFilteredAgents();
+  const meta = document.getElementById('agents-results-meta');
+  if (meta) {
+    const label = AGENT_GOAL_LABELS[activeAgentGoal] || AGENT_GOAL_LABELS.all;
+    meta.textContent = filteredAgents.length === ALL_AGENTS.length
+      ? 'Estás viendo los 12 agentes disponibles.'
+      : `Mostrando ${filteredAgents.length} agente(s) para: ${label.toLowerCase()}.`;
+  }
+  grid.innerHTML = filteredAgents.map(({ ag, idx }) => `
+    <div onclick="openAgentWorkspace(${idx})"
       style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;"
       onmouseover="this.style.borderColor='${ag.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'"
       onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
@@ -3887,7 +4025,45 @@ function initAgentsPage() {
         <span style="font-size:12px;color:${ag.color};font-weight:700;">Abrir →</span>
       </div>
     </div>`).join('');
+  if (!filteredAgents.length) {
+    grid.innerHTML = `<div style="grid-column:1 / -1;padding:34px;background:var(--surface);border:1px solid var(--border);border-radius:14px;text-align:center;">
+      <div style="font-size:30px;margin-bottom:10px;">🤖</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;">No encontré agentes con ese filtro</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;">Prueba otra palabra o cambia el objetivo para volver a ver los 12 agentes.</div>
+    </div>`;
+  }
   updateAgentsContextBanner();
+}
+
+function getFilteredAgents() {
+  return ALL_AGENTS.map((ag, idx) => ({ ag, idx })).filter(({ ag }) => {
+    const goals = AGENT_GOALS[ag.id] || [];
+    const matchesGoal = activeAgentGoal === 'all' || goals.includes(activeAgentGoal);
+    const term = agentSearchTerm.trim().toLowerCase();
+    const haystack = `${ag.name} ${ag.role} ${ag.desc}`.toLowerCase();
+    const matchesSearch = !term || haystack.includes(term);
+    return matchesGoal && matchesSearch;
+  });
+}
+
+function renderAgentGoalChips() {
+  const wrap = document.getElementById('agents-goal-chips');
+  if (!wrap) return;
+  wrap.innerHTML = Object.entries(AGENT_GOAL_LABELS).map(([key, label]) => `
+    <button onclick="setAgentGoal('${key}')"
+      style="padding:9px 12px;border-radius:999px;border:1px solid ${activeAgentGoal === key ? 'rgba(192,132,252,0.35)' : 'var(--border)'};background:${activeAgentGoal === key ? 'rgba(192,132,252,0.12)' : 'var(--surface)'};color:${activeAgentGoal === key ? '#c084fc' : 'var(--text2)'};font-size:12px;font-weight:700;cursor:pointer;">
+      ${esc(label)}
+    </button>`).join('');
+}
+
+function setAgentGoal(goal) {
+  activeAgentGoal = goal;
+  initAgentsPage();
+}
+
+function setAgentSearch(value) {
+  agentSearchTerm = String(value || '');
+  initAgentsPage();
 }
 
 function updateAgentsContextBanner() {
@@ -4196,12 +4372,23 @@ function getDashboardGuideState() {
   const hasGoogle = Boolean(appSession?.user?.googleId);
   const workspace = appSession?.workspace || {};
   const remainingTrialDays = workspace?.subscription?.remainingTrialDays || 0;
+  const onboarding = getWorkspaceOnboarding();
+  const hub = getWorkspaceIntegrationHub();
+  const recommendedIntegrations = getRecommendedIntegrations(onboarding);
+  const connectedIntegrations = recommendedIntegrations.filter(function(platform) {
+    if (platform === 'google') return hasGoogle;
+    return !!hub?.connections?.[platform];
+  }).length;
   return {
     hasProfile,
     hasAnalysis,
     hasGoogle,
     workspace,
-    remainingTrialDays
+    remainingTrialDays,
+    onboarding,
+    hub,
+    recommendedIntegrations,
+    connectedIntegrations
   };
 }
 
@@ -4218,18 +4405,30 @@ function renderDashboardGuide() {
   const workspace = state.workspace || {};
   const isTrial = workspace?.subscription?.status === 'trialing';
   const completedCount = [state.hasProfile, state.hasAnalysis, state.hasGoogle].filter(Boolean).length;
+  const knowledgeLabel = {
+    principiante: 'Nivel principiante',
+    intermedio: 'Nivel intermedio',
+    avanzado: 'Nivel avanzado',
+    agencia: 'Modo agencia'
+  }[state.onboarding?.knowledgeLevel] || 'Modo guiado';
 
-  badge.textContent = completedCount === 3 ? 'LISTO PARA CRECER' : 'MODO GUIADO';
+  badge.textContent = completedCount === 3 ? 'LISTO PARA CRECER' : knowledgeLabel.toUpperCase();
   title.textContent = completedCount === 3
     ? 'Tu cuenta ya está lista para avanzar'
-    : 'Haz estas 3 cosas y BearAds empezará a ayudarte mejor';
+    : state.onboarding?.knowledgeLevel
+      ? 'Tu plan guiado ya está adaptado a tu nivel'
+      : 'Haz estas 3 cosas y BearAds empezará a ayudarte mejor';
   copy.textContent = completedCount === 3
     ? 'Ya tienes la base hecha. Ahora usa campañas, agentes y automatizaciones con más contexto.'
-    : 'No necesitas entender toda la plataforma. Solo completa estos pasos en orden.';
+    : state.onboarding?.knowledgeLevel
+      ? 'BearAds te va guiando según lo que dijiste que sabes y las plataformas que usas.'
+      : 'No necesitas entender toda la plataforma. Solo completa estos pasos en orden.';
   plan.textContent = isTrial ? 'TRIAL' : formatPlanLabel(workspace).toUpperCase();
-  planCopy.textContent = isTrial
-    ? 'Te quedan ' + state.remainingTrialDays + ' días para probar BearAds con todo el contexto de tu negocio.'
-    : 'Tu plan actual está activo. Sigue optimizando y escalando tu operación.';
+  planCopy.textContent = state.onboarding?.knowledgeLevel
+    ? knowledgeLabel + ' · ' + state.connectedIntegrations + '/' + state.recommendedIntegrations.length + ' integraciones sugeridas listas.'
+    : (isTrial
+      ? 'Te quedan ' + state.remainingTrialDays + ' días para probar BearAds con todo el contexto de tu negocio.'
+      : 'Tu plan actual está activo. Sigue optimizando y escalando tu operación.');
 
   const items = [
     {
@@ -4250,10 +4449,12 @@ function renderDashboardGuide() {
     },
     {
       done: state.hasGoogle,
-      title: '3. Conecta Google',
-      copy: state.hasGoogle ? 'Google ya está conectado.' : 'Conecta Google para ver datos reales de tráfico, clicks y keywords.',
-      button: state.hasGoogle ? 'Ver integraciones' : 'Conectar ahora',
-      action: state.hasGoogle ? "showPage('integrations')" : "showPage('integrations')",
+      title: '3. Conecta tus plataformas',
+      copy: state.connectedIntegrations
+        ? 'Ya tienes ' + state.connectedIntegrations + ' integración(es) clave listas para tu flujo.'
+        : 'Conecta primero las plataformas recomendadas para tu nivel y objetivo.',
+      button: state.connectedIntegrations ? 'Revisar integraciones' : 'Conectar ahora',
+      action: "showPage('integrations');setTimeout(function(){setIntegrationFocus('" + getNextIntegrationFocus(state.onboarding) + "')},120)",
       accent: '#fb923c'
     }
   ];
@@ -4480,6 +4681,17 @@ function selectGoal(el, goal) {
 }
 
 async function generateStrategy() {
+  if (!hasActiveBearAdsSession()) {
+    const resultEl = document.getElementById('st-result');
+    const emptyEl = document.getElementById('st-empty');
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = getAuthCtaHtml('Tu sesión no está activa para generar estrategias.');
+    }
+    showToast('Primero inicia sesión en BearAds');
+    return;
+  }
   const product = document.getElementById('st-product').value.trim();
   const audience = document.getElementById('st-audience').value.trim();
   const budget = document.getElementById('st-budget').value;
@@ -4503,7 +4715,7 @@ async function generateStrategy() {
     const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({messages:[{role:'user',content:`Genera una estrategia de marketing completa para:\n\n${context}\n\nIncluye: 1) Diagnóstico 2) Canales prioritarios con razón 3) Plan semana 1-4 4) KPIs 5) Presupuesto por canal. Concreto y ejecutable.`}],
         systemPrompt:'Eres el Director Estratégico de BearAds. Crea estrategias concretas y ejecutables para negocios latinoamericanos. Formato estructurado con emojis. Máximo 500 palabras. En español.'})});
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const reply = data.reply||'Error.';
     if (loadEl) loadEl.style.display='none';
     if (resultEl) {
@@ -4525,7 +4737,18 @@ async function generateStrategy() {
       </div>`;
     }
     saveDeliverable('Director Estratégico','🧠','Estrategia',reply);
-  } catch(e) { if(loadEl)loadEl.style.display='none'; if(emptyEl)emptyEl.style.display='flex'; }
+  } catch(e) {
+    if (loadEl) loadEl.style.display='none';
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = e?.status === 401
+        ? getAuthCtaHtml('Tu sesión no está activa para generar estrategias.')
+        : `<div style="padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.7;">No pude generar la estrategia ahora mismo.<br><strong style="color:#f3c1c1;">${esc(e?.payload?.error?.error?.message || e?.payload?.error?.message || e?.message || 'Error inesperado')}</strong></div>`;
+    } else if (emptyEl) {
+      emptyEl.style.display='flex';
+    }
+    showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la estrategia');
+  }
   if (btn) { btn.disabled=false; btn.textContent='⚡ Generar Estrategia'; }
 }
 
@@ -4561,6 +4784,36 @@ function renderSavedStrategies() {
 // ══════════════════════════════════════════
 let campPlatform = 'meta';
 let campSaved = DB.get('saved_campaigns', []);
+const CAMPAIGN_TEMPLATES = {
+  'meta-leads': {
+    platform: 'meta',
+    objective: 'Generación de leads',
+    budget: '$20 / día',
+    product: 'Servicio o producto principal para captar leads',
+    hint: 'Perfecta para conseguir prospectos por formulario o WhatsApp.'
+  },
+  'google-sales': {
+    platform: 'google',
+    objective: 'Ventas / Conversiones',
+    budget: '$30 / día',
+    product: 'Producto con intención de compra clara',
+    hint: 'Úsala cuando quieras vender con búsquedas de alta intención.'
+  },
+  'email-welcome': {
+    platform: 'email',
+    objective: 'Remarketing',
+    budget: '$10 / día',
+    product: 'Oferta de bienvenida o primer incentivo de compra',
+    hint: 'Ideal para activar registros nuevos y llevarlos a su primera compra.'
+  },
+  'traffic-boost': {
+    platform: 'meta',
+    objective: 'Tráfico al sitio web',
+    budget: '$15 / día',
+    product: 'Página o servicio que necesitas validar rápido',
+    hint: 'Buena opción para empezar sin complicarte con una campaña avanzada.'
+  }
+};
 
 function initCampaignsPage() {
   const bar = document.getElementById('camp-integrations-bar');
@@ -4572,12 +4825,50 @@ function initCampaignsPage() {
     </div>
     <div style="padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);">○ Meta Ads — Próximamente</div>`;
   if (!googleOk) { const hint=document.getElementById('camp-connect-hint'); if(hint)hint.style.display='block'; }
+  if (!document.getElementById('camp-product')?.value.trim()) applyCampaignTemplate('meta-leads', true);
+  syncCampaignAuthUI();
 }
 
 function selectPlatform(el, platform) {
+  setCampaignPlatform(platform, el);
+}
+
+function setCampaignPlatform(platform, activeEl = null) {
   campPlatform = platform;
-  document.querySelectorAll('.camp-plat-btn').forEach(b=>{b.style.background='var(--surface2)';b.style.borderColor='var(--border)';b.style.color='var(--text2)';});
-  el.style.background='rgba(123,167,232,0.09)'; el.style.borderColor='var(--accent)'; el.style.color='var(--accent)';
+  document.querySelectorAll('.camp-plat-btn').forEach(b => {
+    b.style.background = 'var(--surface2)';
+    b.style.borderColor = 'var(--border)';
+    b.style.color = 'var(--text2)';
+  });
+  const target = activeEl || Array.from(document.querySelectorAll('.camp-plat-btn')).find(btn => btn.getAttribute('onclick')?.includes(`'${platform}'`));
+  if (!target) return;
+  const styles = {
+    meta: ['rgba(123,167,232,0.09)', 'var(--accent)', 'var(--accent)'],
+    google: ['rgba(251,191,36,0.08)', '#fbbf24', '#fbbf24'],
+    tiktok: ['rgba(232,67,147,0.08)', '#e84393', '#e84393'],
+    email: ['rgba(94,201,160,0.08)', '#5ec9a0', '#5ec9a0']
+  };
+  const [bg, border, color] = styles[platform] || styles.meta;
+  target.style.background = bg;
+  target.style.borderColor = border;
+  target.style.color = color;
+}
+
+function applyCampaignTemplate(templateId, silent = false) {
+  const preset = CAMPAIGN_TEMPLATES[templateId];
+  if (!preset) return;
+  const objectiveEl = document.getElementById('camp-objective');
+  const budgetEl = document.getElementById('camp-budget');
+  const productEl = document.getElementById('camp-product');
+  const hintEl = document.getElementById('camp-template-hint');
+  if (objectiveEl) objectiveEl.value = preset.objective;
+  if (budgetEl) budgetEl.value = preset.budget;
+  if (productEl && (!silent || !productEl.value.trim())) productEl.value = preset.product;
+  setCampaignPlatform(preset.platform);
+  if (hintEl) {
+    hintEl.innerHTML = `<strong style="color:var(--text);display:block;margin-bottom:4px;">Plantilla lista</strong>${esc(preset.hint)}`;
+  }
+  if (!silent) showToast('Plantilla aplicada');
 }
 
 function switchCampTab(tab) {
@@ -4591,6 +4882,11 @@ function switchCampTab(tab) {
 }
 
 async function generateCampaign() {
+  if (!hasActiveBearAdsSession()) {
+    syncCampaignAuthUI(null);
+    showToast('Primero inicia sesión en BearAds');
+    return;
+  }
   const objective = document.getElementById('camp-objective').value;
   const budget = document.getElementById('camp-budget').value.trim()||'$15/día';
   const product = document.getElementById('camp-product').value.trim();
@@ -4609,7 +4905,7 @@ async function generateCampaign() {
     const res = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({messages:[{role:'user',content:`Crea una campaña completa de ${platNames[campPlatform]}:\n\nProducto: ${product}\nObjetivo: ${objective}\nPresupuesto: ${budget}${currentAnalysis?'\nSitio: '+currentAnalysis.url:''}\n\nIncluye: 1) Estructura 2) Audiencia detallada 3) 3 copies completos (headline+texto+CTA) 4) Estrategia de puja 5) KPIs 6) Checklist de configuración. Listo para lanzar.`}],
         systemPrompt:`Eres el Agente de Anuncios de BearAds. Creas campañas de ${platNames[campPlatform]} completas y listas para lanzar. Formato estructurado con emojis. Máximo 500 palabras. En español.`})});
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const reply = data.reply||'Error.';
     if(loadEl)loadEl.style.display='none';
     if(resultEl){
@@ -4627,7 +4923,19 @@ async function generateCampaign() {
       </div>`;
     }
     saveDeliverable('Agente Anuncios', platIcons[campPlatform], 'Campaña '+platNames[campPlatform], reply);
-  } catch(e){ if(loadEl)loadEl.style.display='none'; if(emptyEl)emptyEl.style.display='flex'; }
+  } catch(e){
+    if(loadEl)loadEl.style.display='none';
+    if (e?.status === 401 && resultEl) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = getAuthCtaHtml('Tu sesión no está activa para generar campañas.');
+    } else if (resultEl) {
+      resultEl.style.display = 'block';
+      resultEl.innerHTML = `<div style="padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.7;">No pude generar la campaña ahora mismo.<br><strong style="color:#f3c1c1;">${esc(e?.message || 'Error inesperado')}</strong></div>`;
+    } else if(emptyEl) {
+      emptyEl.style.display='flex';
+    }
+    showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la campaña');
+  }
   if(btn){btn.disabled=false;btn.textContent='⚡ Generar Campaña con IA';}
 }
 
@@ -5819,6 +6127,20 @@ async function fetchAppSession() {
   }
 }
 
+async function saveWorkspaceSetup(payload) {
+  const res = await fetch('/api/workspace-setup', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload || {})
+  });
+  const data = await parseApiResponse(res);
+  if (data?.workspace && appSession) {
+    appSession.workspace = data.workspace;
+  }
+  return data?.workspace || null;
+}
+
 function applyProfileToUI(profile, workspace) {
   const initials = (profile.name || 'BA').split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
   const av = document.getElementById('sidebar-user-avatar');
@@ -5853,6 +6175,84 @@ function isPrimaryRootOwner(session = appSession) {
 
 function canAccessAdminPanel(session = appSession) {
   return !!(session?.isPlatformOwner || session?.permissions?.canAccessAdminPanel);
+}
+
+function hasActiveBearAdsSession(session = appSession) {
+  return !!session?.user;
+}
+
+function syncCampaignAuthUI(session = appSession) {
+  const btn = document.getElementById('camp-btn');
+  const hint = document.getElementById('camp-auth-hint');
+  if (!btn || !hint) return;
+  if (hasActiveBearAdsSession(session)) {
+    btn.disabled = false;
+    btn.textContent = '⚡ Generar Campaña con IA';
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    hint.style.display = 'none';
+    hint.innerHTML = '';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '🔒 Inicia sesión para generar';
+  btn.style.opacity = '0.7';
+  btn.style.cursor = 'not-allowed';
+  hint.style.display = 'block';
+  hint.innerHTML = `Primero inicia sesión en BearAds para usar la IA.<br><a href="/auth/google" style="color:var(--accent);font-weight:700;text-decoration:none;">Entrar con Google →</a>`;
+}
+
+function getWorkspaceOnboarding(session = appSession) {
+  return session?.workspace?.onboarding || {
+    completed: false,
+    knowledgeLevel: '',
+    businessModel: '',
+    mainGoal: '',
+    platforms: [],
+    recommendedIntegrations: []
+  };
+}
+
+function getWorkspaceIntegrationHub(session = appSession) {
+  return session?.workspace?.integrationHub || {
+    status: 'pending',
+    notes: '',
+    platforms: [],
+    connections: { meta: null, googleAds: null, email: null, ecom: null }
+  };
+}
+
+let onboardingScreen = 0;
+
+function getRecommendedIntegrations(onboarding = getWorkspaceOnboarding()) {
+  const selected = Array.isArray(onboarding?.platforms) ? onboarding.platforms.filter(Boolean) : [];
+  if (selected.length) return Array.from(new Set(selected));
+  const byLevel = {
+    principiante: ['google', 'meta'],
+    intermedio: ['google', 'meta', 'email'],
+    avanzado: ['google', 'meta', 'googleAds', 'email'],
+    agencia: ['google', 'meta', 'googleAds', 'email', 'ecom']
+  };
+  return byLevel[onboarding?.knowledgeLevel] || ['google', 'meta'];
+}
+
+function getNextIntegrationFocus(onboarding = getWorkspaceOnboarding()) {
+  const recommended = getRecommendedIntegrations(onboarding);
+  const hub = getWorkspaceIntegrationHub();
+  const connections = hub?.connections || {};
+  const focusMap = {
+    google: 'connections',
+    meta: 'connections',
+    googleAds: 'connections',
+    email: 'connections',
+    ecom: 'connections',
+    tiktok: 'connections'
+  };
+  const nextPlatform = recommended.find(function(platform) {
+    if (platform === 'google') return !appSession?.user?.googleId;
+    return !connections[platform];
+  });
+  return focusMap[nextPlatform] || 'connections';
 }
 
 function canAccessSATab(tab, session = appSession) {
@@ -5954,7 +6354,11 @@ function collectBillingSecurityCheck(status) {
 
 async function refreshAppSession() {
   const session = await fetchAppSession();
-  if (!session || !session.user) return null;
+  if (!session || !session.user) {
+    appSession = null;
+    syncCampaignAuthUI(null);
+    return null;
+  }
   appSession = session;
   userProfile = {
     name: session.user.name || 'BearAds User',
@@ -5971,6 +6375,16 @@ async function refreshAppSession() {
     saBtn.style.display = canAccessAdminPanel(session) ? 'flex' : 'none';
   }
   renderSAAccess();
+  syncCampaignAuthUI(session);
+  if (session?.workspace?.integrationHub?.connections) {
+    intgConnections = {
+      meta: session.workspace.integrationHub.connections.meta || null,
+      googleAds: session.workspace.integrationHub.connections.googleAds || null,
+      email: session.workspace.integrationHub.connections.email || null,
+      ecom: session.workspace.integrationHub.connections.ecom || null
+    };
+    DB.set('intg_connections', intgConnections);
+  }
   return session;
 }
 
@@ -6038,7 +6452,13 @@ async function loadProfileOnStart() {
 }
 
 function getOnboardingState() {
-  return DB.get(ONBOARDING_KEY, { completed: false, dismissedAt: null });
+  const remote = getWorkspaceOnboarding();
+  const local = DB.get(ONBOARDING_KEY, { completed: false, dismissedAt: null });
+  return {
+    ...local,
+    ...remote,
+    completed: Boolean(remote?.completed || local?.completed)
+  };
 }
 
 function setOnboardingState(nextState) {
@@ -6053,15 +6473,48 @@ function maybeOpenOnboarding() {
   const onboarding = getOnboardingState();
   if (onboarding?.completed) return;
   setTimeout(function() {
+    onboardingScreen = 0;
     renderOnboardingModal();
     openModal('onboarding-modal');
   }, 250);
 }
 
-function completeOnboarding() {
-  setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
-  closeModal('onboarding-modal');
-  showToast('Listo. Ya sabes por dónde empezar.');
+async function completeOnboarding() {
+  const knowledgeLevel = document.getElementById('ob-knowledge-level')?.value || '';
+  const businessModel = document.getElementById('ob-business-model')?.value.trim() || '';
+  const mainGoal = document.getElementById('ob-main-goal')?.value.trim() || '';
+  const platforms = Array.from(document.querySelectorAll('input[name="ob-platforms"]:checked')).map(function(input) {
+    return input.value;
+  });
+  if (!knowledgeLevel || !businessModel || !mainGoal) {
+    showToast('Completa las preguntas principales para continuar');
+    return;
+  }
+  try {
+    await saveWorkspaceSetup({
+      onboarding: {
+        completed: true,
+        knowledgeLevel,
+        businessModel,
+        mainGoal,
+        platforms
+      },
+      integrationHub: {
+        platforms,
+        notes: `Guiado para ${knowledgeLevel} enfocado en ${mainGoal}`
+      }
+    });
+    await refreshAppSession();
+    setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
+    closeModal('onboarding-modal');
+    showToast('Listo. BearAds ya sabe cómo guiarte.');
+    showPage('integrations');
+    setTimeout(function() {
+      setIntegrationFocus(getNextIntegrationFocus(getWorkspaceOnboarding()), true);
+    }, 120);
+  } catch (error) {
+    showToast(error?.message || 'No pude guardar tu configuración inicial');
+  }
 }
 
 function skipOnboarding() {
@@ -6069,43 +6522,67 @@ function skipOnboarding() {
   closeModal('onboarding-modal');
 }
 
+function changeOnboardingScreen(direction) {
+  setOnboardingState({
+    knowledgeLevel: document.getElementById('ob-knowledge-level')?.value || getOnboardingState().knowledgeLevel || '',
+    businessModel: document.getElementById('ob-business-model')?.value.trim() || getOnboardingState().businessModel || '',
+    mainGoal: document.getElementById('ob-main-goal')?.value.trim() || getOnboardingState().mainGoal || '',
+    platforms: Array.from(document.querySelectorAll('input[name="ob-platforms"]:checked')).map(function(input) { return input.value; })
+  });
+  const next = onboardingScreen + direction;
+  onboardingScreen = Math.max(0, Math.min(1, next));
+  renderOnboardingModal();
+}
+
 function renderOnboardingModal() {
   const root = document.getElementById('onboarding-steps');
+  const helper = document.getElementById('onboarding-helper');
+  const primary = document.getElementById('onboarding-primary-btn');
+  const secondary = document.getElementById('onboarding-secondary-btn');
   if (!root) return;
-  const state = getDashboardGuideState();
-  const steps = [
-    {
-      title: 'Completa tu perfil',
-      copy: 'Escribe el nombre de tu negocio y tu web. Asi BearAds deja de hablar generico.',
-      button: 'Abrir perfil',
-      action: "closeModal('onboarding-modal');openProfilePanel();",
-      done: state.hasProfile
-    },
-    {
-      title: 'Haz tu primer analisis',
-      copy: 'Con un solo analisis BearAds entiende mejor tu sitio y te da prioridades claras.',
-      button: 'Ir a analizar',
-      action: "closeModal('onboarding-modal');showPage('analyze');",
-      done: state.hasAnalysis
-    },
-    {
-      title: 'Conecta Google',
-      copy: 'Si conectas Google veras trafico, clicks y keywords reales en vez de solo estimaciones.',
-      button: 'Ir a integraciones',
-      action: "closeModal('onboarding-modal');showPage('integrations');",
-      done: state.hasGoogle
-    }
-  ];
-  root.innerHTML = steps.map(function(step, index) {
-    return '<div style="padding:14px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
-      + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">'
-      + '<div style="font-size:13px;font-weight:800;color:#0f172a;">Paso ' + (index + 1) + '. ' + esc(step.title) + '</div>'
-      + '<div style="font-size:10px;font-weight:800;color:' + (step.done ? '#0f9f6e' : '#51627f') + ';">' + (step.done ? 'HECHO' : 'PENDIENTE') + '</div>'
+  const onboarding = getOnboardingState();
+  const checkedPlatforms = Array.isArray(onboarding.platforms) ? onboarding.platforms : [];
+  if (helper) {
+    helper.textContent = onboardingScreen === 0
+      ? 'Pantalla 1 de 2: entendamos tu nivel y tu meta.'
+      : 'Pantalla 2 de 2: conecta lo que ya usas para no repetir integraciones.';
+  }
+  if (secondary) {
+    secondary.style.display = onboardingScreen === 0 ? 'none' : 'inline-flex';
+  }
+  if (primary) {
+    primary.textContent = onboardingScreen === 0 ? 'Siguiente' : 'Guardar y continuar';
+    primary.onclick = onboardingScreen === 0 ? function() { changeOnboardingScreen(1); } : completeOnboarding;
+  }
+  root.style.gridTemplateColumns = '1fr';
+  if (onboardingScreen === 0) {
+    root.innerHTML = ''
+      + '<div style="padding:16px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">1. Cuéntame quién va a usar BearAds</div>'
+      + '<div style="display:grid;gap:12px;">'
+      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Nivel de conocimiento</label><select id="ob-knowledge-level" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;"><option value=\"\">Selecciona...</option><option value=\"principiante\"' + (onboarding.knowledgeLevel === 'principiante' ? ' selected' : '') + '>Principiante</option><option value=\"intermedio\"' + (onboarding.knowledgeLevel === 'intermedio' ? ' selected' : '') + '>Intermedio</option><option value=\"avanzado\"' + (onboarding.knowledgeLevel === 'avanzado' ? ' selected' : '') + '>Avanzado</option><option value=\"agencia\"' + (onboarding.knowledgeLevel === 'agencia' ? ' selected' : '') + '>Agencia / equipo experto</option></select></div>'
+      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Tipo de negocio</label><input id="ob-business-model" type="text" value="' + esc(onboarding.businessModel || '') + '" placeholder="Ej: e-commerce, servicios, clínica, academia" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
+      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Meta principal</label><input id="ob-main-goal" type="text" value="' + esc(onboarding.mainGoal || '') + '" placeholder="Ej: conseguir leads, vender más, automatizar" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
       + '</div>'
-      + '<div style="margin-top:8px;font-size:12px;color:#51627f;line-height:1.7;">' + esc(step.copy) + '</div>'
-      + '<button onclick="' + step.action + '" style="margin-top:10px;padding:10px 12px;background:' + (step.done ? 'rgba(15,23,42,0.04)' : 'var(--accent)') + ';border:' + (step.done ? '1px solid rgba(15,23,42,0.08)' : 'none') + ';border-radius:10px;color:' + (step.done ? '#0f172a' : '#ffffff') + ';font-size:12px;font-weight:800;cursor:pointer;">' + esc(step.button) + '</button>'
+      + '<div style="margin-top:14px;font-size:12px;color:#51627f;line-height:1.7;">BearAds usará estas respuestas para simplificar módulos, priorizar agentes y recomendar integraciones sin enredarte.</div>'
       + '</div>';
-  }).join('');
+  } else {
+    root.innerHTML = ''
+      + '<div style="padding:16px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">2. Elige las plataformas que ya usas</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">'
+      + ['google','meta','googleAds','email','ecom','tiktok'].map(function(platform) {
+          var labels = { google:'Google Analytics / Search Console', meta:'Meta Business', googleAds:'Google Ads', email:'Email Marketing', ecom:'E-commerce', tiktok:'TikTok Ads' };
+          return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid rgba(123,167,232,0.16);border-radius:10px;font-size:12px;color:#0f172a;"><input type="checkbox" name="ob-platforms" value="' + platform + '"' + (checkedPlatforms.includes(platform) ? ' checked' : '') + '/> ' + labels[platform] + '</label>';
+        }).join('')
+      + '</div>'
+      + '<div style="margin-top:14px;padding:12px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.06);border-radius:12px;font-size:12px;color:#51627f;line-height:1.7;">'
+      + '<strong style="color:#0f172a;display:block;margin-bottom:6px;">Registro con correo del mercado</strong>'
+      + 'Próximamente podrás crear cuenta con cualquier correo y validación por email. La opción quedará visible, pero por ahora sigue desactivada mientras terminamos el flujo.'
+      + '<div style="margin-top:8px;"><button disabled style="padding:9px 12px;background:#d8e0ea;border:none;border-radius:10px;color:#6b7280;font-size:12px;font-weight:800;cursor:not-allowed;">Registro con correo (próximamente)</button></div>'
+      + '</div>'
+      + '</div>';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -6810,8 +7287,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 let intgConnections = DB.get('intg_connections', {
   meta: null, googleAds: null, email: null, ecom: null
 });
+let currentIntegrationFocus = 'connections';
+const INTEGRATION_GUIDES = {
+  connections: 'Empieza conectando tus fuentes principales. Eso te da datos reales y evita trabajar a ciegas.',
+  meta: 'Aquí puedes sacar una campaña Meta guiada: producto, audiencia, presupuesto y checklist listo.',
+  'google-ads': 'Usa esta vista cuando tu prioridad sea vender con búsquedas de alta intención y keywords recomendadas.',
+  'email-mkt': 'Ideal para reactivar contactos, recuperar carritos o acompañar leads sin depender de anuncios.',
+  webhooks: 'Esta zona es más avanzada. Úsala cuando ya tengas el resto conectado y quieras automatizar.'
+};
+
+async function persistIntegrationHub(extra) {
+  try {
+    const currentHub = getWorkspaceIntegrationHub();
+    const nextPlatforms = Array.from(new Set([
+      ...(Array.isArray(currentHub.platforms) ? currentHub.platforms : []),
+      ...Object.entries(intgConnections).filter(function(entry) { return !!entry[1]; }).map(function(entry) { return entry[0]; })
+    ]));
+    await saveWorkspaceSetup({
+      integrationHub: {
+        ...currentHub,
+        ...(extra || {}),
+        platforms: nextPlatforms,
+        connections: {
+          ...currentHub.connections,
+          ...intgConnections
+        }
+      }
+    });
+    await refreshAppSession();
+  } catch (error) {
+    showToast(error?.message || 'No pude guardar la integración');
+  }
+}
 
 function initIntegrationsPage() {
+  setIntegrationFocus(currentIntegrationFocus, true);
+  const onboarding = getWorkspaceOnboarding();
+  const guide = document.getElementById('intg-guide-copy');
+  if (guide && onboarding?.knowledgeLevel) {
+    const labels = {
+      principiante: 'Eres principiante: BearAds te mostrará primero las conexiones más importantes y luego las campañas.',
+      intermedio: 'Tienes base intermedia: conecta tus plataformas clave y luego pasa a automatizaciones ligeras.',
+      avanzado: 'Nivel avanzado detectado: BearAds prioriza datos reales, campañas y automatizaciones técnicas.',
+      agencia: 'Modo agencia: conecta varias plataformas del cliente una sola vez y reutilízalas en todos los agentes.'
+    };
+    guide.textContent = labels[onboarding.knowledgeLevel] || guide.textContent;
+  }
   // Always check real Google auth status from server
   fetch('/auth/status').then(r => r.json()).then(data => {
     const googleOk = data.connected;
@@ -6899,6 +7420,14 @@ function switchIntgTab(tab) {
       btn.style.color = t === tab ? 'var(--text)' : 'var(--muted)';
     }
   });
+  currentIntegrationFocus = tab;
+  const guide = document.getElementById('intg-guide-copy');
+  if (guide) guide.textContent = INTEGRATION_GUIDES[tab] || INTEGRATION_GUIDES.connections;
+}
+
+function setIntegrationFocus(tab, silent = false) {
+  switchIntgTab(tab);
+  if (!silent) showToast('Vista lista');
 }
 
 // Toggle connection fields
@@ -6939,6 +7468,7 @@ function saveMetaConnection() {
   DB.set('intg_connections', intgConnections);
   toggleMetaFields();
   renderSavedConnections();
+  persistIntegrationHub({ status: 'in_progress' });
   showToast('✓ Meta Business conectado');
 }
 function saveGAdsConnection() {
@@ -6949,6 +7479,7 @@ function saveGAdsConnection() {
   DB.set('intg_connections', intgConnections);
   toggleGAdsFields();
   renderSavedConnections();
+  persistIntegrationHub({ status: 'in_progress' });
   showToast('✓ Google Ads conectado');
 }
 function saveEmailConnection() {
@@ -6959,6 +7490,7 @@ function saveEmailConnection() {
   DB.set('intg_connections', intgConnections);
   toggleEmailFields();
   renderSavedConnections();
+  persistIntegrationHub({ status: 'in_progress' });
   showToast('✓ ' + platform + ' conectado');
 }
 function saveEcomConnection() {
@@ -6968,6 +7500,7 @@ function saveEcomConnection() {
   DB.set('intg_connections', intgConnections);
   toggleEcomFields();
   renderSavedConnections();
+  persistIntegrationHub({ status: 'in_progress' });
   showToast('✓ ' + platform + ' conectado');
 }
 
@@ -6991,7 +7524,7 @@ async function generateMetaCampaign() {
         `Crea una campaña completa de Meta Ads (Facebook + Instagram):\n\nProducto: ${product}\nObjetivo: ${objective}\nAudiencia: ${audience||'Definir basado en producto'}\nPresupuesto: ${budget}\nPaís: ${country}\n\nEntrega COMPLETO:\n1) Estructura de campaña (CBO vs ABO, conjuntos de anuncios)\n2) Segmentación detallada (intereses, comportamientos, edades, géneros)\n3) 3 copies completos de anuncios (headline 40 chars, texto principal, descripción, CTA)\n4) Estrategia de puja y optimización\n5) Checklist de configuración paso a paso\n6) KPIs y métricas a monitorear\n7) Recomendación de creativos (formatos, tamaños, hooks)`
       }], systemPrompt: `Eres el agente de Anuncios de BearAds, experto en Meta Ads para LATAM. Creas campañas completas y listas para lanzar. Formato claro con secciones y emojis. Máximo 600 palabras. En español.` })
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
     area.innerHTML = `<div class="card" style="margin:0;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -7004,7 +7537,12 @@ async function generateMetaCampaign() {
       <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${reply}</div>
     </div>`;
     saveDeliverable('Anuncios & Campañas', '📘', 'Meta Ads — ' + product.substring(0,25), reply);
-  } catch(e) { area.innerHTML = '<div style="padding:20px;color:var(--danger);">Error al conectar.</div>'; }
+  } catch(e) {
+    area.innerHTML = e?.status === 401
+      ? getAuthCtaHtml('Tu sesión no está activa para generar campañas de Meta.')
+      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la campaña');
+  }
   btn.disabled = false; btn.textContent = '📘 Generar Campaña con IA';
 }
 
@@ -7026,7 +7564,7 @@ async function generateGAdsCampaign() {
         `Crea una campaña completa de Google Ads tipo ${type}:\n\nProducto: ${product}\nURL destino: ${url||'Por definir'}\nPresupuesto: ${budget}\n\nEntrega:\n1) Estructura de grupos de anuncios\n2) 15 keywords con tipo de concordancia y CPC estimado\n3) 5 keywords negativas\n4) 3 anuncios responsivos completos (15 headlines + 4 descriptions)\n5) Extensiones de anuncio recomendadas\n6) Estrategia de puja (tCPA o tROAS recomendado)\n7) Checklist de configuración\n8) KPIs objetivo`
       }], systemPrompt: `Eres el agente SEM de BearAds, experto en Google Ads para LATAM. En español.` })
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
     area.innerHTML = `<div class="card" style="margin:0;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -7039,7 +7577,12 @@ async function generateGAdsCampaign() {
       <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${reply}</div>
     </div>`;
     saveDeliverable('SEM / Paid Media', '🔵', 'Google Ads — ' + product.substring(0,25), reply);
-  } catch(e) { area.innerHTML = '<div style="padding:20px;color:var(--danger);">Error al conectar.</div>'; }
+  } catch(e) {
+    area.innerHTML = e?.status === 401
+      ? getAuthCtaHtml('Tu sesión no está activa para generar campañas de Google Ads.')
+      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la campaña');
+  }
   btn.disabled = false; btn.textContent = '🔵 Generar con IA';
 }
 
@@ -7058,7 +7601,7 @@ async function generateEmailSequence() {
         `Crea una secuencia de email marketing completa: ${type}\n\nNegocio: ${product}\nTono: ${tone}\n\nPara CADA email entrega:\n- Asunto (máximo 50 caracteres, alto CTR)\n- Preview text (90 caracteres)\n- Cuerpo completo con saludo, desarrollo y CTA\n- Días de envío sugerido\n\nHazlos listos para copiar y pegar.`
       }], systemPrompt: `Eres el agente de Email Marketing de BearAds. Creas secuencias completas que convierten. Tono: ${tone}. En español.` })
     });
-    const data = await res.json();
+    const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
     area.innerHTML = `<div class="card" style="margin:0;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -7071,7 +7614,12 @@ async function generateEmailSequence() {
       <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:500px;overflow-y:auto;">${reply}</div>
     </div>`;
     saveDeliverable('Email Marketing', '✉️', type, reply);
-  } catch(e) { area.innerHTML = '<div style="padding:20px;color:var(--danger);">Error al conectar.</div>'; }
+  } catch(e) {
+    area.innerHTML = e?.status === 401
+      ? getAuthCtaHtml('Tu sesión no está activa para generar secuencias de email.')
+      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la secuencia');
+  }
 }
 
 // ── SHARED TEXT UTILITIES ──
@@ -9320,8 +9868,11 @@ async function runQACustom() {
     </div>
     <div id="onboarding-steps" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px;"></div>
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:18px;">
-      <div style="font-size:12px;color:#51627f;">Consejo: si te pierdes, vuelve al Dashboard y sigue el modo guiado.</div>
-      <button onclick="completeOnboarding()" style="padding:11px 16px;background:#0f172a;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Entendido, continuar</button>
+      <div id="onboarding-helper" style="font-size:12px;color:#51627f;">Consejo: si te pierdes, vuelve al Dashboard y sigue el modo guiado.</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="onboarding-secondary-btn" onclick="changeOnboardingScreen(-1)" style="display:none;padding:11px 16px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:10px;color:#0f172a;font-size:12px;font-weight:800;cursor:pointer;">Atrás</button>
+        <button id="onboarding-primary-btn" onclick="completeOnboarding()" style="padding:11px 16px;background:#0f172a;border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Entendido, continuar</button>
+      </div>
     </div>
   </div>
 </div>
