@@ -1718,16 +1718,24 @@ tr:hover td { background: var(--surface2); }
     height: auto !important;
   }
 
-  /* Install banner above nav */
+  /* Inputs full width */
+  input, select, textarea {
+    font-size: 16px !important; /* prevents iOS zoom */
+  }
+}
+
+@media (min-width: 769px) {
+  #pwa-install-banner {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
+@media (max-width: 768px) {
   #pwa-install-banner {
     bottom: 70px !important;
     left: 8px !important;
     right: 8px !important;
-  }
-
-  /* Inputs full width */
-  input, select, textarea {
-    font-size: 16px !important; /* prevents iOS zoom */
   }
 }
 
@@ -2058,7 +2066,21 @@ tr:hover td { background: var(--surface2); }
 
 <div class="page" id="page-strategy">
   <div class="page-title">Estrategia Inteligente</div>
-  <div class="page-sub">Define tu negocio y genera una estrategia de marketing completa con IA</div>
+  <div class="page-sub">BearAds toma tu nivel, objetivo y plataformas para proponerte un plan realmente útil</div>
+
+  <div style="margin-top:18px;margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(251,191,36,0.1),rgba(96,165,250,0.08));border:1px solid rgba(251,191,36,0.18);border-radius:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+      <div style="max-width:560px;">
+        <div style="font-size:11px;font-weight:800;color:#d4a843;letter-spacing:1px;margin-bottom:8px;">PLAN GUIADO</div>
+        <div id="strategy-guide-title" style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:var(--text);line-height:1.2;">Vamos a crear la estrategia correcta para tu negocio</div>
+        <div id="strategy-guide-copy" style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.7;">Si completas unos pocos datos, el Director Estratégico ordena qué hacer primero y qué canal priorizar.</div>
+      </div>
+      <div id="strategy-guide-meta" style="min-width:220px;max-width:280px;padding:12px 14px;background:rgba(255,255,255,0.72);border:1px solid rgba(251,191,36,0.16);border-radius:12px;font-size:12px;color:#51627f;line-height:1.7;">
+        Sin contexto extra aún.
+      </div>
+    </div>
+    <div id="strategy-quick-start" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:16px;"></div>
+  </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;" id="strategy-builder">
 
@@ -2318,6 +2340,17 @@ tr:hover td { background: var(--surface2); }
         <div style="font-size:11px;color:var(--text2);line-height:1.6;">Crea secuencias de bienvenida, abandono o reactivación.</div>
       </button>
     </div>
+  </div>
+
+  <div id="intg-recommendations" style="margin-bottom:18px;padding:16px;background:rgba(255,255,255,0.55);border:1px solid rgba(123,167,232,0.12);border-radius:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#35507f;letter-spacing:1px;margin-bottom:6px;">CHECKLIST RECOMENDADO</div>
+        <div id="intg-recommendations-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">BearAds te mostrará aquí las conexiones recomendadas para tu perfil.</div>
+      </div>
+      <button onclick="showPage('dashboard')" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">Volver al dashboard</button>
+    </div>
+    <div id="intg-recommendations-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;"></div>
   </div>
 
   <!-- Tabs -->
@@ -3175,6 +3208,12 @@ tr:hover td { background: var(--surface2); }
     <div id="agents-results-meta" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
   </div>
 
+  <div id="agents-recommended-strip" style="margin-bottom:18px;padding:16px;background:rgba(255,255,255,0.55);border:1px solid rgba(123,167,232,0.12);border-radius:14px;">
+    <div style="font-size:11px;font-weight:800;color:#35507f;letter-spacing:1px;margin-bottom:6px;">AGENTES RECOMENDADOS</div>
+    <div id="agents-recommended-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">BearAds prioriza estos agentes según tu onboarding y tu objetivo actual.</div>
+    <div id="agents-recommended-list" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;"></div>
+  </div>
+
   <!-- AGENT CARDS GRID -->
   <div id="full-agents-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;"></div>
 
@@ -3996,7 +4035,11 @@ let activeTutCardIdx = null;
 function initAgentsPage() {
   const grid = document.getElementById('full-agents-grid');
   if (!grid) return;
+  if (activeAgentGoal === 'all') {
+    activeAgentGoal = getOnboardingGoalCategory();
+  }
   renderAgentGoalChips();
+  renderRecommendedAgents();
   const filteredAgents = getFilteredAgents();
   const meta = document.getElementById('agents-results-meta');
   if (meta) {
@@ -4033,6 +4076,30 @@ function initAgentsPage() {
     </div>`;
   }
   updateAgentsContextBanner();
+}
+
+function renderRecommendedAgents() {
+  const copy = document.getElementById('agents-recommended-copy');
+  const list = document.getElementById('agents-recommended-list');
+  if (!copy || !list) return;
+  const onboarding = getWorkspaceOnboarding();
+  const recommended = getRecommendedAgents(onboarding);
+  const category = AGENT_GOAL_LABELS[getOnboardingGoalCategory(onboarding)] || 'Empezar';
+  copy.textContent = `BearAds prioriza estos agentes porque tu meta actual apunta a: ${category.toLowerCase()}.`;
+  list.innerHTML = recommended.map(function(agent) {
+    return `<button onclick="openAgentById('${agent.id}')" style="text-align:left;padding:14px;background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:12px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:32px;height:32px;border-radius:10px;background:${agent.color}20;display:flex;align-items:center;justify-content:center;">${agent.icon}</div>
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${agent.name}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;">${esc(agent.desc.substring(0, 92))}...</div>
+    </button>`;
+  }).join('');
+}
+
+function openAgentById(agentId) {
+  const idx = ALL_AGENTS.findIndex(function(agent) { return agent.id === agentId; });
+  if (idx >= 0) openAgentWorkspace(idx);
 }
 
 function getFilteredAgents() {
@@ -4663,8 +4730,36 @@ async function runCompetitorAnalysis() {
 let stGoal = 'Aumentar ventas';
 let stSavedStrategies = DB.get('saved_strategies', []);
 let latestGeneratedStrategy = null;
+const STRATEGY_TEMPLATES = {
+  sales: {
+    goal: 'Aumentar ventas',
+    product: 'Producto o servicio principal con margen saludable',
+    audience: 'Clientes con intención de compra en tu mercado',
+    budget: '$500-$1500',
+    title: '💰 Subir ventas',
+    copy: 'Ideal si ya vendes algo y quieres más conversiones con foco comercial.'
+  },
+  leads: {
+    goal: 'Generar leads',
+    product: 'Servicio o producto que necesita captar interesados',
+    audience: 'Personas o empresas que necesitan una solución clara',
+    budget: '$200-$500',
+    title: '🎯 Conseguir leads',
+    copy: 'Úsala si tu prioridad es llenar WhatsApp, formularios o agenda.'
+  },
+  traffic: {
+    goal: 'Posicionarme en Google',
+    product: 'Negocio que necesita más visibilidad y visitas calificadas',
+    audience: 'Usuarios que están investigando o comparando soluciones',
+    budget: '$50-$200',
+    title: '🔍 Ganar visibilidad',
+    copy: 'Pensada para SEO, contenido y tráfico de alta intención.'
+  }
+};
 
 function initStrategyPage() {
+  renderStrategyGuide();
+  syncStrategyDefaults();
   if (currentAnalysis) {
     const hint = document.getElementById('st-analysis-hint');
     const urlInput = document.getElementById('st-url');
@@ -4672,6 +4767,83 @@ function initStrategyPage() {
     if (urlInput && !urlInput.value) urlInput.value = currentAnalysis.url;
   }
   renderSavedStrategies();
+}
+
+function renderStrategyGuide() {
+  const title = document.getElementById('strategy-guide-title');
+  const copy = document.getElementById('strategy-guide-copy');
+  const meta = document.getElementById('strategy-guide-meta');
+  const quick = document.getElementById('strategy-quick-start');
+  if (!title || !copy || !meta || !quick) return;
+  const onboarding = getWorkspaceOnboarding();
+  const recommendedAgents = getRecommendedAgents(onboarding);
+  const level = onboarding?.knowledgeLevel || '';
+  const goal = onboarding?.mainGoal || '';
+  const levelLabel = {
+    principiante: 'principiante',
+    intermedio: 'intermedio',
+    avanzado: 'avanzado',
+    agencia: 'agencia'
+  }[level] || 'sin nivel definido';
+
+  title.textContent = goal
+    ? `Estrategia para ${goal.toLowerCase()}`
+    : 'Vamos a crear la estrategia correcta para tu negocio';
+  copy.textContent = goal
+    ? `Tu onboarding dice que tu meta principal es ${goal.toLowerCase()}. BearAds va a ordenar qué hacer primero y qué canal atacar antes.`
+    : 'Si completas unos pocos datos, el Director Estratégico ordena qué hacer primero y qué canal priorizar.';
+  meta.innerHTML = `<strong style="color:#0f172a;display:block;margin-bottom:4px;">Perfil detectado</strong>Nivel ${esc(levelLabel)}.<br>${recommendedAgents.length ? 'Agentes sugeridos: ' + esc(recommendedAgents.map(function(agent) { return agent.name; }).join(', ')) : 'Aún no hay agentes sugeridos.'}`;
+  quick.innerHTML = Object.entries(STRATEGY_TEMPLATES).map(function(entry) {
+    var id = entry[0];
+    var preset = entry[1];
+    return `<button onclick="applyStrategyTemplate('${id}')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,0.18);background:rgba(255,255,255,0.72);cursor:pointer;color:var(--text);">
+      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${preset.title}</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6;">${esc(preset.copy)}</div>
+    </button>`;
+  }).join('');
+}
+
+function syncStrategyDefaults() {
+  const onboarding = getWorkspaceOnboarding();
+  const businessModel = onboarding?.businessModel || userProfile?.industry || '';
+  const mainGoal = onboarding?.mainGoal || '';
+  const audienceEl = document.getElementById('st-audience');
+  const productEl = document.getElementById('st-product');
+  const urlEl = document.getElementById('st-url');
+  if (productEl && !productEl.value.trim() && businessModel) {
+    productEl.value = businessModel;
+  }
+  if (audienceEl && !audienceEl.value.trim() && mainGoal) {
+    audienceEl.value = 'Personas interesadas en ' + mainGoal.toLowerCase();
+  }
+  if (urlEl && !urlEl.value.trim() && userProfile?.url) {
+    urlEl.value = userProfile.url;
+  }
+}
+
+function applyStrategyTemplate(templateId) {
+  const preset = STRATEGY_TEMPLATES[templateId];
+  if (!preset) return;
+  const productEl = document.getElementById('st-product');
+  const audienceEl = document.getElementById('st-audience');
+  const budgetEl = document.getElementById('st-budget');
+  if (productEl && !productEl.value.trim()) productEl.value = preset.product;
+  if (audienceEl && !audienceEl.value.trim()) audienceEl.value = preset.audience;
+  if (budgetEl) budgetEl.value = preset.budget;
+  stGoal = preset.goal;
+  const goalMap = {
+    'Aumentar ventas': '💰 Aumentar ventas',
+    'Generar leads': '🎯 Generar leads',
+    'Crecer en redes sociales': '📱 Crecer en redes',
+    'Posicionarme en Google': '🔍 Posicionarme'
+  };
+  document.querySelectorAll('.st-goal-btn').forEach(function(btn) {
+    var isActive = btn.textContent.trim() === (goalMap[preset.goal] || preset.goal);
+    btn.style.background = isActive ? 'rgba(123,167,232,0.09)' : 'var(--surface2)';
+    btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = isActive ? 'var(--accent)' : 'var(--text2)';
+  });
+  showToast('Estrategia base aplicada');
 }
 
 function selectGoal(el, goal) {
@@ -4710,6 +4882,13 @@ async function generateStrategy() {
   let context = `Producto/servicio: ${product}\nAudiencia: ${audience||'No especificada'}\nObjetivo: ${stGoal}\nPresupuesto mensual: ${budget}`;
   if (url) context += `\nSitio web: ${url}`;
   if (currentAnalysis) context += `\n\nAnálisis del sitio — Score: ${currentAnalysis.globalScore}/100, SEO: ${currentAnalysis.seo?.score}, CRO: ${currentAnalysis.cro?.score}`;
+  const onboarding = getWorkspaceOnboarding();
+  if (onboarding?.knowledgeLevel || onboarding?.mainGoal || onboarding?.platforms?.length) {
+    context += `\n\nContexto del onboarding:`
+      + `\nNivel del usuario: ${onboarding.knowledgeLevel || 'no definido'}`
+      + `\nMeta principal declarada: ${onboarding.mainGoal || 'no definida'}`
+      + `\nPlataformas usadas: ${(onboarding.platforms || []).join(', ') || 'ninguna declarada'}`;
+  }
 
   try {
     const res = await fetch('/api/chat', {method:'POST',headers:{'Content-Type':'application/json'},
@@ -6255,6 +6434,32 @@ function getNextIntegrationFocus(onboarding = getWorkspaceOnboarding()) {
   return focusMap[nextPlatform] || 'connections';
 }
 
+function getOnboardingGoalCategory(onboarding = getWorkspaceOnboarding()) {
+  const goal = String(onboarding?.mainGoal || '').toLowerCase();
+  if (goal.includes('lead')) return 'sales';
+  if (goal.includes('venta')) return 'sales';
+  if (goal.includes('traf')) return 'traffic';
+  if (goal.includes('seo') || goal.includes('google')) return 'visibility';
+  if (goal.includes('automat')) return 'automation';
+  if (goal.includes('conver')) return 'conversion';
+  return 'start';
+}
+
+function getRecommendedAgents(onboarding = getWorkspaceOnboarding()) {
+  const category = getOnboardingGoalCategory(onboarding);
+  const preferredIds = {
+    start: ['director', 'trafico', 'cro'],
+    sales: ['anuncios', 'cro', 'financiero'],
+    traffic: ['trafico', 'seo', 'sem'],
+    visibility: ['seo', 'geo', 'contenido'],
+    automation: ['automatizacion', 'email', 'director'],
+    conversion: ['cro', 'contenido', 'financiero']
+  }[category] || ['director', 'trafico', 'cro'];
+  return preferredIds
+    .map(function(id) { return ALL_AGENTS.find(function(agent) { return agent.id === id; }); })
+    .filter(Boolean);
+}
+
 function canAccessSATab(tab, session = appSession) {
   const permissions = session?.permissions || {};
   if (isGlobalOwner(session)) return true;
@@ -7320,6 +7525,37 @@ async function persistIntegrationHub(extra) {
   }
 }
 
+function renderIntegrationRecommendations() {
+  const copy = document.getElementById('intg-recommendations-copy');
+  const list = document.getElementById('intg-recommendations-list');
+  if (!copy || !list) return;
+  const onboarding = getWorkspaceOnboarding();
+  const recommended = getRecommendedIntegrations(onboarding);
+  const connections = getWorkspaceIntegrationHub().connections || {};
+  copy.textContent = recommended.length
+    ? `Según tu onboarding, estas son las conexiones más importantes para empezar: ${recommended.join(', ')}.`
+    : 'Completa el onboarding para que BearAds recomiende las conexiones correctas.';
+  const labels = {
+    google: 'Google Analytics / Search Console',
+    meta: 'Meta Business',
+    googleAds: 'Google Ads',
+    email: 'Email Marketing',
+    ecom: 'E-commerce',
+    tiktok: 'TikTok Ads'
+  };
+  list.innerHTML = recommended.map(function(platform) {
+    const connected = platform === 'google' ? Boolean(appSession?.user?.googleId) : Boolean(connections[platform]);
+    return `<div style="padding:14px;background:${connected ? 'rgba(94,201,160,0.08)' : 'rgba(255,255,255,0.78)'};border:1px solid ${connected ? 'rgba(94,201,160,0.22)' : 'rgba(123,167,232,0.12)'};border-radius:12px;">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);">${esc(labels[platform] || platform)}</div>
+        <div style="font-size:10px;font-weight:800;color:${connected ? '#0f9f6e' : '#51627f'};">${connected ? 'LISTO' : 'PENDIENTE'}</div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">${connected ? 'Ya está disponible para todos los módulos del workspace.' : 'Conéctalo una vez y BearAds lo reutilizará en campañas, agentes y automatizaciones.'}</div>
+      <button onclick="setIntegrationFocus('connections')" style="margin-top:10px;padding:9px 12px;background:${connected ? 'var(--surface2)' : 'var(--accent)'};border:${connected ? '1px solid var(--border)' : 'none'};border-radius:10px;color:${connected ? 'var(--text2)' : '#fff'};font-size:11px;font-weight:800;cursor:pointer;">${connected ? 'Revisar conexión' : 'Conectar ahora'}</button>
+    </div>`;
+  }).join('');
+}
+
 function initIntegrationsPage() {
   setIntegrationFocus(currentIntegrationFocus, true);
   const onboarding = getWorkspaceOnboarding();
@@ -7371,6 +7607,7 @@ function initIntegrationsPage() {
 
   // Render saved connections
   renderSavedConnections();
+  renderIntegrationRecommendations();
 }
 
 function updateIntgSummary(googleOk) {
@@ -9556,12 +9793,40 @@ if ('serviceWorker' in navigator) {
 
 // Install prompt
 var deferredPrompt;
+var PWA_BANNER_DISMISSED_KEY = 'pwa_install_banner_dismissed';
+function isMobileInstallContext() {
+  try {
+    return window.matchMedia('(max-width: 768px)').matches
+      || /Android|iPhone|iPad|iPod|Windows Phone|Mobile/i.test(navigator.userAgent || '');
+  } catch (error) {
+    return false;
+  }
+}
+
+function dismissPWABanner(persist) {
+  var banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+  if (persist) {
+    try { localStorage.setItem(PWA_BANNER_DISMISSED_KEY, '1'); } catch (error) {}
+  }
+}
+
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredPrompt = e;
+  if (!isMobileInstallContext()) return;
+  try {
+    if (localStorage.getItem(PWA_BANNER_DISMISSED_KEY) === '1') return;
+  } catch (error) {}
   // Show install banner
   var banner = document.getElementById('pwa-install-banner');
   if (banner) banner.style.display = 'flex';
+});
+
+window.addEventListener('load', function() {
+  if (!isMobileInstallContext()) {
+    dismissPWABanner(false);
+  }
 });
 
 function installPWA() {
@@ -9570,8 +9835,7 @@ function installPWA() {
   deferredPrompt.userChoice.then(function(result) {
     if (result.outcome === 'accepted') showToast('✓ BearAds instalada');
     deferredPrompt = null;
-    var banner = document.getElementById('pwa-install-banner');
-    if (banner) banner.style.display = 'none';
+    dismissPWABanner(result.outcome !== 'accepted');
   });
 }
 
@@ -10190,7 +10454,11 @@ async function runQACustom() {
 <div id="pwa-install-banner" style="display:none;position:fixed;bottom:80px;left:12px;right:12px;background:var(--surface);border:1px solid rgba(123,167,232,0.3);border-radius:12px;padding:12px 16px;z-index:600;align-items:center;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.4);">
   <div style="font-size:24px;">🧠</div>
   <div style="flex:1;">
-    <div style="font-size:13px;font-weight:700;">Instalar BearAds</div>
-    <div style="font-size:11px;color:var(--muted);">Accede desde tu pantalla de inicio</div>
+    <div style="font-size:13px;font-weight:700;">Usar BearAds más rápido</div>
+    <div style="font-size:11px;color:var(--muted);">Puedes agregarlo al inicio si lo usas seguido</div>
   </div>
-  <button onclick="installPWA()" style="padding
+  <button onclick="installPWA()" style="padding:9px 14px;background:var(--accent);border:none;border-radius:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;">Agregar</button>
+  <button onclick="dismissPWABanner(true)" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;">Ahora no</button>
+</div>
+</body>
+</html>
