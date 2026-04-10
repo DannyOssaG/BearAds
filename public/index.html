@@ -269,17 +269,24 @@ body {
 
 /* ── TOP BAR ── */
 .topbar {
-  height: 56px;
+  min-height: 56px;
   border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  padding: 0 28px;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 28px;
   gap: 16px;
   background: rgba(255,255,255,0.92);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 50;
+  flex-wrap: wrap;
+}
+
+.topbar-main {
+  flex: 1 1 320px;
+  min-width: 0;
 }
 
 .topbar-title {
@@ -298,10 +305,45 @@ body {
 }
 
 .topbar-actions {
-  margin-left: auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#topbar-runtime-state {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.runtime-chip {
+  max-width: min(100%, 260px);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .topbar {
+    padding: 10px 20px;
+  }
+  .topbar-main,
+  .topbar-actions {
+    flex-basis: 100%;
+  }
+  .topbar-actions {
+    justify-content: flex-start;
+  }
+  .runtime-chip {
+    max-width: 220px;
+  }
 }
 
 .btn {
@@ -1797,9 +1839,12 @@ tr:hover td { background: var(--surface2); }
     <div class="logo-sub" style="color:#455068;letter-spacing:1.5px;font-size:9px;">AI MARKETING INTELLIGENCE</div>
   </div>
 
-  <div class="system-status">
-    <div class="status-dot"></div>
-    12 agentes activos
+  <div class="system-status" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="status-dot" id="workspace-status-dot"></div>
+      <span id="workspace-status-text">Workspace listo</span>
+    </div>
+    <div id="workspace-status-sub" style="font-size:10px;color:var(--muted);line-height:1.5;">Sin sesión activa</div>
   </div>
 
   <div class="nav-section">
@@ -1920,9 +1965,10 @@ tr:hover td { background: var(--surface2); }
 <!-- ══ MAIN ══ -->
 <main class="main">
   <div class="topbar">
-    <div>
+    <div class="topbar-main">
       <div class="topbar-title" id="topbar-title">Dashboard General</div>
       <div class="topbar-breadcrumb">BearAds <span>›</span> <span id="topbar-sub">Visión Global</span></div>
+      <div id="topbar-runtime-state"></div>
     </div>
     <div class="topbar-actions">
       <div class="notif-btn">🔔</div>
@@ -3828,6 +3874,151 @@ function escPreserve(value) {
   return esc(value).replace(/\n/g, '<br>');
 }
 
+function clearElement(el) {
+  if (!el) return;
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function appendTextLine(parent, text, styles) {
+  var line = document.createElement('div');
+  if (styles) line.style.cssText = styles;
+  line.textContent = String(text ?? '');
+  parent.appendChild(line);
+  return line;
+}
+
+function createBadge(text, options) {
+  var badge = document.createElement('span');
+  var opts = options || {};
+  badge.textContent = String(text ?? '');
+  badge.className = (opts.className || 'runtime-chip');
+  badge.style.cssText = [
+    'display:inline-flex',
+    'align-items:center',
+    'gap:6px',
+    'padding:2px 8px',
+    'border-radius:4px',
+    'font-size:9px',
+    'font-weight:700',
+    'background:' + (opts.background || 'rgba(107,107,138,0.12)'),
+    'color:' + (opts.color || 'var(--muted)'),
+    'border:1px solid ' + (opts.border || 'var(--border)')
+  ].join(';');
+  return badge;
+}
+
+function createActionButton(label, onClick, styles) {
+  var button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = label;
+  button.style.cssText = styles || '';
+  if (typeof onClick === 'function') button.addEventListener('click', onClick);
+  return button;
+}
+
+function setFormattedText(el, value) {
+  if (!el) return;
+  clearElement(el);
+  String(value ?? '').split('\n').forEach(function(line, idx) {
+    if (idx > 0) el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(line));
+  });
+}
+
+function createInfoCard(options) {
+  var opts = options || {};
+  var card = document.createElement('div');
+  card.className = opts.className || 'card';
+  if (opts.style) card.style.cssText = opts.style;
+  return card;
+}
+
+function createLabeledBlock(title, body, options) {
+  var opts = options || {};
+  var wrap = document.createElement('div');
+  if (opts.style) wrap.style.cssText = opts.style;
+  if (title) {
+    var titleEl = document.createElement('div');
+    titleEl.textContent = title;
+    titleEl.style.cssText = opts.titleStyle || 'font-size:12px;font-weight:700;color:#0f172a;margin-bottom:4px;';
+    wrap.appendChild(titleEl);
+  }
+  if (body) {
+    appendTextLine(wrap, body, opts.bodyStyle || 'font-size:11px;color:var(--text2);line-height:1.6;');
+  }
+  return wrap;
+}
+
+function renderTextCard(container, options) {
+  if (!container) return null;
+  clearElement(container);
+  var opts = options || {};
+  var card = createInfoCard({ style: opts.cardStyle });
+  if (opts.header) card.appendChild(opts.header);
+  if (opts.contentClassName || opts.contentStyle || opts.content) {
+    var content = document.createElement('div');
+    if (opts.contentClassName) content.className = opts.contentClassName;
+    if (opts.contentStyle) content.style.cssText = opts.contentStyle;
+    if (opts.content) setFormattedText(content, opts.content);
+    card.appendChild(content);
+  }
+  container.appendChild(card);
+  return card;
+}
+
+function createUtilityButton(label, handler, styles) {
+  return createActionButton(label, handler, styles || 'font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;');
+}
+
+function createPrimaryUtilityButton(label, handler) {
+  return createActionButton(label, handler, 'font-size:11px;padding:4px 10px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:6px;color:var(--accent);cursor:pointer;font-weight:600;');
+}
+
+function createAuthCtaNode(message) {
+  var wrapper = document.createElement('div');
+  wrapper.style.cssText = 'padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;';
+
+  appendTextLine(wrapper, 'Necesitas volver a autenticarte', 'font-size:13px;font-weight:700;color:#f3c1c1;margin-bottom:6px;');
+  appendTextLine(wrapper, message || 'Tu sesión ya no está activa. Vuelve a entrar para seguir usando BearAds.', 'font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px;');
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+
+  var login = document.createElement('a');
+  login.href = '/auth/google';
+  login.textContent = '🔗 Entrar con Google';
+  login.style.cssText = 'padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;';
+  actions.appendChild(login);
+
+  actions.appendChild(createActionButton('🔄 Reintentar', function() {
+    refreshAppSession().then(function() { showToast('Sesión actualizada'); });
+  }, 'padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;'));
+
+  var disabled = document.createElement('button');
+  disabled.type = 'button';
+  disabled.disabled = true;
+  disabled.textContent = '✉️ Registro con correo (próximamente)';
+  disabled.style.cssText = 'padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;';
+  actions.appendChild(disabled);
+
+  wrapper.appendChild(actions);
+  return wrapper;
+}
+
+function renderAuthCta(container, message) {
+  if (!container) return;
+  clearElement(container);
+  container.appendChild(createAuthCtaNode(message));
+}
+
+function createErrorNotice(message) {
+  var box = document.createElement('div');
+  box.style.cssText = 'padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.7;';
+  appendTextLine(box, 'No pude completar esta acción ahora mismo.', 'margin-bottom:6px;');
+  appendTextLine(box, message || 'Error inesperado', 'color:#f3c1c1;font-weight:700;');
+  return box;
+}
+
 function safeUrl(url) {
   if (!url) return '';
   try {
@@ -4886,7 +5077,16 @@ function initStrategyPage() {
   if (currentAnalysis) {
     const hint = document.getElementById('st-analysis-hint');
     const urlInput = document.getElementById('st-url');
-    if (hint) { hint.style.display='block'; hint.innerHTML=`🔗 <strong style="color:var(--accent);">Análisis activo: ${esc(currentAnalysis.url)}</strong> — Se usará como contexto`; }
+    if (hint) {
+      hint.style.display = 'block';
+      clearElement(hint);
+      var strong = document.createElement('strong');
+      strong.style.color = 'var(--accent)';
+      strong.textContent = 'Análisis activo: ' + currentAnalysis.url;
+      hint.appendChild(document.createTextNode('🔗 '));
+      hint.appendChild(strong);
+      hint.appendChild(document.createTextNode(' — Se usará como contexto'));
+    }
     if (urlInput && !urlInput.value) urlInput.value = currentAnalysis.url;
   }
   renderSavedStrategies();
@@ -4915,15 +5115,35 @@ function renderStrategyGuide() {
   copy.textContent = goal
     ? `Tu meta principal es ${goal.toLowerCase()}. BearAds va a ordenar qué hacer primero y qué canal mover antes.`
     : 'Completa unos pocos datos y BearAds te dirá por dónde empezar.';
-  meta.innerHTML = `<strong style="color:#0f172a;display:block;margin-bottom:4px;">Perfil detectado</strong>Nivel ${esc(levelLabel)}.<br>${recommendedAgents.length ? 'Agentes sugeridos: ' + esc(recommendedAgents.map(function(agent) { return agent.name; }).join(', ')) : 'Aún no hay agentes sugeridos.'}`;
-  quick.innerHTML = Object.entries(STRATEGY_TEMPLATES).map(function(entry) {
+  clearElement(meta);
+  meta.appendChild(createLabeledBlock(
+    'Perfil detectado',
+    'Nivel ' + levelLabel + '.',
+    {
+      style: 'margin-bottom:8px;',
+      titleStyle: 'color:#0f172a;display:block;margin-bottom:4px;font-size:12px;font-weight:700;',
+      bodyStyle: 'font-size:11px;color:var(--text2);line-height:1.6;'
+    }
+  ));
+  appendTextLine(
+    meta,
+    recommendedAgents.length
+      ? 'Agentes sugeridos: ' + recommendedAgents.map(function(agent) { return agent.name; }).join(', ')
+      : 'Aún no hay agentes sugeridos.',
+    'font-size:11px;color:var(--text2);line-height:1.6;'
+  );
+
+  clearElement(quick);
+  Object.entries(STRATEGY_TEMPLATES).forEach(function(entry) {
     var id = entry[0];
     var preset = entry[1];
-    return `<button onclick="applyStrategyTemplate('${id}')" style="text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,0.18);background:rgba(255,255,255,0.72);cursor:pointer;color:var(--text);">
-      <div style="font-size:12px;font-weight:700;margin-bottom:4px;">${preset.title}</div>
-      <div style="font-size:11px;color:var(--text2);line-height:1.6;">${esc(preset.copy)}</div>
-    </button>`;
-  }).join('');
+    var button = createActionButton('', function() { applyStrategyTemplate(id); }, 'text-align:left;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,0.18);background:rgba(255,255,255,0.72);cursor:pointer;color:var(--text);');
+    button.appendChild(createLabeledBlock(preset.title, preset.copy, {
+      titleStyle: 'font-size:12px;font-weight:700;margin-bottom:4px;',
+      bodyStyle: 'font-size:11px;color:var(--text2);line-height:1.6;'
+    }));
+    quick.appendChild(button);
+  });
 }
 
 function syncStrategyDefaults() {
@@ -4982,7 +5202,7 @@ async function generateStrategy() {
     if (emptyEl) emptyEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = getAuthCtaHtml('Tu sesión no está activa para generar estrategias.');
+      renderAuthCta(resultEl, 'Tu sesión no está activa para generar estrategias.');
     }
     showToast('Primero inicia sesión en BearAds');
     return;
@@ -5027,25 +5247,36 @@ async function generateStrategy() {
         preview: reply.substring(0, 60).replace(/\n/g, ' '),
         content: reply
       };
-      resultEl.innerHTML=`<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:14px;">📋 Estrategia — ${esc(product.substring(0,35))}</div>
-          <div style="display:flex;gap:6px;">
-            <button onclick="saveLatestStrategy()" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">💾 Guardar</button>
-            <button onclick="navigator.clipboard.writeText(document.querySelector('.st-content').textContent);this.textContent='✓';setTimeout(()=>this.textContent='📋 Copiar',2000)" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-          </div>
-        </div>
-        <div class="st-content" style="font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${escPreserve(reply)}</div>
-      </div>`;
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;';
+      appendTextLine(header, '📋 Estrategia — ' + product.substring(0, 35), 'font-weight:700;font-size:14px;');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+      actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestStrategy(); }));
+      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        navigator.clipboard.writeText(reply);
+        ev.currentTarget.textContent = '✓';
+        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      }));
+      header.appendChild(actions);
+      renderTextCard(resultEl, {
+        header: header,
+        contentClassName: 'st-content',
+        contentStyle: 'font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+        content: reply
+      });
     }
     saveDeliverable('Director Estratégico','🧠','Estrategia',reply);
   } catch(e) {
     if (loadEl) loadEl.style.display='none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = e?.status === 401
-        ? getAuthCtaHtml('Tu sesión no está activa para generar estrategias.')
-        : `<div style="padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.7;">No pude generar la estrategia ahora mismo.<br><strong style="color:#f3c1c1;">${esc(e?.payload?.error?.error?.message || e?.payload?.error?.message || e?.message || 'Error inesperado')}</strong></div>`;
+      if (e?.status === 401) {
+        renderAuthCta(resultEl, 'Tu sesión no está activa para generar estrategias.');
+      } else {
+        clearElement(resultEl);
+        resultEl.appendChild(createErrorNotice(e?.payload?.error?.error?.message || e?.payload?.error?.message || e?.message || 'Error inesperado'));
+      }
     } else if (emptyEl) {
       emptyEl.style.display='flex';
     }
@@ -5069,16 +5300,23 @@ function saveLatestStrategy() {
 function renderSavedStrategies() {
   const list = document.getElementById('st-saved-list');
   const section = document.getElementById('st-saved-section');
-  if (!list || !stSavedStrategies.length) return;
+  if (!list) return;
+  clearElement(list);
+  if (!stSavedStrategies.length) {
+    if (section) section.style.display = 'none';
+    return;
+  }
   if (section) section.style.display='block';
-  list.innerHTML = stSavedStrategies.map(s=>`
-    <div class="card" style="padding:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-        <div style="font-weight:700;font-size:13px;">📋 ${esc(s.name)}</div>
-        <span style="font-size:11px;color:var(--muted);">${esc(s.date)}</span>
-      </div>
-      <div style="font-size:12px;color:var(--muted);">${esc(s.preview.substring(0,80))}...</div>
-    </div>`).join('');
+  stSavedStrategies.forEach(function(s) {
+    var card = createInfoCard({ style: 'padding:14px;' });
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:6px;gap:8px;';
+    appendTextLine(header, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
+    appendTextLine(header, s.date, 'font-size:11px;color:var(--muted);');
+    card.appendChild(header);
+    appendTextLine(card, (s.preview || '').substring(0,80) + '...', 'font-size:12px;color:var(--muted);');
+    list.appendChild(card);
+  });
 }
 
 // ══════════════════════════════════════════
@@ -5121,11 +5359,22 @@ function initCampaignsPage() {
   const bar = document.getElementById('camp-integrations-bar');
   if (!bar) return;
   const googleOk = currentAnalysis?.googleConnected;
-  bar.innerHTML = `
-    <div style="padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px;${googleOk?'background:rgba(94,201,160,0.1);border:1px solid rgba(74,222,128,0.2);color:#5ec9a0;':'background:var(--surface2);border:1px solid var(--border);color:var(--muted);'}">
-      ${googleOk?'✓':'○'} Google ${googleOk?'Conectado':'Sin conectar'}
-    </div>
-    <div style="padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border);color:var(--muted);">○ Meta Ads — Próximamente</div>`;
+  clearElement(bar);
+  bar.appendChild(createBadge(
+    (googleOk ? '✓ ' : '○ ') + 'Google ' + (googleOk ? 'Conectado' : 'Sin conectar'),
+    {
+      background: googleOk ? 'rgba(94,201,160,0.1)' : 'var(--surface2)',
+      border: googleOk ? 'rgba(74,222,128,0.2)' : 'var(--border)',
+      color: googleOk ? '#5ec9a0' : 'var(--muted)',
+      className: ''
+    }
+  ));
+  bar.appendChild(createBadge('○ Meta Ads — Próximamente', {
+    background: 'var(--surface2)',
+    border: 'var(--border)',
+    color: 'var(--muted)',
+    className: ''
+  }));
   if (!googleOk) { const hint=document.getElementById('camp-connect-hint'); if(hint)hint.style.display='block'; }
   if (!document.getElementById('camp-product')?.value.trim()) applyCampaignTemplate('meta-leads', true);
   syncCampaignAuthUI();
@@ -5168,7 +5417,11 @@ function applyCampaignTemplate(templateId, silent = false) {
   if (productEl && (!silent || !productEl.value.trim())) productEl.value = preset.product;
   setCampaignPlatform(preset.platform);
   if (hintEl) {
-    hintEl.innerHTML = `<strong style="color:var(--text);display:block;margin-bottom:4px;">Plantilla lista</strong>${esc(preset.hint)}`;
+    clearElement(hintEl);
+    hintEl.appendChild(createLabeledBlock('Plantilla lista', preset.hint, {
+      titleStyle: 'color:var(--text);display:block;margin-bottom:4px;font-size:12px;font-weight:700;',
+      bodyStyle: 'font-size:11px;color:var(--text2);line-height:1.6;'
+    }));
   }
   if (!silent) showToast('Plantilla aplicada');
 }
@@ -5186,6 +5439,13 @@ function switchCampTab(tab) {
 async function generateCampaign() {
   if (!hasActiveBearAdsSession()) {
     syncCampaignAuthUI(null);
+    const resultEl = document.getElementById('camp-result');
+    const emptyEl = document.getElementById('camp-empty');
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      renderAuthCta(resultEl, 'Tu sesión no está activa para generar campañas.');
+    }
     showToast('Primero inicia sesión en BearAds');
     return;
   }
@@ -5213,26 +5473,35 @@ async function generateCampaign() {
     if(resultEl){
       resultEl.style.display='block';
       latestGeneratedCampaign = { name: product.substring(0,25), platform: campPlatform, content: reply };
-      resultEl.innerHTML=`<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-          <div style="font-weight:700;font-size:14px;">${platIcons[campPlatform]} Campaña ${esc(platNames[campPlatform])}</div>
-          <div style="display:flex;gap:6px;">
-            <button onclick="saveLatestCampaign()" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">💾 Guardar</button>
-            <button onclick="navigator.clipboard.writeText(this.closest('.card').querySelector('.camp-content').textContent);this.textContent='✓';setTimeout(()=>this.textContent='📋',2000)" style="font-size:11px;padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-          </div>
-        </div>
-        <div class="camp-content" style="font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${escPreserve(reply)}</div>
-      </div>`;
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;';
+      appendTextLine(header, platIcons[campPlatform] + ' Campaña ' + platNames[campPlatform], 'font-weight:700;font-size:14px;');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+      actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestCampaign(); }));
+      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        navigator.clipboard.writeText(reply);
+        ev.currentTarget.textContent = '✓';
+        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      }));
+      header.appendChild(actions);
+      renderTextCard(resultEl, {
+        header: header,
+        contentClassName: 'camp-content',
+        contentStyle: 'font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+        content: reply
+      });
     }
     saveDeliverable('Agente Anuncios', platIcons[campPlatform], 'Campaña '+platNames[campPlatform], reply);
   } catch(e){
     if(loadEl)loadEl.style.display='none';
     if (e?.status === 401 && resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = getAuthCtaHtml('Tu sesión no está activa para generar campañas.');
+      renderAuthCta(resultEl, 'Tu sesión no está activa para generar campañas.');
     } else if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = `<div style="padding:16px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.22);border-radius:10px;font-size:12px;color:var(--text2);line-height:1.7;">No pude generar la campaña ahora mismo.<br><strong style="color:#f3c1c1;">${esc(e?.message || 'Error inesperado')}</strong></div>`;
+      clearElement(resultEl);
+      resultEl.appendChild(createErrorNotice(e?.message || 'Error inesperado'));
     } else if(emptyEl) {
       emptyEl.style.display='flex';
     }
@@ -5255,16 +5524,22 @@ function saveLatestCampaign() {
 function renderSavedCampaigns() {
   const list = document.getElementById('camp-saved-list');
   if (!list) return;
-  if (!campSaved.length) { list.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Sin campañas guardadas.</div>'; return; }
+  clearElement(list);
+  if (!campSaved.length) {
+    appendTextLine(list, 'Sin campañas guardadas.', 'text-align:center;padding:40px;color:var(--muted);font-size:13px;');
+    return;
+  }
   const icons={meta:'📘',google:'🔵',tiktok:'🎵',email:'✉️'};
-  list.innerHTML = campSaved.map(c=>`
-    <div class="card" style="padding:14px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-weight:700;font-size:13px;">${icons[c.platform]||'📣'} ${esc(c.name)}</div>
-        <span style="font-size:11px;color:var(--muted);">${esc(c.ts)}</span>
-      </div>
-      <div style="font-size:12px;color:var(--text2);max-height:80px;overflow:hidden;">${esc(c.content.substring(0,180))}...</div>
-    </div>`).join('');
+  campSaved.forEach(function(c) {
+    var card = createInfoCard({ style: 'padding:14px;' });
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:8px;gap:8px;';
+    appendTextLine(header, (icons[c.platform]||'📣') + ' ' + c.name, 'font-weight:700;font-size:13px;');
+    appendTextLine(header, c.ts, 'font-size:11px;color:var(--muted);');
+    card.appendChild(header);
+    appendTextLine(card, (c.content || '').substring(0,180) + '...', 'font-size:12px;color:var(--text2);max-height:80px;overflow:hidden;');
+    list.appendChild(card);
+  });
 }
 
 // ══════════════════════════════════════════
@@ -5577,7 +5852,29 @@ async function startAnalysis() {
     var helper = err.code === 'analysis_not_configured' || err.code === 'analysis_unavailable'
       ? 'Revisa la configuración del servicio de análisis en el servidor o intenta más tarde.'
       : 'Revisa la URL o prueba con la página principal del sitio.';
-    document.getElementById('analyze-empty').innerHTML=`<div style="font-size:40px;margin-bottom:16px;">⚠️</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--danger);margin-bottom:8px;">No pude analizar esa URL</div><div style="font-size:12px;color:var(--muted);line-height:1.7;">${esc(getFriendlyAnalyzeError(err.message))}<br>${esc(helper)}</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px;"><button class="btn btn-ghost" onclick="resetAnalyze()">Intentar de nuevo</button><button class="btn btn-primary" onclick="document.getElementById('analyze-url').focus()">Editar URL</button></div>`;
+    var analyzeEmpty = document.getElementById('analyze-empty');
+    if (analyzeEmpty) {
+      clearElement(analyzeEmpty);
+      appendTextLine(analyzeEmpty, '⚠️', 'font-size:40px;margin-bottom:16px;');
+      appendTextLine(analyzeEmpty, 'No pude analizar esa URL', "font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;color:var(--danger);margin-bottom:8px;");
+      var detail = document.createElement('div');
+      detail.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.7;';
+      detail.appendChild(document.createTextNode(getFriendlyAnalyzeError(err.message)));
+      detail.appendChild(document.createElement('br'));
+      detail.appendChild(document.createTextNode(helper));
+      analyzeEmpty.appendChild(detail);
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px;';
+      var retryBtn = createActionButton('Intentar de nuevo', resetAnalyze);
+      retryBtn.className = 'btn btn-ghost';
+      var editBtn = createActionButton('Editar URL', function() {
+        document.getElementById('analyze-url')?.focus();
+      });
+      editBtn.className = 'btn btn-primary';
+      actions.appendChild(retryBtn);
+      actions.appendChild(editBtn);
+      analyzeEmpty.appendChild(actions);
+    }
     showToast('No pude analizar esa URL');
   }
   document.getElementById('analyze-btn').disabled=false;
@@ -5585,8 +5882,19 @@ async function startAnalysis() {
 }
 
 function resetAnalyze() {
-  document.getElementById('analyze-empty').style.display='block';
-  document.getElementById('analyze-empty').innerHTML=`<div style="font-size:48px;margin-bottom:16px;opacity:0.4;">🔍</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;">Pega una URL para empezar</div><div style="font-size:12px;color:var(--muted);line-height:1.7;">BearAds revisará SEO, anuncios, contenido, conversión y tráfico.<br>Si conectas Google, el análisis será más completo.</div>`;
+  var empty = document.getElementById('analyze-empty');
+  if (empty) {
+    empty.style.display='block';
+    clearElement(empty);
+    appendTextLine(empty, '🔍', 'font-size:48px;margin-bottom:16px;opacity:0.4;');
+    appendTextLine(empty, 'Pega una URL para empezar', "font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;");
+    var copy = document.createElement('div');
+    copy.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.7;';
+    copy.appendChild(document.createTextNode('BearAds revisará SEO, anuncios, contenido, conversión y tráfico.'));
+    copy.appendChild(document.createElement('br'));
+    copy.appendChild(document.createTextNode('Si conectas Google, el análisis será más completo.'));
+    empty.appendChild(copy);
+  }
   document.getElementById('analyze-results').style.display='none';
   const url=document.getElementById('analyze-url');if(url)url.value='';
 }
@@ -5611,33 +5919,55 @@ function renderFindings(containerId, findings) {
   const el = document.getElementById(containerId);
   const safeFindings = Array.isArray(findings) ? findings : [];
   if (!el) return;
-  if (!safeFindings.length) { el.innerHTML = ''; return; }
-  el.innerHTML = safeFindings.map(f => `
-    <div class="finding-item">
-      <div class="finding-dot" style="background:${getFindingColor(f.tipo)}"></div>
-      <div>
-        <div class="finding-title">${esc(f.titulo || '')}</div>
-        <div class="finding-detail">${esc(f.detalle || '')}</div>
-      </div>
-    </div>`).join('');
+  clearElement(el);
+  if (!safeFindings.length) return;
+  safeFindings.forEach(function(f) {
+    var item = document.createElement('div');
+    item.className = 'finding-item';
+
+    var dot = document.createElement('div');
+    dot.className = 'finding-dot';
+    dot.style.background = getFindingColor(f.tipo);
+
+    var body = document.createElement('div');
+    var title = appendTextLine(body, f.titulo || '');
+    title.className = 'finding-title';
+    var detail = appendTextLine(body, f.detalle || '');
+    detail.className = 'finding-detail';
+
+    item.appendChild(dot);
+    item.appendChild(body);
+    el.appendChild(item);
+  });
 }
 
 function renderActions(containerId, actions) {
   const el = document.getElementById(containerId);
   const safeActions = Array.isArray(actions) ? actions : [];
   if (!el) return;
-  if (!safeActions.length) { el.innerHTML = ''; return; }
-  el.innerHTML = safeActions.map(a => `<div class="action-item">${esc(a)}</div>`).join('');
+  clearElement(el);
+  if (!safeActions.length) return;
+  safeActions.forEach(function(action) {
+    var item = document.createElement('div');
+    item.className = 'action-item';
+    item.textContent = String(action || '');
+    el.appendChild(item);
+  });
 }
 
 function renderTags(containerId, items, color) {
   const el = document.getElementById(containerId);
   const safeItems = Array.isArray(items) ? items : [];
   if (!el) return;
-  if (!safeItems.length) { el.innerHTML = ''; return; }
-  el.innerHTML = safeItems.map(i => `
-    <span style="padding:3px 10px;border-radius:6px;font-size:10px;background:${color}15;border:1px solid ${color}30;color:${color};">${esc(i)}</span>`
-  ).join('');
+  clearElement(el);
+  if (!safeItems.length) return;
+  safeItems.forEach(function(itemText) {
+    el.appendChild(createBadge(itemText, {
+      background: color + '15',
+      border: color + '30',
+      color: color
+    }));
+  });
 }
 
 
@@ -5659,12 +5989,20 @@ function renderResults(data) {
         // Top queries
         const qEl = document.getElementById('gsc-top-queries');
         if (qEl && g.topQueries?.length) {
-          qEl.innerHTML = g.topQueries.slice(0, 5).map(q =>
-            `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;">
-              <span style="color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(q.query)}</span>
-              <span style="color:var(--accent);font-weight:700;margin-left:8px;flex-shrink:0;">${esc(q.clicks)} clics</span>
-            </div>`
-          ).join('');
+          clearElement(qEl);
+          g.topQueries.slice(0, 5).forEach(function(query) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;';
+            var label = document.createElement('span');
+            label.style.cssText = 'color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+            label.textContent = String(query.query || '');
+            var value = document.createElement('span');
+            value.style.cssText = 'color:var(--accent);font-weight:700;margin-left:8px;flex-shrink:0;';
+            value.textContent = String(query.clicks || 0) + ' clics';
+            row.appendChild(label);
+            row.appendChild(value);
+            qEl.appendChild(row);
+          });
         }
       }
       // GA4
@@ -5679,16 +6017,26 @@ function renderResults(data) {
     } else if (data.googleConnected === false) {
       // Google connected but no data — show connect prompt inside results
       rdPanel.style.display = 'block';
-      rdPanel.innerHTML = `<div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:20px;">🔗</span>
-          <div>
-            <div style="font-size:13px;font-weight:700;">Conecta Google para datos reales</div>
-            <div style="font-size:11px;color:var(--muted);">Obtén clicks, impresiones, keywords y sesiones de tu sitio</div>
-          </div>
-        </div>
-        <a href="/auth/google" style="padding:9px 16px;background:var(--accent);border:none;border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;">🔗 Conectar Google</a>
-      </div>`;
+      clearElement(rdPanel);
+      var prompt = document.createElement('div');
+      prompt.style.cssText = 'padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
+      var left = document.createElement('div');
+      left.style.cssText = 'display:flex;align-items:center;gap:10px;';
+      var icon = document.createElement('span');
+      icon.style.cssText = 'font-size:20px;';
+      icon.textContent = '🔗';
+      var copy = document.createElement('div');
+      appendTextLine(copy, 'Conecta Google para datos reales', 'font-size:13px;font-weight:700;');
+      appendTextLine(copy, 'Obtén clicks, impresiones, keywords y sesiones de tu sitio', 'font-size:11px;color:var(--muted);');
+      left.appendChild(icon);
+      left.appendChild(copy);
+      var link = document.createElement('a');
+      link.href = '/auth/google';
+      link.textContent = '🔗 Conectar Google';
+      link.style.cssText = 'padding:9px 16px;background:var(--accent);border:none;border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer;';
+      prompt.appendChild(left);
+      prompt.appendChild(link);
+      rdPanel.appendChild(prompt);
     }
   }
 
@@ -5703,13 +6051,34 @@ function renderResults(data) {
 
   // Badges técnicos
   const sd = data.siteData;
-  const badgesHtml = [
-    sd.hasSSL ? '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(94,201,160,0.1);color:var(--success);border:1px solid rgba(74,222,128,0.2);">✓ SSL</span>' : '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(248,113,113,0.12);color:var(--danger);border:1px solid rgba(248,113,113,0.2);">✗ Sin SSL</span>',
-    sd.hasGA ? '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(94,201,160,0.1);color:var(--accent);border:1px solid rgba(74,222,128,0.2);">✓ Google Analytics</span>' : '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(107,107,138,0.12);color:var(--muted);border:1px solid var(--border);">✗ Sin Analytics</span>',
-    sd.hasFBPixel ? '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(96,165,250,0.12);color:#7ba7e8;border:1px solid rgba(96,165,250,0.2);">✓ FB Pixel</span>' : '',
-    sd.hasSchema ? '<span style="padding:2px 8px;border-radius:4px;font-size:9px;background:rgba(96,165,250,0.12);color:var(--accent2);border:1px solid rgba(96,165,250,0.2);">✓ Schema</span>' : '',
-  ].filter(Boolean).join('');
-  document.getElementById('res-badges').innerHTML = badgesHtml;
+  const badgesEl = document.getElementById('res-badges');
+  if (badgesEl) {
+    clearElement(badgesEl);
+    badgesEl.appendChild(createBadge(sd.hasSSL ? '✓ SSL' : '✗ Sin SSL', {
+      background: sd.hasSSL ? 'rgba(94,201,160,0.1)' : 'rgba(248,113,113,0.12)',
+      color: sd.hasSSL ? 'var(--success)' : 'var(--danger)',
+      border: sd.hasSSL ? 'rgba(74,222,128,0.2)' : 'rgba(248,113,113,0.2)'
+    }));
+    badgesEl.appendChild(createBadge(sd.hasGA ? '✓ Google Analytics' : '✗ Sin Analytics', {
+      background: sd.hasGA ? 'rgba(94,201,160,0.1)' : 'rgba(107,107,138,0.12)',
+      color: sd.hasGA ? 'var(--accent)' : 'var(--muted)',
+      border: sd.hasGA ? 'rgba(74,222,128,0.2)' : 'var(--border)'
+    }));
+    if (sd.hasFBPixel) {
+      badgesEl.appendChild(createBadge('✓ FB Pixel', {
+        background: 'rgba(96,165,250,0.12)',
+        color: '#7ba7e8',
+        border: 'rgba(96,165,250,0.2)'
+      }));
+    }
+    if (sd.hasSchema) {
+      badgesEl.appendChild(createBadge('✓ Schema', {
+        background: 'rgba(96,165,250,0.12)',
+        color: 'var(--accent2)',
+        border: 'rgba(96,165,250,0.2)'
+      }));
+    }
+  }
 
   // Score cards
   const agents = ['seo','sem','contenido','cro','trafico'];
@@ -5746,10 +6115,19 @@ function renderResults(data) {
   const fricEl = document.getElementById('frictions-cro');
   const croFrictions = Array.isArray(data.cro?.fricciones) ? data.cro.fricciones : [];
   if (fricEl) {
-    fricEl.innerHTML = croFrictions.map(f => `
-      <div style="display:flex;gap:8px;padding:8px 10px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.15);border-radius:8px;font-size:11px;color:var(--text);">
-        <span style="color:var(--danger);flex-shrink:0;">⚠</span>${esc(f)}
-      </div>`).join('');
+    clearElement(fricEl);
+    croFrictions.forEach(function(friction) {
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;gap:8px;padding:8px 10px;background:rgba(248,113,113,0.06);border:1px solid rgba(248,113,113,0.15);border-radius:8px;font-size:11px;color:var(--text);';
+      var icon = document.createElement('span');
+      icon.style.cssText = 'color:var(--danger);flex-shrink:0;';
+      icon.textContent = '⚠';
+      var text = document.createElement('span');
+      text.textContent = String(friction || '');
+      item.appendChild(icon);
+      item.appendChild(text);
+      fricEl.appendChild(item);
+    });
   }
   document.getElementById('summary-cro').textContent = data.cro?.resumen || '';
 
@@ -5758,24 +6136,46 @@ function renderResults(data) {
   const chEl = document.getElementById('channels-trafico');
   const trafficChannels = Array.isArray(data.trafico?.canales_recomendados) ? data.trafico.canales_recomendados : [];
   if (chEl) {
-    chEl.innerHTML = trafficChannels.map(c => `
-      <div class="channel-item">
-        <div class="channel-name">
-          ${esc(c.canal)}
-          <span class="channel-pot pot-${esc(c.potencial)}">${esc(c.potencial?.toUpperCase())}</span>
-        </div>
-        <div class="channel-reason">${esc(c.razon)}</div>
-      </div>`).join('');
+    clearElement(chEl);
+    trafficChannels.forEach(function(channel) {
+      var item = document.createElement('div');
+      item.className = 'channel-item';
+      var name = document.createElement('div');
+      name.className = 'channel-name';
+      name.appendChild(document.createTextNode(String(channel.canal || '')));
+      var pot = document.createElement('span');
+      pot.className = 'channel-pot pot-' + String(channel.potencial || '').replace(/[^a-z0-9_-]/gi, '').toLowerCase();
+      pot.textContent = String(channel.potencial || '').toUpperCase();
+      name.appendChild(pot);
+      var reason = document.createElement('div');
+      reason.className = 'channel-reason';
+      reason.textContent = String(channel.razon || '');
+      item.appendChild(name);
+      item.appendChild(reason);
+      chEl.appendChild(item);
+    });
   }
   const nxEl = document.getElementById('bearads-trafico');
   const trafficBearads = Array.isArray(data.trafico?.bearads_puede) ? data.trafico.bearads_puede : [];
   if (nxEl) {
-    nxEl.innerHTML = trafficBearads.map(n => `<div class="bearads-item">${esc(n)}</div>`).join('');
+    clearElement(nxEl);
+    trafficBearads.forEach(function(itemText) {
+      var item = document.createElement('div');
+      item.className = 'bearads-item';
+      item.textContent = String(itemText || '');
+      nxEl.appendChild(item);
+    });
   }
   const qwEl = document.getElementById('quickwins-trafico');
   const trafficQuickWins = Array.isArray(data.trafico?.quick_wins) ? data.trafico.quick_wins : [];
   if (qwEl) {
-    qwEl.innerHTML = trafficQuickWins.map(q => `<div class="action-item">${esc(q)}</div>`).join('');
+    clearElement(qwEl);
+    trafficQuickWins.forEach(function(itemText) {
+      var item = document.createElement('div');
+      item.className = 'action-item';
+      item.textContent = String(itemText || '');
+      qwEl.appendChild(item);
+    });
   }
 
   // Render real traffic data if available
@@ -5789,11 +6189,31 @@ function renderResults(data) {
 
   // Resetear chat con contexto del análisis
   analysisChatHistory = [];
-  document.getElementById('analysis-chat-messages').innerHTML = `
-    <div class="chat-msg agent">
-      <div class="chat-avatar" style="background:linear-gradient(135deg,#7ba7e8,#7c6fd4);">🧠</div>
-      <div class="chat-bubble">Análisis completado para <strong>${esc(data.url)}</strong>. Score global: <strong style="color:${getScoreColor(data.globalScore)}">${data.globalScore}/100</strong>. Tengo los reportes de SEO, SEM, Contenido, CRO y Tráfico. ¿Qué aspecto quieres priorizar?</div>
-    </div>`;
+  var analysisChatMessages = document.getElementById('analysis-chat-messages');
+  if (analysisChatMessages) {
+    clearElement(analysisChatMessages);
+    var chatRow = document.createElement('div');
+    chatRow.className = 'chat-msg agent';
+    var avatar = document.createElement('div');
+    avatar.className = 'chat-avatar';
+    avatar.style.background = 'linear-gradient(135deg,#7ba7e8,#7c6fd4)';
+    avatar.textContent = '🧠';
+    var bubble = document.createElement('div');
+    bubble.className = 'chat-bubble';
+    bubble.appendChild(document.createTextNode('Análisis completado para '));
+    var strongUrl = document.createElement('strong');
+    strongUrl.textContent = String(data.url || '');
+    bubble.appendChild(strongUrl);
+    bubble.appendChild(document.createTextNode('. Score global: '));
+    var strongScore = document.createElement('strong');
+    strongScore.style.color = getScoreColor(data.globalScore);
+    strongScore.textContent = String(data.globalScore || 0) + '/100';
+    bubble.appendChild(strongScore);
+    bubble.appendChild(document.createTextNode('. Tengo los reportes de SEO, SEM, Contenido, CRO y Tráfico. ¿Qué aspecto quieres priorizar?'));
+    chatRow.appendChild(avatar);
+    chatRow.appendChild(bubble);
+    analysisChatMessages.appendChild(chatRow);
+  }
   document.getElementById('analysis-chat-context').textContent = `Contexto: ${data.url}`;
 }
 
@@ -6473,9 +6893,11 @@ function applyProfileToUI(profile, workspace) {
   const av = document.getElementById('sidebar-user-avatar');
   const nm = document.getElementById('sidebar-user-name');
   const pl = document.getElementById('sidebar-user-plan');
+  const mobileAv = document.getElementById('mobile-avatar');
   if (av) av.textContent = initials;
   if (nm) nm.textContent = profile.name;
   if (pl) pl.textContent = formatPlanLabel(workspace) + ' PLAN';
+  if (mobileAv) mobileAv.textContent = initials;
 }
 
 const SA_TABS = ['audit', 'qa', 'ai', 'users', 'growth', 'billing'];
@@ -6635,6 +7057,53 @@ function formatSARole(role) {
   return SA_ROLE_LABELS[role] || String(role || 'user').replace(/_/g, ' ');
 }
 
+function renderRuntimeState(session = appSession) {
+  const statusDot = document.getElementById('workspace-status-dot');
+  const statusText = document.getElementById('workspace-status-text');
+  const statusSub = document.getElementById('workspace-status-sub');
+  const topbarState = document.getElementById('topbar-runtime-state');
+
+  if (!session?.user) {
+    if (statusDot) statusDot.style.background = '#f59e0b';
+    if (statusText) statusText.textContent = 'Sesión no detectada';
+    if (statusSub) statusSub.textContent = 'Entra para sincronizar rol, trial y workspace.';
+    if (topbarState) clearElement(topbarState);
+    return;
+  }
+
+  const workspace = session.workspace || {};
+  const subscription = workspace.subscription || {};
+  const effectiveRole = formatSARole(session.membership?.role || (session.isPlatformOwner ? 'owner' : 'member_trial'));
+  const workspaceName = workspace.profile?.businessName || workspace.name || 'Workspace activo';
+  const planLabel = formatPlanLabel(workspace);
+  const isTrial = subscription.status === 'trialing';
+  const trialText = isTrial
+    ? 'Trial · ' + String(subscription.remainingTrialDays || 0) + ' días'
+    : 'Plan · ' + planLabel;
+
+  if (statusDot) statusDot.style.background = isTrial ? '#f59e0b' : '#5ec9a0';
+  if (statusText) statusText.textContent = workspaceName;
+  if (statusSub) statusSub.textContent = effectiveRole + ' · ' + trialText;
+
+  if (!topbarState) return;
+  clearElement(topbarState);
+  topbarState.appendChild(createBadge('Rol efectivo: ' + effectiveRole, {
+    background: 'rgba(123,167,232,0.12)',
+    color: '#35507f',
+    border: 'rgba(123,167,232,0.2)'
+  }));
+  topbarState.appendChild(createBadge('Workspace: ' + workspaceName, {
+    background: 'rgba(94,201,160,0.12)',
+    color: '#256b55',
+    border: 'rgba(94,201,160,0.2)'
+  }));
+  topbarState.appendChild(createBadge(trialText, {
+    background: isTrial ? 'rgba(251,191,36,0.16)' : 'rgba(255,255,255,0.7)',
+    color: isTrial ? '#8a5a00' : '#455068',
+    border: isTrial ? 'rgba(251,191,36,0.28)' : 'rgba(123,167,232,0.14)'
+  }));
+}
+
 function getAssignableRoles(session = appSession) {
   if (isPrimaryRootOwner(session)) {
     return ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
@@ -6710,6 +7179,7 @@ async function refreshAppSession() {
   if (!session || !session.user) {
     appSession = null;
     syncCampaignAuthUI(null);
+    renderRuntimeState(null);
     return null;
   }
   appSession = session;
@@ -6729,6 +7199,7 @@ async function refreshAppSession() {
   }
   renderSAAccess();
   syncCampaignAuthUI(session);
+  renderRuntimeState(session);
   if (session?.workspace?.integrationHub?.connections) {
     intgConnections = {
       meta: session.workspace.integrationHub.connections.meta || null,
@@ -6801,6 +7272,7 @@ async function loadProfileOnStart() {
   const p = userProfile;
   if (!p.name) return;
   applyProfileToUI(p, appSession?.workspace || null);
+  renderRuntimeState(appSession);
   maybeOpenOnboarding();
 }
 
@@ -9114,7 +9586,7 @@ function initStrategicPlanPage() {
 }
 
 async function loadGAdsForPlan() {
-  var creds = DB.get('gads_credentials');
+  var creds = gadsCredentials;
   if (!creds) return;
   var res = await fetch('/api/gads/campaigns', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -9209,7 +9681,7 @@ async function generateStrategicPlan() {
 // CREATIVOS & ADS
 // ══════════════════════════════════════════
 var crPlatform = 'meta';
-var gadsCredentials = DB.get('gads_credentials', null);
+var gadsCredentials = null;
 var metaCredentials = null;
 var CREATIVE_TEMPLATES = {
   quick_sale: {
@@ -9495,6 +9967,7 @@ async function generateCreativeImage() {
 
 // ── GOOGLE ADS REAL DASHBOARD ──
 function initGAdsDashboard() {
+  DB.set('gads_credentials', null);
   checkGAdsAuthStatus();
   if (gadsCredentials) {
     document.getElementById('gads-connect-section').style.display = 'none';
@@ -9541,7 +10014,6 @@ async function connectGoogleAds() {
 
     // All good
     gadsCredentials = { customerId: cid };
-    DB.set('gads_credentials', gadsCredentials);
     document.getElementById('gads-connect-section').style.display = 'none';
     document.getElementById('gads-dashboard').style.display = 'block';
     loadGAdsDashboard();
