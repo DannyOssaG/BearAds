@@ -2291,13 +2291,24 @@ app.post('/api/generate-image', async (req, res) => {
 // ══════════════════════════════════════════
 
 app.post('/api/strategic-plan', async (req, res) => {
-  const { business, product, audience, budget, goal, url, duration, gscData, ga4Data, gadsData, metaData } = req.body;
+  const { business, product, audience, budget, goal, url, duration, gscData, ga4Data, gadsData, metaData, analysisContext } = req.body;
 
   let realDataContext = '';
   if (gscData) realDataContext += `\nGSC: ${gscData.totalClicks} clicks, pos. media ${gscData.avgPosition}, top keywords: ${(gscData.topQueries||[]).slice(0,5).map(q=>q.query).join(', ')}`;
   if (ga4Data) realDataContext += `\nGA4: ${ga4Data.sessions} sesiones, ${ga4Data.users} usuarios, rebote ${ga4Data.bounceRate}`;
   if (gadsData?.campaigns) realDataContext += `\nGoogle Ads activo: ${gadsData.campaigns.length} campañas, gasto total $${gadsData.campaigns.reduce((s,c)=>s+parseFloat(c.spend||0),0).toFixed(0)}/mes`;
   if (metaData?.campaigns) realDataContext += `\nMeta Ads activo: ${metaData.campaigns.length} campañas`;
+  if (analysisContext) {
+    realDataContext += `\nANALISIS DEL SITIO: Score global ${analysisContext.globalScore}/100.
+SEO: ${analysisContext.seoScore}/100 (${analysisContext.seoSummary})
+SEM: ${analysisContext.semScore}/100 (${analysisContext.semSummary})
+Contenido: ${analysisContext.contentScore}/100 (${analysisContext.contentSummary})
+CRO: ${analysisContext.croScore}/100 (${analysisContext.croSummary})
+Tráfico: ${analysisContext.trafficScore}/100 (${analysisContext.trafficSummary})
+Hallazgos SEO: ${(analysisContext.seoFindings || []).join(', ')}
+Fricciones CRO: ${(analysisContext.croFrictions || []).join(', ')}
+Canales sugeridos: ${(analysisContext.recommendedChannels || []).join(', ')}`;
+  }
 
   const prompt = `Crea un plan de marketing digital COMPLETO para ${duration || 90} días:
 

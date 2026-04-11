@@ -260,11 +260,18 @@ Avances realizados en esta conversacion:
   - flujo de analisis.
 - Se corrigio el flujo de "Analisis recientes" para que los nuevos reportes se guarden completos y puedan volver a abrirse desde el historial sin quedar vacios.
 - Se agregaron menus desplegables para elegir desde la cuenta conectada el sitio de Search Console, la propiedad de GA4 y la cuenta de Google Ads que se quiere usar.
+- Se estabilizo el deploy de pruebas corrigiendo dependencias conflictivas para Render:
+  - nodemailer -> 6.9.16
+  - node-cron -> 3.0.3
+  - googleapis -> 144.0.0
+  - gaxios -> 6.0.3
+- El servidor de pruebas ya logra arrancar correctamente despues de esos ajustes.
 
 Pendientes inmediatos:
 
 - usar de forma mas automatica la seleccion guardada para disminuir pasos manuales,
 - revisar el flujo completo URL + Google -> analisis -> dashboard -> estrategia,
+- terminar de validar Search Console para que muestre datos reales de clicks, impresiones, CTR y keywords en el analisis,
 - validar visualmente que GA4 renderice sus metricas dentro del reporte final cuando la propiedad seleccionada devuelve datos,
 - seguir reduciendo ruido de modulos no core.
 
