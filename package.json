@@ -27,7 +27,7 @@
   },
   "version": "1.0.0",
   "description": "Plataforma web de marketing con IA para analisis, estrategia, campañas, integraciones y operacion guiada.",
-  "main": "agents-v2.js",
+  "main": "node server.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DannyOssaG/BearAds.git"
