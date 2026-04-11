@@ -1,4 +1,4 @@
-// MIRTHOS-SERVER-BUILD-20260318-V3
+// BEARADS-SERVER-BUILD-20260318-V3
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -624,7 +624,7 @@ app.get('/api/ping', (req, res) => res.json({ pong: true, version: 'v2', time: n
 // ── SESSION ──
 app.use(session({
   secret: sessionSecret,
-  name: 'mirthos.sid',
+  name: 'bearads.sid',
   store: sessionStore,
   resave: false,
   saveUninitialized: false,
@@ -678,7 +678,7 @@ app.get('/auth/google/callback',
 app.get('/auth/logout', (req, res) => {
   req.logout(() => {
     req.session.destroy(() => {
-      res.clearCookie('mirthos.sid');
+      res.clearCookie('bearads.sid');
       res.redirect('/');
     });
   });
@@ -1544,8 +1544,8 @@ Ejemplo de respuesta: {"score":55,"resumen":"El contenido del sitio es funcional
 Ejemplo de respuesta: {"score":45,"resumen":"El funnel de conversión tiene fricciones importantes que reducen la tasa de compra. Se identificaron 3 puntos críticos.","hallazgos":[{"tipo":"error","titulo":"Checkout complejo","detalle":"El proceso de compra tiene demasiados pasos obligatorios."},{"tipo":"advertencia","titulo":"Sin badges de confianza","detalle":"No hay sellos de seguridad visibles cerca del botón de compra."},{"tipo":"ok","titulo":"Carrito persistente","detalle":"El carrito guarda productos entre sesiones."}],"fricciones":["Registro obligatorio antes de comprar","Falta de métodos de pago locales visibles","Sin indicador de progreso en el checkout"],"acciones":["Habilitar compra como invitado","Mostrar métodos de pago en página de producto","Agregar contador de stock para urgencia","Añadir badges de seguridad en checkout"]}`,
 
   trafico: `Eres el Agente de Tráfico de BearAds. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
-REGLAS: resumen max 180 chars. razon max 80 chars. Max 3 canales. Max 4 nexusai_puede (max 80 chars cada uno). Max 3 quick_wins (max 80 chars cada uno).
-{"score":15,"resumen":"Sin tráfico orgánico ni pagado. Sin analítica. Urgente implementar medición y canales de adquisición.","canales_recomendados":[{"canal":"Meta Ads","potencial":"muy_alto","razon":"Productos visuales ideales para feed ads. ROI medible desde día 1."},{"canal":"Google Shopping","potencial":"alto","razon":"Intención de compra alta. Feed de productos directo."}],"nexusai_puede":["Configurar FB Pixel y Conversions API","Crear campañas de catálogo en Meta Ads","Configurar Google Merchant Center y Shopping"],"quick_wins":["Instalar FB Pixel hoy — 1 hora","Lanzar campaña Meta $10/día con best sellers"],"datos_reales":false}`,
+REGLAS: resumen max 180 chars. razon max 80 chars. Max 3 canales. Max 4 bearads_puede (max 80 chars cada uno). Max 3 quick_wins (max 80 chars cada uno).
+{"score":15,"resumen":"Sin tráfico orgánico ni pagado. Sin analítica. Urgente implementar medición y canales de adquisición.","canales_recomendados":[{"canal":"Meta Ads","potencial":"muy_alto","razon":"Productos visuales ideales para feed ads. ROI medible desde día 1."},{"canal":"Google Shopping","potencial":"alto","razon":"Intención de compra alta. Feed de productos directo."}],"bearads_puede":["Configurar FB Pixel y Conversions API","Crear campañas de catálogo en Meta Ads","Configurar Google Merchant Center y Shopping"],"quick_wins":["Instalar FB Pixel hoy - 1 hora","Lanzar campaña Meta $10/día con best sellers"],"datos_reales":false}`,
 
 };
 

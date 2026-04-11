@@ -13,6 +13,7 @@
     "nodemon": "^3.1.14"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
@@ -22,5 +23,20 @@
     "nodemailer": "^8.0.5",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
-  }
+  },
+  "version": "1.0.0",
+  "description": "Plataforma web de marketing con IA para analisis, estrategia, campañas, integraciones y operacion guiada.",
+  "main": "agents-v2.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DannyOssaG/BearAds.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/DannyOssaG/BearAds/issues"
+  },
+  "homepage": "https://github.com/DannyOssaG/BearAds#readme"
 }

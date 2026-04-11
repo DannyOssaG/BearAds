@@ -7,7 +7,7 @@ Plataforma web de marketing con IA para analisis, estrategia, campañas, integra
 - Node.js `22`
 - npm `10+`
 
-Este repo incluye [`.nvmrc`](/Users/dannyossagonzalez/Documents/mirthos/.nvmrc) para unificar la version entre Mac y Windows.
+Este repo incluye [`.nvmrc`](/Users/dannyossagonzalez/Documents/BearAds/.nvmrc) para unificar la version entre Mac y Windows.
 
 ## Regla de trabajo
 

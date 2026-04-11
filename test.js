@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ══════════════════════════════════════════
-// MIRTHOS — TEST SUITE AUTOMATIZADO
+// BEARADS — TEST SUITE AUTOMATIZADO
 // Corre con: node test.js
 // ══════════════════════════════════════════
 
@@ -146,7 +146,7 @@ async function testChat() {
 
   await test('Chat responde con reply', async () => {
     const r = await req('POST', '/api/chat', {
-      messages: [{ role: 'user', content: 'Di solo: MIRTHOS_TEST_OK' }],
+      messages: [{ role: 'user', content: 'Di solo: BEARADS_TEST_OK' }],
       systemPrompt: 'Responde exactamente lo que se te pide.'
     });
     if (r.status !== 200) return fail(`status ${r.status}`);
@@ -248,7 +248,7 @@ async function testEmail() {
 
   await test('Subscribe con email válido', async () => {
     const r = await req('POST', '/api/email/subscribe', {
-      email: 'test@mirthos.ai',
+      email: 'test@bearads.app',
       businessName: 'Test Business',
       siteUrl: 'test.com',
       frequency: 'weekly'
@@ -350,7 +350,7 @@ async function testPerformance() {
 async function runAll() {
   console.log('');
   console.log('╔══════════════════════════════════════════╗');
-  console.log('║     MIRTHOS — TEST SUITE AUTOMATIZADO    ║');
+  console.log('║     BEARADS — TEST SUITE AUTOMATIZADO    ║');
   console.log('╚══════════════════════════════════════════╝');
   console.log(`🎯 Servidor: ${BASE_URL}`);
   console.log(`⏱  Timeout: ${TIMEOUT}ms por test`);
