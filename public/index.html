@@ -2337,8 +2337,8 @@ tr:hover td { background: var(--surface2); }
      INTEGRACIONES
 ══════════════════════════════════════════ -->
 <div class="page" id="page-integrations">
-  <div class="page-title">Integraciones & Centro de Campañas</div>
-  <div class="page-sub">Conecta una vez y usa esos datos en toda la plataforma</div>
+  <div class="page-title">Integraciones</div>
+  <div class="page-sub">Conecta primero lo esencial y luego BearAds reutiliza esos datos en campañas, agentes y automatizaciones.</div>
 
   <!-- Connection Status Bar -->
   <div id="intg-status-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;align-items:center;">
@@ -2352,12 +2352,13 @@ tr:hover td { background: var(--surface2); }
   <div style="margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(94,201,160,0.1),rgba(96,165,250,0.08));border:1px solid rgba(94,201,160,0.16);border-radius:14px;">
     <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
       <div style="max-width:560px;">
-        <div style="font-size:11px;font-weight:800;color:#5ec9a0;letter-spacing:1px;margin-bottom:8px;">¿QUÉ QUIERES HACER AHORA?</div>
-        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">BearAds ordena tus integraciones por tarea</div>
+        <div style="font-size:11px;font-weight:800;color:#5ec9a0;letter-spacing:1px;margin-bottom:8px;">SIGUIENTE PASO RECOMENDADO</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;" id="intg-guide-title">Conecta tus plataformas clave</div>
         <div id="intg-guide-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">Empieza por tus conexiones clave. Después podrás crear campañas y automatizaciones sin repetir pasos.</div>
+        <div id="intg-primary-cta-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;"></div>
       </div>
-      <div style="min-width:220px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
-        Elige lo que quieres hacer y BearAds te abre la parte correcta.
+      <div id="intg-next-step" style="min-width:220px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+        BearAds te va guiando según lo que ya conectaste.
       </div>
     </div>
     <div id="intg-quick-actions" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:16px;">
@@ -2383,7 +2384,7 @@ tr:hover td { background: var(--surface2); }
   <div id="intg-recommendations" style="margin-bottom:18px;padding:16px;background:rgba(255,255,255,0.55);border:1px solid rgba(123,167,232,0.12);border-radius:14px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
       <div>
-        <div style="font-size:11px;font-weight:800;color:#35507f;letter-spacing:1px;margin-bottom:6px;">CHECKLIST RECOMENDADO</div>
+        <div style="font-size:11px;font-weight:800;color:#35507f;letter-spacing:1px;margin-bottom:6px;">CHECKLIST GUIADO</div>
         <div id="intg-recommendations-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">Aquí verás qué vale la pena conectar primero.</div>
       </div>
       <button onclick="showPage('dashboard')" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">Volver al dashboard</button>
@@ -2393,11 +2394,11 @@ tr:hover td { background: var(--surface2); }
 
   <!-- Tabs -->
   <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;">
-    <button id="itab-connections" onclick="switchIntgTab('connections')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid var(--accent);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;">🔗 Conexiones</button>
-    <button id="itab-meta" onclick="switchIntgTab('meta')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">📘 Meta Ads</button>
-    <button id="itab-google-ads" onclick="switchIntgTab('google-ads')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">🔵 Google Ads</button>
-    <button id="itab-email-mkt" onclick="switchIntgTab('email-mkt')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">✉️ Email Mkt</button>
-    <button id="itab-webhooks" onclick="switchIntgTab('webhooks')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">⚙️ Webhooks</button>
+    <button id="itab-connections" onclick="switchIntgTab('connections')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid var(--accent);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;">1. 🔗 Conexiones</button>
+    <button id="itab-meta" onclick="switchIntgTab('meta')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">2. 📘 Meta Ads</button>
+    <button id="itab-google-ads" onclick="switchIntgTab('google-ads')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">3. 🔵 Google Ads</button>
+    <button id="itab-email-mkt" onclick="switchIntgTab('email-mkt')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">4. ✉️ Email</button>
+    <button id="itab-webhooks" onclick="switchIntgTab('webhooks')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">5. ⚙️ Avanzado</button>
   </div>
 
   <!-- TAB: Connections -->
@@ -4019,6 +4020,33 @@ function createErrorNotice(message) {
   return box;
 }
 
+function createStatusNotice(message, tone, options) {
+  var opts = options || {};
+  var box = document.createElement('div');
+  var palette = tone === 'error'
+    ? {
+        background: 'rgba(224,112,112,0.07)',
+        border: 'rgba(224,112,112,0.2)',
+        color: '#e07070'
+      }
+    : {
+        background: 'rgba(94,201,160,0.07)',
+        border: 'rgba(94,201,160,0.15)',
+        color: 'var(--accent2)'
+      };
+  box.style.cssText = [
+    'padding:' + (opts.padding || '10px'),
+    'background:' + palette.background,
+    'border:1px solid ' + palette.border,
+    'border-radius:' + (opts.radius || '7px'),
+    'font-size:' + (opts.fontSize || '12px'),
+    'color:' + palette.color,
+    opts.marginTop ? 'margin-top:' + opts.marginTop : ''
+  ].filter(Boolean).join(';');
+  box.textContent = message || '';
+  return box;
+}
+
 function safeUrl(url) {
   if (!url) return '';
   try {
@@ -4301,32 +4329,57 @@ function initAgentsPage() {
       ? 'Estás viendo los 12 agentes disponibles.'
       : `Mostrando ${filteredAgents.length} agente(s) para: ${label.toLowerCase()}.`;
   }
-  grid.innerHTML = filteredAgents.map(({ ag, idx }) => `
-    <div onclick="openAgentWorkspace(${idx})"
-      style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;"
-      onmouseover="this.style.borderColor='${ag.color}';this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.transform='';this.style.boxShadow=''">
-      <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,${ag.color}15,transparent 70%);pointer-events:none;"></div>
-      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
-        <div style="width:40px;height:40px;border-radius:10px;background:${ag.color}20;border:1px solid ${ag.color}30;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${ag.icon}</div>
-        <div style="flex:1;">
-          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--text);">${ag.name}</div>
-          <div style="font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.5px;margin-top:1px;">${ag.role.split('·')[0].trim()}</div>
-        </div>
-        <div style="font-size:10px;padding:3px 8px;background:${ag.color}15;color:${ag.color};border-radius:5px;font-weight:700;flex-shrink:0;">ACTIVO</div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;">${ag.desc.substring(0,100)}...</div>
-      <div style="padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size:11px;color:var(--muted);">${ag.capabilities.length} entregables</span>
-        <span style="font-size:12px;color:${ag.color};font-weight:700;">Abrir →</span>
-      </div>
-    </div>`).join('');
+  clearElement(grid);
+  filteredAgents.forEach(function(entry) {
+    var ag = entry.ag;
+    var idx = entry.idx;
+    var card = createActionButton('', function() { openAgentWorkspace(idx); }, "background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;text-align:left;");
+    card.onmouseover = function() {
+      card.style.borderColor = ag.color;
+      card.style.transform = 'translateY(-2px)';
+      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
+    };
+    card.onmouseout = function() {
+      card.style.borderColor = 'var(--border)';
+      card.style.transform = '';
+      card.style.boxShadow = '';
+    };
+    var glow = document.createElement('div');
+    glow.style.cssText = 'position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,' + ag.color + '15,transparent 70%);pointer-events:none;';
+    card.appendChild(glow);
+
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;';
+    var icon = document.createElement('div');
+    icon.style.cssText = 'width:40px;height:40px;border-radius:10px;background:' + ag.color + '20;border:1px solid ' + ag.color + '30;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;';
+    icon.textContent = ag.icon;
+    top.appendChild(icon);
+    var body = document.createElement('div');
+    body.style.flex = '1';
+    appendTextLine(body, ag.name, "font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:13px;color:var(--text);");
+    appendTextLine(body, ag.role.split('·')[0].trim(), 'font-size:10px;color:var(--muted);font-weight:600;letter-spacing:0.5px;margin-top:1px;');
+    top.appendChild(body);
+    top.appendChild(createBadge('ACTIVO', {
+      background: ag.color + '15',
+      color: ag.color,
+      border: ag.color + '22',
+      style: 'font-size:10px;padding:3px 8px;border-radius:5px;font-weight:700;flex-shrink:0;'
+    }));
+    card.appendChild(top);
+    appendTextLine(card, ag.desc.substring(0, 100) + '...', 'font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;');
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding-top:12px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;';
+    appendTextLine(footer, ag.capabilities.length + ' entregables', 'font-size:11px;color:var(--muted);');
+    appendTextLine(footer, 'Abrir →', 'font-size:12px;color:' + ag.color + ';font-weight:700;');
+    card.appendChild(footer);
+    grid.appendChild(card);
+  });
   if (!filteredAgents.length) {
-    grid.innerHTML = `<div style="grid-column:1 / -1;padding:34px;background:var(--surface);border:1px solid var(--border);border-radius:14px;text-align:center;">
-      <div style="font-size:30px;margin-bottom:10px;">🤖</div>
-      <div style="font-size:14px;font-weight:700;margin-bottom:6px;">No encontré agentes con ese filtro</div>
-      <div style="font-size:12px;color:var(--muted);line-height:1.7;">Prueba otra palabra o cambia el objetivo para volver a ver los 12 agentes.</div>
-    </div>`;
+    var emptyState = createInfoCard({ style: 'grid-column:1 / -1;padding:34px;text-align:center;' });
+    appendTextLine(emptyState, '🤖', 'font-size:30px;margin-bottom:10px;');
+    appendTextLine(emptyState, 'No encontré agentes con ese filtro', 'font-size:14px;font-weight:700;margin-bottom:6px;');
+    appendTextLine(emptyState, 'Prueba otra palabra o cambia el objetivo para volver a ver los 12 agentes.', 'font-size:12px;color:var(--muted);line-height:1.7;');
+    grid.appendChild(emptyState);
   }
   updateAgentsContextBanner();
 }
@@ -4339,15 +4392,20 @@ function renderRecommendedAgents() {
   const recommended = getRecommendedAgents(onboarding);
   const category = AGENT_GOAL_LABELS[getOnboardingGoalCategory(onboarding)] || 'Empezar';
   copy.textContent = `Te conviene empezar por aquí si hoy tu foco es ${category.toLowerCase()}.`;
-  list.innerHTML = recommended.map(function(agent) {
-    return `<button onclick="openAgentById('${agent.id}')" style="text-align:left;padding:14px;background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:12px;cursor:pointer;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <div style="width:32px;height:32px;border-radius:10px;background:${agent.color}20;display:flex;align-items:center;justify-content:center;">${agent.icon}</div>
-        <div style="font-size:12px;font-weight:700;color:var(--text);">${agent.name}</div>
-      </div>
-      <div style="font-size:11px;color:var(--text2);line-height:1.6;">${esc(agent.desc.substring(0, 92))}...</div>
-    </button>`;
-  }).join('');
+  clearElement(list);
+  recommended.forEach(function(agent) {
+    var button = createActionButton('', function() { openAgentById(agent.id); }, 'text-align:left;padding:14px;background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:12px;cursor:pointer;');
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
+    var icon = document.createElement('div');
+    icon.style.cssText = 'width:32px;height:32px;border-radius:10px;background:' + agent.color + '20;display:flex;align-items:center;justify-content:center;';
+    icon.textContent = agent.icon;
+    top.appendChild(icon);
+    appendTextLine(top, agent.name, 'font-size:12px;font-weight:700;color:var(--text);');
+    button.appendChild(top);
+    appendTextLine(button, agent.desc.substring(0, 92) + '...', 'font-size:11px;color:var(--text2);line-height:1.6;');
+    list.appendChild(button);
+  });
 }
 
 function openAgentById(agentId) {
@@ -4360,7 +4418,7 @@ function initSpecializedAgents() {
   if (!section) return;
   if (!currentAnalysis) {
     section.style.display = 'none';
-    section.innerHTML = '';
+    clearElement(section);
     return;
   }
 
@@ -4388,32 +4446,44 @@ function initSpecializedAgents() {
 
   if (!ranked.length) {
     section.style.display = 'none';
-    section.innerHTML = '';
+    clearElement(section);
     return;
   }
 
   section.style.display = 'block';
-  section.innerHTML = '<div style="margin-bottom:10px;font-family:\'Syne\',sans-serif;font-size:15px;font-weight:700;color:var(--text);">Agentes que te conviene abrir ahora</div>'
-    + '<div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:12px;">BearAds priorizó estos frentes según el análisis recién generado.</div>'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">'
-    + ranked.map(function(entry) {
-      if (!entry.agent) return '';
-      return '<button onclick="openAgentById(\'' + esc(entry.agent.id) + '\')"'
-        + ' style="text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;">'
-        + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">'
-        + '<div style="display:flex;align-items:center;gap:10px;">'
-        + '<div style="width:34px;height:34px;border-radius:10px;background:' + entry.agent.color + '20;display:flex;align-items:center;justify-content:center;font-size:17px;">' + entry.agent.icon + '</div>'
-        + '<div>'
-        + '<div style="font-size:12px;font-weight:800;color:var(--text);">' + esc(entry.agent.name) + '</div>'
-        + '<div style="font-size:10px;color:var(--muted);">Score actual: ' + esc(String(entry.score)) + '/100</div>'
-        + '</div></div>'
-        + '<div style="font-size:10px;padding:4px 8px;border-radius:999px;background:rgba(248,113,113,0.12);color:#f87171;font-weight:800;">PRIORIDAD</div>'
-        + '</div>'
-        + '<div style="font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:10px;">' + esc(entry.summary) + '</div>'
-        + '<div style="font-size:11px;color:var(--accent);font-weight:700;">' + esc(entry.action || 'Abrir este agente para recibir pasos concretos.') + '</div>'
-        + '</button>';
-    }).join('')
-    + '</div>';
+  clearElement(section);
+  appendTextLine(section, 'Agentes que te conviene abrir ahora', "margin-bottom:10px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);");
+  appendTextLine(section, 'BearAds priorizó estos frentes según el análisis recién generado.', 'font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:12px;');
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;';
+  ranked.forEach(function(entry) {
+    if (!entry.agent) return;
+    var button = createActionButton('', function() { openAgentById(entry.agent.id); }, 'text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;cursor:pointer;');
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;';
+    var left = document.createElement('div');
+    left.style.cssText = 'display:flex;align-items:center;gap:10px;';
+    var icon = document.createElement('div');
+    icon.style.cssText = 'width:34px;height:34px;border-radius:10px;background:' + entry.agent.color + '20;display:flex;align-items:center;justify-content:center;font-size:17px;';
+    icon.textContent = entry.agent.icon;
+    left.appendChild(icon);
+    var text = document.createElement('div');
+    appendTextLine(text, entry.agent.name, 'font-size:12px;font-weight:800;color:var(--text);');
+    appendTextLine(text, 'Score actual: ' + String(entry.score) + '/100', 'font-size:10px;color:var(--muted);');
+    left.appendChild(text);
+    top.appendChild(left);
+    top.appendChild(createBadge('PRIORIDAD', {
+      background: 'rgba(248,113,113,0.12)',
+      color: '#f87171',
+      border: 'rgba(248,113,113,0.15)',
+      style: 'font-size:10px;padding:4px 8px;border-radius:999px;font-weight:800;'
+    }));
+    button.appendChild(top);
+    appendTextLine(button, entry.summary, 'font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:10px;');
+    appendTextLine(button, entry.action || 'Abrir este agente para recibir pasos concretos.', 'font-size:11px;color:var(--accent);font-weight:700;');
+    grid.appendChild(button);
+  });
+  section.appendChild(grid);
 }
 
 function getFilteredAgents() {
@@ -4430,11 +4500,12 @@ function getFilteredAgents() {
 function renderAgentGoalChips() {
   const wrap = document.getElementById('agents-goal-chips');
   if (!wrap) return;
-  wrap.innerHTML = Object.entries(AGENT_GOAL_LABELS).map(([key, label]) => `
-    <button onclick="setAgentGoal('${key}')"
-      style="padding:9px 12px;border-radius:999px;border:1px solid ${activeAgentGoal === key ? 'rgba(192,132,252,0.35)' : 'var(--border)'};background:${activeAgentGoal === key ? 'rgba(192,132,252,0.12)' : 'var(--surface)'};color:${activeAgentGoal === key ? '#c084fc' : 'var(--text2)'};font-size:12px;font-weight:700;cursor:pointer;">
-      ${esc(label)}
-    </button>`).join('');
+  clearElement(wrap);
+  Object.entries(AGENT_GOAL_LABELS).forEach(function(entry) {
+    var key = entry[0];
+    var label = entry[1];
+    wrap.appendChild(createActionButton(label, function() { setAgentGoal(key); }, 'padding:9px 12px;border-radius:999px;border:1px solid ' + (activeAgentGoal === key ? 'rgba(192,132,252,0.35)' : 'var(--border)') + ';background:' + (activeAgentGoal === key ? 'rgba(192,132,252,0.12)' : 'var(--surface)') + ';color:' + (activeAgentGoal === key ? '#c084fc' : 'var(--text2)') + ';font-size:12px;font-weight:700;cursor:pointer;'));
+  });
 }
 
 function setAgentGoal(goal) {
@@ -4480,37 +4551,75 @@ function openAgentWorkspace(idx) {
 
   // Capabilities
   const capEl = document.getElementById('aw-capabilities');
-  if (capEl) capEl.innerHTML = capabilities.map(c => `
-    <div onclick="useCapability('${c.action.replace(/'/g,"\\'")}')"
-      style="padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:all 0.15s;"
-      onmouseover="this.style.borderColor='${ag.color}';this.style.background='${ag.color}08'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'">
-      <span style="font-size:16px;flex-shrink:0;">${c.icon}</span>
-      <div>
-        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;">${c.label}</div>
-        <div style="font-size:11px;color:var(--muted);">Click para generar →</div>
-      </div>
-    </div>`).join('');
+  if (capEl) {
+    clearElement(capEl);
+    capabilities.forEach(function(c) {
+      var item = createActionButton('', function() { useCapability(c.action); }, 'padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;transition:all 0.15s;text-align:left;');
+      item.onmouseover = function() {
+        item.style.borderColor = ag.color;
+        item.style.background = ag.color + '08';
+      };
+      item.onmouseout = function() {
+        item.style.borderColor = 'var(--border)';
+        item.style.background = 'var(--surface2)';
+      };
+      appendTextLine(item, c.icon, 'font-size:16px;flex-shrink:0;');
+      item.appendChild(createLabeledBlock(c.label, 'Click para generar →', {
+        titleStyle: 'font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;',
+        bodyStyle: 'font-size:11px;color:var(--muted);'
+      }));
+      capEl.appendChild(item);
+    });
+  }
 
   // Quick actions
   const qaEl = document.getElementById('aw-quick-actions');
-  if (qaEl) qaEl.innerHTML = quickActions.length ? quickActions.map(a =>
-    `<button onclick="useCapability('${a.replace(/'/g,"\\'")}')"
-      style="padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;"
-      onmouseover="this.style.borderColor='${ag.color}';this.style.color='${ag.color}'"
-      onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">${a}</button>`
-  ).join('') : `<div style="font-size:11px;color:var(--muted);">Sin acciones rápidas disponibles para este agente.</div>`;
+  if (qaEl) {
+    clearElement(qaEl);
+    if (quickActions.length) {
+      quickActions.forEach(function(a) {
+        var button = createActionButton(a, function() { useCapability(a); }, "padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;");
+        button.onmouseover = function() {
+          button.style.borderColor = ag.color;
+          button.style.color = ag.color;
+        };
+        button.onmouseout = function() {
+          button.style.borderColor = 'var(--border)';
+          button.style.color = 'var(--text2)';
+        };
+        qaEl.appendChild(button);
+      });
+    } else {
+      appendTextLine(qaEl, 'Sin acciones rápidas disponibles para este agente.', 'font-size:11px;color:var(--muted);');
+    }
+  }
 
   // Analysis context info
   const ctxEl = document.getElementById('ctx-analysis-info');
   if (ctxEl) {
     if (currentAnalysis) {
-      ctxEl.innerHTML = `<div style="display:flex;align-items:center;gap:8px;">
-        <span>✅</span>
-        <div><div style="font-weight:600;color:var(--text);">${currentAnalysis.siteTitle || currentAnalysis.url}</div>
-        <div style="font-size:11px;color:var(--muted);">Score: ${currentAnalysis.globalScore}/100 · SEO: ${currentAnalysis.seo?.score} · CRO: ${currentAnalysis.cro?.score}</div></div></div>`;
+      clearElement(ctxEl);
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      appendTextLine(row, '✅', '');
+      var body = document.createElement('div');
+      appendTextLine(body, currentAnalysis.siteTitle || currentAnalysis.url, 'font-weight:600;color:var(--text);');
+      appendTextLine(body, 'Score: ' + currentAnalysis.globalScore + '/100 · SEO: ' + (currentAnalysis.seo?.score || '--') + ' · CRO: ' + (currentAnalysis.cro?.score || '--'), 'font-size:11px;color:var(--muted);');
+      row.appendChild(body);
+      ctxEl.appendChild(row);
     } else {
-      ctxEl.innerHTML = `Sin análisis disponible. <a href="#" onclick="showPage('analyze');document.getElementById('agent-workspace-modal').classList.remove('open')" style="color:var(--accent);">Analiza un sitio primero →</a>`;
+      clearElement(ctxEl);
+      ctxEl.appendChild(document.createTextNode('Sin análisis disponible. '));
+      var link = document.createElement('a');
+      link.href = '#';
+      link.textContent = 'Analiza un sitio primero →';
+      link.style.color = 'var(--accent)';
+      link.onclick = function(ev) {
+        ev.preventDefault();
+        showPage('analyze');
+        document.getElementById('agent-workspace-modal').classList.remove('open');
+      };
+      ctxEl.appendChild(link);
     }
   }
 
@@ -4591,7 +4700,8 @@ async function sendAWMessage() {
   const typing = document.createElement('div');
   typing.id = 'aw-typing';
   typing.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:10px;width:fit-content;';
-  typing.innerHTML = `<span style="font-size:14px;">${ag.icon}</span><span style="font-size:11px;color:var(--muted);">Generando...</span>`;
+  appendTextLine(typing, ag.icon, 'font-size:14px;');
+  appendTextLine(typing, 'Generando...', 'font-size:11px;color:var(--muted);');
   if (msgs) { msgs.appendChild(typing); msgs.scrollTop = msgs.scrollHeight; }
 
   try {
@@ -4628,30 +4738,57 @@ function renderAWChat() {
   window._awChatMsgs = history; // store for button access
 
   if (!history.length) {
-    msgs.innerHTML = `<div style="text-align:center;padding:30px 0;">
-      <div style="font-size:32px;margin-bottom:10px;">${esc(ag.icon)}</div>
-      <div style="font-size:13px;color:var(--muted);line-height:1.7;">Hola, soy el agente <strong style="color:${ag.color};">${esc(ag.name)}</strong>.<br>Usa las acciones rápidas o escríbeme directamente.</div>
-    </div>`;
+    clearElement(msgs);
+    var emptyState = document.createElement('div');
+    emptyState.style.cssText = 'text-align:center;padding:30px 0;';
+    appendTextLine(emptyState, ag.icon, 'font-size:32px;margin-bottom:10px;');
+    var copy = document.createElement('div');
+    copy.style.cssText = 'font-size:13px;color:var(--muted);line-height:1.7;';
+    copy.appendChild(document.createTextNode('Hola, soy el agente '));
+    var strong = document.createElement('strong');
+    strong.style.color = ag.color;
+    strong.textContent = ag.name;
+    copy.appendChild(strong);
+    copy.appendChild(document.createElement('br'));
+    copy.appendChild(document.createTextNode('Usa las acciones rápidas o escríbeme directamente.'));
+    emptyState.appendChild(copy);
+    msgs.appendChild(emptyState);
     return;
   }
 
-  msgs.innerHTML = history.map((m, idx) => {
-    if (m.role === 'user') return `
-      <div style="display:flex;justify-content:flex-end;">
-        <div style="max-width:80%;padding:9px 13px;background:${ag.color}22;border:1px solid ${ag.color}33;border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);line-height:1.5;">${escPreserve(m.content)}</div>
-      </div>`;
-    return `
-      <div style="display:flex;gap:8px;align-items:flex-start;">
-        <div style="width:28px;height:28px;border-radius:7px;background:${ag.color}20;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">${esc(ag.icon)}</div>
-        <div style="max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;overflow:hidden;">
-          <div style="padding:10px 13px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${escPreserve(m.content)}</div>
-          <div style="padding:6px 10px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:6px;">
-            <button onclick="copyMsgByIndex(this,${idx},'aw')" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">📋 Copiar</button>
-            <button onclick="downloadMsgByIndex(${idx},'aw')" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">⬇ Descargar</button>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
+  clearElement(msgs);
+  history.forEach(function(m, idx) {
+    if (m.role === 'user') {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end;';
+      var bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:80%;padding:9px 13px;background:' + ag.color + '22;border:1px solid ' + ag.color + '33;border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap;';
+      bubble.textContent = m.content;
+      row.appendChild(bubble);
+      msgs.appendChild(row);
+      return;
+    }
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;';
+    var avatar = document.createElement('div');
+    avatar.style.cssText = 'width:28px;height:28px;border-radius:7px;background:' + ag.color + '20;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;';
+    avatar.textContent = ag.icon;
+    row.appendChild(avatar);
+    var card = document.createElement('div');
+    card.style.cssText = 'max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;overflow:hidden;';
+    appendTextLine(card, m.content, 'padding:10px 13px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;');
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding:6px 10px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:6px;flex-wrap:wrap;';
+    footer.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      copyMsgByIndex(ev.currentTarget, idx, 'aw');
+    }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
+    footer.appendChild(createUtilityButton('⬇ Descargar', function() {
+      downloadMsgByIndex(idx, 'aw');
+    }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
+    card.appendChild(footer);
+    row.appendChild(card);
+    msgs.appendChild(row);
+  });
   msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -4686,21 +4823,35 @@ function renderAWOutputs() {
   if (tabBtn) tabBtn.textContent = '📄 Entregables' + (outputs.length ? ' (' + outputs.length + ')' : '');
 
   if (!outputs.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:13px;">Los entregables generados aparecerán aquí.<br><span style="font-size:12px;">Usa el chat para generar contenido.</span></div>';
+    clearElement(container);
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px 0;color:var(--muted);font-size:13px;';
+    empty.appendChild(document.createTextNode('Los entregables generados aparecerán aquí.'));
+    empty.appendChild(document.createElement('br'));
+    appendTextLine(empty, 'Usa el chat para generar contenido.', 'font-size:12px;');
+    container.appendChild(empty);
     return;
   }
-  container.innerHTML = outputs.map((o, i) => `
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:12px;font-weight:600;color:var(--text);">${esc(o.text)}</div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="font-size:10px;color:var(--muted);">${esc(o.ts)}</span>
-          <button onclick="copyOutputByIndex(this,${i})" style="font-size:10px;padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">📋</button>
-          <button onclick="downloadOutputByIndex(${i})" style="font-size:10px;padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">⬇</button>
-        </div>
-      </div>
-      <div style="padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;max-height:180px;overflow-y:auto;">${escPreserve(o.content)}</div>
-    </div>`).join('');
+  clearElement(container);
+  outputs.forEach(function(o, i) {
+    var card = createInfoCard({ style: 'background:var(--surface2);overflow:hidden;margin-bottom:10px;' });
+    var header = document.createElement('div');
+    header.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;';
+    appendTextLine(header, o.text, 'font-size:12px;font-weight:600;color:var(--text);');
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap;';
+    appendTextLine(actions, o.ts, 'font-size:10px;color:var(--muted);');
+    actions.appendChild(createUtilityButton('📋', function(ev) {
+      copyOutputByIndex(ev.currentTarget, i);
+    }, 'font-size:10px;padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
+    actions.appendChild(createUtilityButton('⬇', function() {
+      downloadOutputByIndex(i);
+    }, 'font-size:10px;padding:3px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
+    header.appendChild(actions);
+    card.appendChild(header);
+    appendTextLine(card, o.content, 'padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;max-height:180px;overflow-y:auto;');
+    container.appendChild(card);
+  });
 }
 
 function saveToOutputs(label, content) {
@@ -4840,16 +4991,26 @@ function renderDashboardGuide() {
     }
   ];
 
-  actions.innerHTML = items.map(function(item) {
-    return '<div style="background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:14px;padding:14px;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">'
-      + '<div style="font-size:13px;font-weight:800;color:#0f172a;">' + esc(item.title) + '</div>'
-      + '<div style="font-size:11px;font-weight:800;color:' + (item.done ? '#0f9f6e' : '#51627f') + ';">' + (item.done ? 'LISTO' : 'PENDIENTE') + '</div>'
-      + '</div>'
-      + '<div style="margin-top:8px;font-size:12px;color:#51627f;line-height:1.7;min-height:58px;">' + esc(item.copy) + '</div>'
-      + '<button onclick="' + item.action + '" style="width:100%;margin-top:10px;padding:10px 12px;background:' + (item.done ? 'rgba(15,23,42,0.04)' : item.accent) + ';border:' + (item.done ? '1px solid rgba(15,23,42,0.08)' : 'none') + ';border-radius:10px;color:' + (item.done ? '#0f172a' : '#ffffff') + ';font-size:12px;font-weight:800;cursor:pointer;">' + esc(item.button) + '</button>'
-      + '</div>';
-  }).join('');
+  clearElement(actions);
+  items.forEach(function(item) {
+    var card = document.createElement('div');
+    card.style.cssText = 'background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:14px;padding:14px;';
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    var title = document.createElement('div');
+    title.style.cssText = 'font-size:13px;font-weight:800;color:#0f172a;';
+    title.textContent = item.title;
+    var status = document.createElement('div');
+    status.style.cssText = 'font-size:11px;font-weight:800;color:' + (item.done ? '#0f9f6e' : '#51627f') + ';';
+    status.textContent = item.done ? 'LISTO' : 'PENDIENTE';
+    var copy = document.createElement('div');
+    copy.style.cssText = 'margin-top:8px;font-size:12px;color:#51627f;line-height:1.7;min-height:58px;';
+    copy.textContent = item.copy;
+    var button = createActionButton(item.button, function() { new Function(item.action)(); }, 'width:100%;margin-top:10px;padding:10px 12px;background:' + (item.done ? 'rgba(15,23,42,0.04)' : item.accent) + ';border:' + (item.done ? '1px solid rgba(15,23,42,0.08)' : 'none') + ';border-radius:10px;color:' + (item.done ? '#0f172a' : '#ffffff') + ';font-size:12px;font-weight:800;cursor:pointer;');
+    header.append(title, status);
+    card.append(header, copy, button);
+    actions.appendChild(card);
+  });
 }
 
 function refreshDashboard() {
@@ -4870,27 +5031,54 @@ function refreshDashboard() {
 
   const analysesList = $('dash-analyses-list');
   if (analysesList && analyses.length) {
-    analysesList.innerHTML = analyses.slice(0,5).map(a=>`
-      <div onclick="loadAnalysisFromHistory(${a.id})" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="width:36px;height:36px;border-radius:8px;background:${scoreColor(a.globalScore)}18;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:${scoreColor(a.globalScore)};flex-shrink:0;">${a.globalScore}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.siteTitle||a.url)}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px;">${esc(a.ts)}</div>
-        </div>
-      </div>`).join('');
+    clearElement(analysesList);
+    analyses.slice(0,5).forEach(function(a) {
+      var row = document.createElement('div');
+      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;';
+      row.addEventListener('click', function() { loadAnalysisFromHistory(a.id); });
+      row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent)'; });
+      row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
+      var score = document.createElement('div');
+      score.style.cssText = 'width:36px;height:36px;border-radius:8px;background:' + scoreColor(a.globalScore) + '18;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:' + scoreColor(a.globalScore) + ';flex-shrink:0;';
+      score.textContent = a.globalScore;
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      var site = document.createElement('div');
+      site.style.cssText = 'font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      site.textContent = a.siteTitle || a.url;
+      var ts = document.createElement('div');
+      ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:1px;';
+      ts.textContent = a.ts || '';
+      body.append(site, ts);
+      row.append(score, body);
+      analysesList.appendChild(row);
+    });
   }
 
   const delivList = $('dash-deliverables-list');
   if (delivList && deliverables.length) {
-    delivList.innerHTML = deliverables.slice(0,5).map(d=>`
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">
-        <span style="font-size:16px;flex-shrink:0;">${esc(d.icon)}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;font-weight:700;color:var(--text);">${esc(d.agent)} — ${esc(d.type)}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(d.content.substring(0,70))}...</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px;">${esc(d.ts)}</div>
-        </div>
-      </div>`).join('');
+    clearElement(delivList);
+    deliverables.slice(0,5).forEach(function(d) {
+      var row = document.createElement('div');
+      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;';
+      var icon = document.createElement('span');
+      icon.style.cssText = 'font-size:16px;flex-shrink:0;';
+      icon.textContent = d.icon || '📄';
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+      var title = document.createElement('div');
+      title.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);';
+      title.textContent = (d.agent || 'Entrega') + ' — ' + (d.type || 'General');
+      var preview = document.createElement('div');
+      preview.style.cssText = 'font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      preview.textContent = ((d.content || '').substring(0,70) || '') + '...';
+      var ts = document.createElement('div');
+      ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+      ts.textContent = d.ts || '';
+      body.append(title, preview, ts);
+      row.append(icon, body);
+      delivList.appendChild(row);
+    });
   }
 
   const last = analyses[0];
@@ -5571,10 +5759,14 @@ function initLearningPage() {
   const chat = document.getElementById('mentor-chat');
   if (chat && !mentorHistory.length) {
     const ctx = learnContextData.country || learnContextData.industry;
-    chat.innerHTML = `<div style="padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text2);">
-      <strong style="color:var(--accent);">🎓 Mentor BearAds</strong><br>
-      ${ctx ? `Hola — tengo tu contexto (${[learnContextData.country,learnContextData.industry].filter(Boolean).join(', ')}). ` : 'Hola. '}Pregúntame cualquier cosa sobre marketing digital.
-    </div>`;
+    chat.replaceChildren(
+      createInfoCard(
+        '🎓 Mentor BearAds',
+        (ctx ? `Hola — tengo tu contexto (${[learnContextData.country, learnContextData.industry].filter(Boolean).join(', ')}). ` : 'Hola. ') +
+          'Pregúntame cualquier cosa sobre marketing digital.',
+        { tone: 'soft', titleColor: 'var(--accent)' }
+      )
+    );
   }
   // Restore saved context form
   if (learnContextData.country && document.getElementById('lctx-country')) {
@@ -5696,7 +5888,10 @@ async function sendMentorMessage(cardIdx) {
   const typing = document.createElement('div');
   typing.id='mentor-typing';
   typing.style.cssText='padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted);';
-  typing.innerHTML='🎓 <em>Preparando tu guía personalizada...</em>';
+  typing.append(
+    document.createTextNode('🎓 '),
+    Object.assign(document.createElement('em'), { textContent: 'Preparando tu guía personalizada...' })
+  );
   if(chat){chat.appendChild(typing);chat.scrollTop=chat.scrollHeight;}
 
   try {
@@ -5726,17 +5921,48 @@ function renderMentorChat() {
       ? m.content.split('[Contexto del negocio:')[0].trim()
       : m.content
   }));
-  chat.innerHTML = visible.map((m, idx) => {
-    if (m.role === 'user') return `<div style="display:flex;justify-content:flex-end;"><div style="max-width:80%;padding:8px 12px;background:rgba(123,167,232,0.15);border:1px solid rgba(123,167,232,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);">${escPreserve(m.content)}</div></div>`;
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;overflow:hidden;">
-      <div style="padding:10px 12px;"><div style="font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;">🎓 MENTOR BEARADS</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${escPreserve(m.content)}</div></div>
-      <div style="padding:7px 10px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:6px;">
-        <button onclick="downloadMentorByIndex(${idx})" style="font-size:10px;padding:3px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:4px;color:var(--accent);cursor:pointer;font-weight:600;">⬇ Descargar</button>
-        <button onclick="copyMentorByIndex(this,${idx})" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">📋 Copiar</button>
-      </div>
-    </div>`;
-  }).join('');
+  chat.replaceChildren();
+  visible.forEach(function(m, idx) {
+    if (m.role === 'user') {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end;';
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:80%;padding:8px 12px;background:rgba(123,167,232,0.15);border:1px solid rgba(123,167,232,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);white-space:pre-wrap;';
+      bubble.textContent = m.content;
+      row.appendChild(bubble);
+      chat.appendChild(row);
+      return;
+    }
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;overflow:hidden;';
+    const body = document.createElement('div');
+    body.style.cssText = 'padding:10px 12px;';
+    const title = document.createElement('div');
+    title.style.cssText = 'font-size:10px;font-weight:700;color:var(--accent);margin-bottom:6px;';
+    title.textContent = '🎓 MENTOR BEARADS';
+    const text = document.createElement('div');
+    text.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;';
+    text.textContent = m.content;
+    body.append(title, text);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'padding:7px 10px;border-top:1px solid var(--border);background:var(--surface);display:flex;gap:6px;';
+    const downloadBtn = createUtilityButton('⬇ Descargar', function() { downloadMentorByIndex(idx); });
+    downloadBtn.style.fontSize = '10px';
+    downloadBtn.style.padding = '3px 8px';
+    downloadBtn.style.background = 'rgba(123,167,232,0.1)';
+    downloadBtn.style.borderColor = 'rgba(123,167,232,0.2)';
+    downloadBtn.style.color = 'var(--accent)';
+    downloadBtn.style.fontWeight = '600';
+    const copyBtn = createUtilityButton('📋 Copiar', function() { copyMentorByIndex(copyBtn, idx); });
+    copyBtn.style.fontSize = '10px';
+    copyBtn.style.padding = '3px 8px';
+    actions.append(downloadBtn, copyBtn);
+
+    card.append(body, actions);
+    chat.appendChild(card);
+  });
   chat.scrollTop = chat.scrollHeight;
 }
 
@@ -5766,23 +5992,42 @@ function renderHistory() {
   if (!list) return;
   const deliverables = getDeliverables();
   window._historyItems = deliverables;
-  if (!deliverables.length) { if(empty)empty.style.display='block'; list.innerHTML=''; return; }
+  if (!deliverables.length) { if(empty)empty.style.display='block'; clearElement(list); return; }
   if(empty)empty.style.display='none';
-  list.innerHTML = deliverables.slice(0,30).map((d, i) => `
-    <div class="card" style="padding:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:16px;">${esc(d.icon)}</span>
-          <div><div style="font-size:12px;font-weight:700;">${esc(d.agent)}</div><div style="font-size:10px;color:var(--muted);">${esc(d.type)}</div></div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="font-size:10px;color:var(--muted);">${esc(d.ts)}</span>
-          <button onclick="copyHistoryItem(this,${i})" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">📋</button>
-          <button onclick="downloadHistoryItem(${i})" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">⬇</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.6;max-height:80px;overflow:hidden;white-space:pre-wrap;">${esc(d.content.substring(0,220))}${d.content.length>220?'...':''}</div>
-    </div>`).join('');
+  clearElement(list);
+  deliverables.slice(0,30).forEach(function(d, i) {
+    var card = createInfoCard({ style: 'padding:14px;' });
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+    var left = document.createElement('div');
+    left.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    var icon = document.createElement('span');
+    icon.style.cssText = 'font-size:16px;';
+    icon.textContent = d.icon || '📄';
+    var info = document.createElement('div');
+    var agent = document.createElement('div');
+    agent.style.cssText = 'font-size:12px;font-weight:700;';
+    agent.textContent = d.agent || 'Entrega';
+    var type = document.createElement('div');
+    type.style.cssText = 'font-size:10px;color:var(--muted);';
+    type.textContent = d.type || 'General';
+    info.append(agent, type);
+    left.append(icon, info);
+    var right = document.createElement('div');
+    right.style.cssText = 'display:flex;gap:6px;align-items:center;';
+    var ts = document.createElement('span');
+    ts.style.cssText = 'font-size:10px;color:var(--muted);';
+    ts.textContent = d.ts || '';
+    var copyBtn = createUtilityButton('📋', function() { copyHistoryItem(copyBtn, i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
+    var downloadBtn = createUtilityButton('⬇', function() { downloadHistoryItem(i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
+    right.append(ts, copyBtn, downloadBtn);
+    header.append(left, right);
+    var body = document.createElement('div');
+    body.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.6;max-height:80px;overflow:hidden;white-space:pre-wrap;';
+    body.textContent = (d.content || '').substring(0,220) + ((d.content || '').length > 220 ? '...' : '');
+    card.append(header, body);
+    list.appendChild(card);
+  });
 }
 
 // ══════════════════════════════════════════
@@ -5794,7 +6039,13 @@ function updateAnalyzeAuthStatus() {
     const authStatus = document.getElementById('auth-status');
     if (!authBtn && !authStatus) return;
     if (data.connected) {
-      if (authStatus) authStatus.innerHTML = `<span style="color:#5ec9a0;font-size:12px;">✓ ${esc(data.user?.name||'Google')} conectado</span>`;
+      if (authStatus) {
+        clearElement(authStatus);
+        authStatus.appendChild(Object.assign(document.createElement('span'), {
+          style: 'color:#5ec9a0;font-size:12px;',
+          textContent: '✓ ' + (data.user?.name || 'Google') + ' conectado'
+        }));
+      }
       if (authBtn) { authBtn.textContent='Reconectar Google'; authBtn.style.background='rgba(94,201,160,0.1)'; }
     }
   }).catch(()=>{});
@@ -6234,7 +6485,15 @@ async function sendAnalysisChat() {
 
   const userDiv = document.createElement('div');
   userDiv.className = 'chat-msg user';
-  userDiv.innerHTML = `<div class="chat-avatar" style="background:linear-gradient(135deg,#5ec9a0,#7ba7e8);">U</div><div class="chat-bubble">${esc(msg)}</div>`;
+  const userAvatar = document.createElement('div');
+  userAvatar.className = 'chat-avatar';
+  userAvatar.style.background = 'linear-gradient(135deg,#5ec9a0,#7ba7e8)';
+  userAvatar.textContent = 'U';
+  const userBubble = document.createElement('div');
+  userBubble.className = 'chat-bubble';
+  userBubble.textContent = msg;
+  userDiv.appendChild(userAvatar);
+  userDiv.appendChild(userBubble);
   messagesEl.appendChild(userDiv);
   input.value = '';
   messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -6275,10 +6534,18 @@ Responde en español, de forma estratégica y específica basándote en estos da
 
     document.getElementById('analysis-thinking').style.display = 'none';
 
-    const agentDiv = document.createElement('div');
-    agentDiv.className = 'chat-msg agent';
-    agentDiv.innerHTML = `<div class="chat-avatar" style="background:linear-gradient(135deg,#7ba7e8,#7c6fd4);">🧠</div><div class="chat-bubble">${esc(reply)}</div>`;
-    messagesEl.appendChild(agentDiv);
+	    const agentDiv = document.createElement('div');
+	    agentDiv.className = 'chat-msg agent';
+	    const agentAvatar = document.createElement('div');
+	    agentAvatar.className = 'chat-avatar';
+	    agentAvatar.style.background = 'linear-gradient(135deg,#7ba7e8,#7c6fd4)';
+	    agentAvatar.textContent = '🧠';
+	    const agentBubble = document.createElement('div');
+	    agentBubble.className = 'chat-bubble';
+	    agentBubble.textContent = reply;
+	    agentDiv.appendChild(agentAvatar);
+	    agentDiv.appendChild(agentBubble);
+	    messagesEl.appendChild(agentDiv);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
   } catch (err) {
@@ -6312,21 +6579,27 @@ function updateGoogleUI() {
   const hint = document.getElementById('google-connect-hint');
   if (!btn) return;
 
-  if (googleUser) {
+	  if (googleUser) {
     btn.style.borderColor = 'rgba(74,222,128,0.3)';
     btn.style.background = 'rgba(74,222,128,0.06)';
     icon.textContent = '✓';
     label.textContent = googleUser.name || 'Google conectado';
     label.style.color = 'var(--accent)';
-    if (hint) hint.innerHTML = '<span style="color:var(--accent);font-weight:600;">✓ Google conectado — datos reales activos</span>';
-  } else {
+	    if (hint) {
+	      clearElement(hint);
+	      appendTextLine(hint, '✓ Google conectado — datos reales activos', 'color:var(--accent);font-weight:600;');
+	    }
+	  } else {
     btn.style.borderColor = 'var(--border2)';
     btn.style.background = 'var(--surface2)';
     icon.textContent = '🔗';
     label.textContent = 'Conectar Google';
     label.style.color = 'var(--text2)';
-    if (hint) hint.innerHTML = '<span style="color:var(--muted);">Conecta para ver datos reales de GSC y GA4</span>';
-  }
+	    if (hint) {
+	      clearElement(hint);
+	      appendTextLine(hint, 'Conecta para ver datos reales de GSC y GA4', 'color:var(--muted);');
+	    }
+	  }
 }
 
 function handleGoogleConnect() {
@@ -6340,11 +6613,15 @@ function handleGoogleConnect() {
 }
 
 function showGoogleConnectedToast() {
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#ffffff;border:1px solid rgba(99,91,255,0.25);box-shadow:0 4px 16px rgba(10,37,64,0.1);border-radius:10px;padding:14px 18px;font-family:Inter,sans-serif;font-size:13px;color:#0a2540;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4);animation:slideUp 0.3s ease;';
-  toast.innerHTML = '<span style="font-size:18px;">✅</span><div><div style="font-weight:600;color:#5ec9a0;margin-bottom:2px;">Google conectado</div><div style="font-size:11px;color:#6b7280;">GSC y GA4 activos en el análisis</div></div>';
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+	  const toast = document.createElement('div');
+	  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#ffffff;border:1px solid rgba(99,91,255,0.25);box-shadow:0 4px 16px rgba(10,37,64,0.1);border-radius:10px;padding:14px 18px;font-family:Inter,sans-serif;font-size:13px;color:#0a2540;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4);animation:slideUp 0.3s ease;';
+	  appendTextLine(toast, '✅', 'font-size:18px;');
+	  const body = document.createElement('div');
+	  appendTextLine(body, 'Google conectado', 'font-weight:600;color:#5ec9a0;margin-bottom:2px;');
+	  appendTextLine(body, 'GSC y GA4 activos en el análisis', 'font-size:11px;color:#6b7280;');
+	  toast.appendChild(body);
+	  document.body.appendChild(toast);
+	  setTimeout(() => toast.remove(), 4000);
 }
 
 // ── RENDER REAL DATA ──
@@ -6362,21 +6639,28 @@ function renderRealData(trafficData) {
     document.getElementById('gsc-impressions').textContent = (gsc.totalImpressions || 0).toLocaleString();
     document.getElementById('gsc-position').textContent = gsc.avgPosition || '--';
 
-    const kwEl = document.getElementById('gsc-keywords');
-    if (kwEl && gsc.queries?.length) {
-      const maxClicks = Math.max(...gsc.queries.map(q => q.clicks), 1);
-      kwEl.innerHTML = gsc.queries.slice(0, 12).map(q => `
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;">
-          <div style="flex:1;font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(q.query)}</div>
-          <div style="width:60px;height:4px;background:var(--border);border-radius:2px;flex-shrink:0;">
-            <div style="width:${Math.round((q.clicks/maxClicks)*100)}%;height:100%;background:var(--accent2);border-radius:2px;"></div>
-          </div>
-          <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);width:40px;text-align:right;flex-shrink:0;">${esc(q.clicks)} clics</div>
-          <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--warning);width:35px;text-align:right;flex-shrink:0;">pos ${esc(q.position)}</div>
-        </div>`).join('');
-    } else if (kwEl) {
-      kwEl.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px;">Sin datos de keywords disponibles</div>';
-    }
+	    const kwEl = document.getElementById('gsc-keywords');
+	    if (kwEl && gsc.queries?.length) {
+	      const maxClicks = Math.max(...gsc.queries.map(q => q.clicks), 1);
+	      clearElement(kwEl);
+	      gsc.queries.slice(0, 12).forEach(function(q) {
+	        var row = document.createElement('div');
+	        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;';
+	        appendTextLine(row, q.query || '', "flex:1;font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;");
+	        var progressWrap = document.createElement('div');
+	        progressWrap.style.cssText = 'width:60px;height:4px;background:var(--border);border-radius:2px;flex-shrink:0;';
+	        var progress = document.createElement('div');
+	        progress.style.cssText = 'width:' + Math.round(((q.clicks || 0) / maxClicks) * 100) + '%;height:100%;background:var(--accent2);border-radius:2px;';
+	        progressWrap.appendChild(progress);
+	        row.appendChild(progressWrap);
+	        appendTextLine(row, String(q.clicks || 0) + ' clics', "font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);width:40px;text-align:right;flex-shrink:0;");
+	        appendTextLine(row, 'pos ' + String(q.position || '--'), "font-family:'Inter',sans-serif;font-size:10px;color:var(--warning);width:35px;text-align:right;flex-shrink:0;");
+	        kwEl.appendChild(row);
+	      });
+	    } else if (kwEl) {
+	      clearElement(kwEl);
+	      appendTextLine(kwEl, 'Sin datos de keywords disponibles', 'font-size:11px;color:var(--muted);padding:8px;');
+	    }
   }
 
   if (ga4?.connected) {
@@ -6386,19 +6670,25 @@ function renderRealData(trafficData) {
     document.getElementById('ga4-bounce').textContent = ga4.overview?.bounceRate || '--';
     document.getElementById('ga4-duration').textContent = ga4.overview?.avgDuration || '--';
 
-    const chEl = document.getElementById('ga4-channels');
-    if (chEl && ga4.channels?.length) {
-      const maxSessions = Math.max(...ga4.channels.map(c => c.sessions), 1);
-      chEl.innerHTML = ga4.channels.slice(0,6).map(c => `
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;">
-          <div style="flex:1;font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);">${esc(c.channel)}</div>
-          <div style="width:80px;height:4px;background:var(--border);border-radius:2px;">
-            <div style="width:${Math.round((c.sessions/maxSessions)*100)}%;height:100%;background:var(--accent);border-radius:2px;"></div>
-          </div>
-          <div style="font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);width:60px;text-align:right;">${esc(c.sessions.toLocaleString())}</div>
-        </div>`).join('');
-    }
-  }
+	    const chEl = document.getElementById('ga4-channels');
+	    if (chEl && ga4.channels?.length) {
+	      const maxSessions = Math.max(...ga4.channels.map(c => c.sessions), 1);
+	      clearElement(chEl);
+	      ga4.channels.slice(0,6).forEach(function(c) {
+	        var row = document.createElement('div');
+	        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;';
+	        appendTextLine(row, c.channel || '', "flex:1;font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);");
+	        var progressWrap = document.createElement('div');
+	        progressWrap.style.cssText = 'width:80px;height:4px;background:var(--border);border-radius:2px;';
+	        var progress = document.createElement('div');
+	        progress.style.cssText = 'width:' + Math.round(((c.sessions || 0) / maxSessions) * 100) + '%;height:100%;background:var(--accent);border-radius:2px;';
+	        progressWrap.appendChild(progress);
+	        row.appendChild(progressWrap);
+	        appendTextLine(row, Number(c.sessions || 0).toLocaleString(), "font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);width:60px;text-align:right;");
+	        chEl.appendChild(row);
+	      });
+	    }
+	  }
 }
 
 // renderResults extended - called from analyze flow directly
@@ -6848,10 +7138,11 @@ document.addEventListener('click', e => {
 // ══════════════════════════════════════════
 // PROFILE
 // ══════════════════════════════════════════
-let userProfile = DB.get('user_profile', {
+let userProfile = Object.assign({
   name: 'BearAds User', email: '',
   biz: '', url: '', industry: 'E-commerce', plan: 'TRIAL'
-});
+}, DB.get('user_profile_cache', {}));
+DB.set('user_profile', null);
 let appSession = null;
 let saWorkspaceData = null;
 
@@ -6940,7 +7231,7 @@ function syncCampaignAuthUI(session = appSession) {
     btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
     hint.style.display = 'none';
-    hint.innerHTML = '';
+    clearElement(hint);
     return;
   }
   btn.disabled = true;
@@ -6948,7 +7239,13 @@ function syncCampaignAuthUI(session = appSession) {
   btn.style.opacity = '0.7';
   btn.style.cursor = 'not-allowed';
   hint.style.display = 'block';
-  hint.innerHTML = `Primero inicia sesión en BearAds para usar la IA.<br><a href="/auth/google" style="color:var(--accent);font-weight:700;text-decoration:none;">Entrar con Google →</a>`;
+  clearElement(hint);
+  appendTextLine(hint, 'Primero inicia sesión en BearAds para usar la IA.', 'font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px;');
+  const link = document.createElement('a');
+  link.href = '/auth/google';
+  link.textContent = 'Entrar con Google →';
+  link.style.cssText = 'color:var(--accent);font-weight:700;text-decoration:none;';
+  hint.appendChild(link);
 }
 
 function getWorkspaceOnboarding(session = appSession) {
@@ -7123,14 +7420,27 @@ function buildRoleOptions(selectedRole) {
   }).join('');
 }
 
+function getProfileCachePayload(profile) {
+  return {
+    biz: profile?.biz || '',
+    url: profile?.url || '',
+    industry: profile?.industry || 'E-commerce',
+    plan: profile?.plan || 'TRIAL'
+  };
+}
+
 function syncInviteRoleOptions() {
   const select = document.getElementById('sa-invite-role');
   if (!select) return;
   const previousValue = select.value;
   const options = getAssignableRoles();
-  select.innerHTML = options.map(function(role) {
-    return '<option value="' + role + '">' + formatSARole(role).toUpperCase() + '</option>';
-  }).join('');
+  clearElement(select);
+  options.forEach(function(role) {
+    var option = document.createElement('option');
+    option.value = role;
+    option.textContent = formatSARole(role).toUpperCase();
+    select.appendChild(option);
+  });
   select.value = options.includes(previousValue) ? previousValue : options[0];
 }
 
@@ -7191,7 +7501,7 @@ async function refreshAppSession() {
     industry: session.workspace?.profile?.industry || 'E-commerce',
     plan: formatPlanLabel(session.workspace)
   };
-  DB.set('user_profile', userProfile);
+  DB.set('user_profile_cache', getProfileCachePayload(userProfile));
   applyProfileToUI(userProfile, session.workspace);
   const saBtn = document.getElementById('superadmin-btn');
   if (saBtn) {
@@ -7254,7 +7564,7 @@ function saveProfile() {
 
   saveRemote.then(async function() {
     userProfile = nextProfile;
-    DB.set('user_profile', userProfile);
+    DB.set('user_profile_cache', getProfileCachePayload(userProfile));
     if (userProfile.url) {
       const urlInput = document.getElementById('analyze-url');
       if (urlInput && !urlInput.value) urlInput.value = userProfile.url;
@@ -7476,7 +7786,10 @@ async function sendDirectorMessage() {
   const typing = document.createElement('div');
   typing.id = 'director-typing';
   typing.style.cssText = 'padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted);';
-  typing.innerHTML = '🧠 <em>El Director está analizando...</em>';
+  typing.append(
+    document.createTextNode('🧠 '),
+    Object.assign(document.createElement('em'), { textContent: 'El Director está analizando...' })
+  );
   if (msgs) { msgs.appendChild(typing); msgs.scrollTop = msgs.scrollHeight; }
 
   const profile = userProfile;
@@ -7510,20 +7823,41 @@ function renderDirectorModalChat() {
   window._directorMsgs = directorChatHistory;
 
   if (!directorChatHistory.length) {
-    msgs.innerHTML = `<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;"><div style="font-size:28px;margin-bottom:8px;">🧠</div>Soy tu Director Estratégico. Tengo contexto de tu negocio y análisis. ¿Qué necesitas?</div>`;
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:20px 0;color:var(--muted);font-size:12px;';
+    const icon = document.createElement('div');
+    icon.style.cssText = 'font-size:28px;margin-bottom:8px;';
+    icon.textContent = '🧠';
+    const text = document.createElement('div');
+    text.textContent = 'Soy tu Director Estratégico. Tengo contexto de tu negocio y análisis. ¿Qué necesitas?';
+    empty.append(icon, text);
+    msgs.replaceChildren(empty);
     return;
   }
-  msgs.innerHTML = directorChatHistory.map((m, idx) => {
-    if (m.role === 'user') return `
-      <div style="display:flex;justify-content:flex-end;">
-        <div style="max-width:80%;padding:9px 13px;background:rgba(123,167,232,0.15);border:1px solid rgba(123,167,232,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);">${escPreserve(m.content)}</div>
-      </div>`;
-    return `
-      <div style="display:flex;gap:8px;align-items:flex-start;">
-        <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">🧠</div>
-        <div style="max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${escPreserve(m.content)}</div>
-      </div>`;
-  }).join('');
+  msgs.replaceChildren();
+  directorChatHistory.forEach(function(m) {
+    if (m.role === 'user') {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end;';
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:80%;padding:9px 13px;background:rgba(123,167,232,0.15);border:1px solid rgba(123,167,232,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);white-space:pre-wrap;';
+      bubble.textContent = m.content;
+      row.appendChild(bubble);
+      msgs.appendChild(row);
+      return;
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;';
+    const avatar = document.createElement('div');
+    avatar.style.cssText = 'width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;';
+    avatar.textContent = '🧠';
+    const bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;';
+    bubble.textContent = m.content;
+    row.append(avatar, bubble);
+    msgs.appendChild(row);
+  });
   msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -7782,17 +8116,20 @@ async function loadSAGrowthInsights() {
   const box = document.getElementById('sa-growth-result');
   if (!box) return;
   if (!canAccessSATab('growth')) {
-    box.innerHTML = '<span style="color:#64748b;">Tu rol no puede ver growth.</span>';
+    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#64748b;', textContent: 'Tu rol no puede ver growth.' }));
     return;
   }
-  box.innerHTML = '<em style="color:rgba(224,112,112,0.45);">⏳ Analizando crecimiento y autogestión...</em>';
+  box.replaceChildren(Object.assign(document.createElement('em'), { style: 'color:rgba(224,112,112,0.45);', textContent: '⏳ Analizando crecimiento y autogestión...' }));
   try {
     const res = await fetch('/api/admin/growth-insights', { credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo generar insight');
-    box.innerHTML = '<div style="white-space:pre-wrap;line-height:1.8;">' + escPreserve(data.insight || '') + '</div>';
+    const text = document.createElement('div');
+    text.style.cssText = 'white-space:pre-wrap;line-height:1.8;';
+    text.textContent = data.insight || '';
+    box.replaceChildren(text);
   } catch (e) {
-    box.innerHTML = '<span style="color:#e07070;">' + esc(e.message || 'Error') + '</span>';
+    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
   }
 }
 
@@ -7800,10 +8137,10 @@ async function loadSABillingOverview() {
   const box = document.getElementById('sa-billing-result');
   if (!box) return;
   if (!canAccessSATab('billing')) {
-    box.innerHTML = '<span style="color:#64748b;">Tu rol no puede ver facturación.</span>';
+    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#64748b;', textContent: 'Tu rol no puede ver facturación.' }));
     return;
   }
-  box.innerHTML = '<em style="color:rgba(224,112,112,0.45);">⏳ Cargando estado de facturación...</em>';
+  box.replaceChildren(Object.assign(document.createElement('em'), { style: 'color:rgba(224,112,112,0.45);', textContent: '⏳ Cargando estado de facturación...' }));
   try {
     const res = await fetch('/api/admin/billing-overview', { credentials: 'same-origin' });
     const data = await res.json();
@@ -7856,7 +8193,7 @@ async function loadSABillingOverview() {
           : '<div style="font-size:11px;color:#64748b;">Sin notas todavia.</div>')
       + '</div>';
   } catch (e) {
-    box.innerHTML = '<span style="color:#e07070;">' + esc(e.message || 'Error') + '</span>';
+    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
   }
 }
 
@@ -7880,7 +8217,10 @@ async function saveBillingOverview() {
 
 async function runPlatformAudit() {
   const result = document.getElementById('sa-audit-result');
-  if (result) result.innerHTML = '<em style="color:rgba(127,29,29,0.7);">⏳ La IA está auditando la plataforma...</em>';
+  if (result) {
+    clearElement(result);
+    appendTextLine(result, '⏳ La IA está auditando la plataforma...', 'color:rgba(127,29,29,0.7);font-style:italic;');
+  }
   const analyses = getAnalysisHistory();
   const deliverables = getDeliverables();
   const prompt = `Eres el sistema de auditoría interna de BearAds, plataforma SaaS de marketing IA para LATAM.
@@ -7907,9 +8247,18 @@ En español. Concreto y técnico.`;
     });
     const data = await res.json();
     _lastReply = data.reply || '';
-    if (result) result.innerHTML = `<div style="white-space:pre-wrap;color:#334155;">${escPreserve(data.reply)}</div>`;
+    if (result) {
+      clearElement(result);
+      var replyWrap = document.createElement('div');
+      replyWrap.style.cssText = 'white-space:pre-wrap;color:#334155;';
+      setFormattedText(replyWrap, data.reply || '');
+      result.appendChild(replyWrap);
+    }
   } catch(e) {
-    if (result) result.innerHTML = '<span style="color:#e07070;">Error al conectar con la IA.</span>';
+    if (result) {
+      clearElement(result);
+      appendTextLine(result, 'Error al conectar con la IA.', 'color:#e07070;');
+    }
   }
 }
 
@@ -7922,7 +8271,10 @@ async function saAskAI(question) {
   const resultIds = { agents: 'sa-ai-result', improve: 'sa-improve-result', competition: 'sa-competition-result' };
   const resultId = resultIds[saCurrentTab] || 'sa-ai-result';
   const result = document.getElementById(resultId);
-  if (result) result.innerHTML = '<em style="color:rgba(127,29,29,0.7);">⏳ Las IAs están analizando...</em>';
+  if (result) {
+    clearElement(result);
+    appendTextLine(result, '⏳ Las IAs están analizando...', 'color:rgba(127,29,29,0.7);font-style:italic;');
+  }
 
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -7932,9 +8284,18 @@ async function saAskAI(question) {
       })
     });
     const data = await res.json();
-    if (result) result.innerHTML = `<div style="white-space:pre-wrap;">${escPreserve(data.reply)}</div>`;
+    if (result) {
+      clearElement(result);
+      var answer = document.createElement('div');
+      answer.style.cssText = 'white-space:pre-wrap;';
+      setFormattedText(answer, data.reply || '');
+      result.appendChild(answer);
+    }
   } catch(e) {
-    if (result) result.innerHTML = '<span style="color:#e07070;">Error de conexión.</span>';
+    if (result) {
+      clearElement(result);
+      appendTextLine(result, 'Error de conexión.', 'color:#e07070;');
+    }
   }
 }
 
@@ -7978,7 +8339,10 @@ function loadSALeadsModule() {
 
 async function generateLeadStrategy() {
   const result = document.getElementById('sa-leads-result');
-  if (result) result.innerHTML = '<em style="color:rgba(224,112,112,0.4);">⏳ Generando estrategia de captación...</em>';
+  if (result) {
+    clearElement(result);
+    appendTextLine(result, '⏳ Generando estrategia de captación...', 'color:rgba(224,112,112,0.4);font-style:italic;');
+  }
   const lastAnalysis = getAnalysisHistory()[0];
   const q = `Genera una estrategia completa de captación de leads para:
 ${lastAnalysis ? `Sitio: ${lastAnalysis.url}, Score: ${lastAnalysis.globalScore}/100` : 'Un negocio online en LATAM'}
@@ -8008,15 +8372,27 @@ async function generateFunnel() {
 
 async function saQueryAI(q, resultId) {
   const result = document.getElementById(resultId);
-  if (result) result.innerHTML = '<em style="color:rgba(224,112,112,0.4);">⏳ Analizando...</em>';
+  if (result) {
+    clearElement(result);
+    appendTextLine(result, '⏳ Analizando...', 'color:rgba(224,112,112,0.4);font-style:italic;');
+  }
   try {
     const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ messages: [{ role: 'user', content: q }], systemPrompt: 'Experto en marketing digital y captación de leads para LATAM. Responde en español con estrategias concretas y ejecutables.' })
     });
     const data = await res.json();
-    if (result) result.innerHTML = `<div style="white-space:pre-wrap;">${escPreserve(data.reply)}</div>`;
+    if (result) {
+      clearElement(result);
+      var replyWrap = document.createElement('div');
+      replyWrap.style.cssText = 'white-space:pre-wrap;';
+      setFormattedText(replyWrap, data.reply || '');
+      result.appendChild(replyWrap);
+    }
   } catch(e) {
-    if (result) result.innerHTML = '<span style="color:#e07070;">Error de conexión.</span>';
+    if (result) {
+      clearElement(result);
+      appendTextLine(result, 'Error de conexión.', 'color:#e07070;');
+    }
   }
 }
 
@@ -8036,14 +8412,29 @@ function checkCachedAnalysis(url) {
 function offerCachedAnalysis(url, cachedData) {
   const emptyEl = document.getElementById('analyze-empty');
   if (!emptyEl) return false;
-  emptyEl.innerHTML = `
-    <div style="font-size:36px;margin-bottom:12px;">⚡</div>
-    <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:8px;">Ya analizaste esta URL hace poco</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">${url}<br>Score: <strong style="color:var(--accent);">${cachedData.globalScore}/100</strong> · ${cachedData.ts}</div>
-    <div style="display:flex;gap:10px;justify-content:center;">
-      <button onclick="useCachedAnalysis()" class="btn btn-primary" style="font-size:13px;padding:10px 20px;">⚡ Usar el último análisis</button>
-      <button onclick="forceNewAnalysis()" class="btn btn-ghost" style="font-size:12px;padding:10px 16px;">🔄 Hacer uno nuevo</button>
-    </div>`;
+  clearElement(emptyEl);
+  appendTextLine(emptyEl, '⚡', 'font-size:36px;margin-bottom:12px;');
+  appendTextLine(emptyEl, 'Ya analizaste esta URL hace poco', "font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:700;margin-bottom:8px;");
+
+  var summary = document.createElement('div');
+  summary.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:16px;';
+  appendTextLine(summary, url || '', '');
+  var scoreLine = document.createElement('div');
+  scoreLine.style.cssText = 'margin-top:4px;';
+  scoreLine.appendChild(document.createTextNode('Score: '));
+  var score = document.createElement('strong');
+  score.style.color = 'var(--accent)';
+  score.textContent = String(cachedData.globalScore || 0) + '/100';
+  scoreLine.appendChild(score);
+  scoreLine.appendChild(document.createTextNode(' · ' + String(cachedData.ts || '')));
+  summary.appendChild(scoreLine);
+  emptyEl.appendChild(summary);
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:10px;justify-content:center;flex-wrap:wrap;';
+  actions.appendChild(createActionButton('⚡ Usar el último análisis', useCachedAnalysis, 'font-size:13px;padding:10px 20px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('🔄 Hacer uno nuevo', forceNewAnalysis, 'font-size:12px;padding:10px 16px;background:transparent;border:1px solid var(--border);border-radius:12px;color:var(--text2);cursor:pointer;'));
+  emptyEl.appendChild(actions);
   return true;
 }
 
@@ -8066,7 +8457,10 @@ function forceNewAnalysis() {
   const emptyEl = document.getElementById('analyze-empty');
   if (emptyEl) {
     emptyEl.style.display = 'block';
-    emptyEl.innerHTML = `<div style="font-size:40px;margin-bottom:16px;opacity:0.4;">🔍</div><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;">Ingresa una URL para analizar</div><div style="font-size:12px;color:var(--muted);">BearAds auditará SEO, SEM, contenido, CRO y tráfico</div>`;
+    clearElement(emptyEl);
+    appendTextLine(emptyEl, '🔍', 'font-size:40px;margin-bottom:16px;opacity:0.4;');
+    appendTextLine(emptyEl, 'Ingresa una URL para analizar', "font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;");
+    appendTextLine(emptyEl, 'BearAds auditará SEO, SEM, contenido, CRO y tráfico', 'font-size:12px;color:var(--muted);');
   }
   // Call the real startAnalysis directly (bypass any cache)
   const url = document.getElementById('analyze-url')?.value.trim();
@@ -8121,6 +8515,78 @@ const INTEGRATION_GUIDES = {
   webhooks: 'Esta zona es más avanzada. Úsala cuando ya tengas el resto conectado y quieras automatizar.'
 };
 
+function getIntegrationGuidanceState(googleOk) {
+  const onboarding = getWorkspaceOnboarding();
+  const connections = getWorkspaceIntegrationHub().connections || {};
+  const connected = {
+    google: !!googleOk,
+    meta: !!connections.meta,
+    googleAds: !!connections.googleAds,
+    email: !!connections.email,
+    ecom: !!connections.ecom
+  };
+  const connectedCount = Object.values(connected).filter(Boolean).length;
+  const recommended = getRecommendedIntegrations(onboarding);
+  const nextRecommended = recommended.find(function(key) { return !connected[key]; }) || null;
+  const nextFocusMap = {
+    google: 'connections',
+    meta: 'connections',
+    googleAds: 'connections',
+    email: 'connections',
+    ecom: 'connections'
+  };
+  if (nextRecommended) {
+    return {
+      title: 'Conecta ' + ({ google: 'Google', meta: 'Meta', googleAds: 'Google Ads', email: 'Email', ecom: 'tu e-commerce' }[nextRecommended] || nextRecommended),
+      copy: 'Este es el siguiente paso con más impacto para tu onboarding. Cuando lo conectes, BearAds podrá reutilizarlo en el resto de módulos.',
+      nextStep: 'Te faltan ' + (recommended.filter(function(key) { return !connected[key]; }).length) + ' conexión(es) recomendadas para tener una base operativa sólida.',
+      ctaLabel: 'Ir a conexiones',
+      ctaFocus: nextFocusMap[nextRecommended] || 'connections',
+      summary: connectedCount
+        ? connectedCount + ' integración(es) listas. Sigue con la siguiente recomendada.'
+        : 'Aún no has conectado ninguna plataforma. Empieza por la primera recomendada.'
+    };
+  }
+  if (connected.google || connected.meta || connected.googleAds) {
+    return {
+      title: 'Ya puedes lanzar campañas',
+      copy: 'Tu base ya está conectada. El siguiente paso es usar Meta Ads, Google Ads o Email sin volver a cargar datos.',
+      nextStep: 'Tus conexiones esenciales ya están listas. Ahora céntrate en el canal más útil para tu objetivo actual.',
+      ctaLabel: onboarding?.mainGoal === 'Generar leads' ? 'Abrir Meta Ads' : 'Abrir Google Ads',
+      ctaFocus: onboarding?.mainGoal === 'Generar leads' ? 'meta' : 'google-ads',
+      summary: connectedCount + ' integración(es) listas. Ya puedes pasar a ejecución.'
+    };
+  }
+  return {
+    title: 'Conecta tus plataformas clave',
+    copy: 'Empieza por Google y luego añade los canales que vayas a usar. Así BearAds puede trabajar con datos reales desde el primer día.',
+    nextStep: 'Conecta al menos Google para activar datos reales de Search Console y GA4.',
+    ctaLabel: 'Empezar por conexiones',
+    ctaFocus: 'connections',
+    summary: 'Tu onboarding de integraciones todavía no empieza. Conecta una plataforma para desbloquear más valor.'
+  };
+}
+
+function renderIntegrationsHero(googleOk) {
+  const title = document.getElementById('intg-guide-title');
+  const copy = document.getElementById('intg-guide-copy');
+  const box = document.getElementById('intg-next-step');
+  const ctaRow = document.getElementById('intg-primary-cta-row');
+  const state = getIntegrationGuidanceState(googleOk);
+  if (title) title.textContent = state.title;
+  if (copy) copy.textContent = state.copy;
+  if (box) box.textContent = state.nextStep;
+  if (ctaRow) {
+    clearElement(ctaRow);
+    ctaRow.appendChild(createActionButton(state.ctaLabel, function() {
+      setIntegrationFocus(state.ctaFocus);
+    }, 'padding:10px 14px;background:var(--accent);border:none;border-radius:10px;color:#ffffff;font-size:12px;font-weight:800;cursor:pointer;'));
+    ctaRow.appendChild(createActionButton('Ver checklist', function() {
+      document.getElementById('intg-recommendations')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 'padding:10px 14px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:10px;color:#0f172a;font-size:12px;font-weight:800;cursor:pointer;'));
+  }
+}
+
 async function persistIntegrationHub(extra) {
   try {
     const currentHub = getWorkspaceIntegrationHub();
@@ -8153,7 +8619,7 @@ function renderIntegrationRecommendations() {
   const recommended = getRecommendedIntegrations(onboarding);
   const connections = getWorkspaceIntegrationHub().connections || {};
   copy.textContent = recommended.length
-    ? `Estas son las conexiones más importantes para empezar: ${recommended.join(', ')}.`
+    ? 'Empieza por estas conexiones y ve marcando progreso. No necesitas conectar todo hoy.'
     : 'Completa el onboarding para que BearAds te recomiende qué conectar primero.';
   const labels = {
     google: 'Google Analytics / Search Console',
@@ -8163,17 +8629,23 @@ function renderIntegrationRecommendations() {
     ecom: 'E-commerce',
     tiktok: 'TikTok Ads'
   };
-  list.innerHTML = recommended.map(function(platform) {
+  clearElement(list);
+  recommended.forEach(function(platform) {
     const connected = platform === 'google' ? Boolean(appSession?.user?.googleId) : Boolean(connections[platform]);
-    return `<div style="padding:14px;background:${connected ? 'rgba(94,201,160,0.08)' : 'rgba(255,255,255,0.78)'};border:1px solid ${connected ? 'rgba(94,201,160,0.22)' : 'rgba(123,167,232,0.12)'};border-radius:12px;">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
-        <div style="font-size:12px;font-weight:700;color:var(--text);">${esc(labels[platform] || platform)}</div>
-        <div style="font-size:10px;font-weight:800;color:${connected ? '#0f9f6e' : '#51627f'};">${connected ? 'LISTO' : 'PENDIENTE'}</div>
-      </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;">${connected ? 'Ya está disponible para todos los módulos del workspace.' : 'Conéctalo una vez y BearAds lo reutilizará en campañas, agentes y automatizaciones.'}</div>
-      <button onclick="setIntegrationFocus('connections')" style="margin-top:10px;padding:9px 12px;background:${connected ? 'var(--surface2)' : 'var(--accent)'};border:${connected ? '1px solid var(--border)' : 'none'};border-radius:10px;color:${connected ? 'var(--text2)' : '#fff'};font-size:11px;font-weight:800;cursor:pointer;">${connected ? 'Revisar conexión' : 'Conectar ahora'}</button>
-    </div>`;
-  }).join('');
+    var card = document.createElement('div');
+    card.style.cssText = 'padding:14px;background:' + (connected ? 'rgba(94,201,160,0.08)' : 'rgba(255,255,255,0.78)') + ';border:1px solid ' + (connected ? 'rgba(94,201,160,0.22)' : 'rgba(123,167,232,0.12)') + ';border-radius:12px;';
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;justify-content:space-between;gap:8px;align-items:center;';
+    appendTextLine(top, labels[platform] || platform, 'font-size:12px;font-weight:700;color:var(--text);');
+    appendTextLine(top, connected ? 'LISTO' : 'SIGUIENTE', 'font-size:10px;font-weight:800;color:' + (connected ? '#0f9f6e' : '#51627f') + ';');
+    card.appendChild(top);
+    appendTextLine(card, connected ? 'Ya está disponible para todos los módulos del workspace.' : 'Conéctalo una vez y BearAds lo reutilizará en campañas, agentes y automatizaciones.', 'margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;');
+    var action = createActionButton(connected ? 'Revisar conexión' : 'Conectar ahora', function() {
+      setIntegrationFocus('connections');
+    }, 'margin-top:10px;padding:9px 12px;background:' + (connected ? 'var(--surface2)' : 'var(--accent)') + ';border:' + (connected ? '1px solid var(--border)' : 'none') + ';border-radius:10px;color:' + (connected ? 'var(--text2)' : '#fff') + ';font-size:11px;font-weight:800;cursor:pointer;');
+    card.appendChild(action);
+    list.appendChild(card);
+  });
 }
 
 function initIntegrationsPage() {
@@ -8207,27 +8679,47 @@ function initIntegrationsPage() {
       badge.style.background = googleOk ? 'rgba(94,201,160,0.1)' : 'rgba(107,114,128,0.15)';
       badge.style.color = googleOk ? '#5ec9a0' : 'var(--muted)';
     }
+    if (details) {
+      clearElement(details);
+    }
     if (details && googleOk) {
-      details.innerHTML = `<div style="display:flex;gap:8px;margin-bottom:4px;">
-        <div style="flex:1;padding:7px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.12);border-radius:6px;font-size:11px;color:#5ec9a0;text-align:center;">✓ GSC Activo</div>
-        <div style="flex:1;padding:7px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.12);border-radius:6px;font-size:11px;color:#5ec9a0;text-align:center;">✓ GA4 Activo</div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);">Usuario: ${esc(data.user?.email || '')}</div>`;
+      var badgesRow = document.createElement('div');
+      badgesRow.style.cssText = 'display:flex;gap:8px;margin-bottom:4px;';
+      ['✓ GSC Activo', '✓ GA4 Activo'].forEach(function(label) {
+        var item = document.createElement('div');
+        item.textContent = label;
+        item.style.cssText = 'flex:1;padding:7px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.12);border-radius:6px;font-size:11px;color:#5ec9a0;text-align:center;';
+        badgesRow.appendChild(item);
+      });
+      details.appendChild(badgesRow);
+      appendTextLine(details, 'Usuario: ' + String(data.user?.email || ''), 'font-size:11px;color:var(--muted);');
     }
     if (btnArea) {
-      btnArea.innerHTML = googleOk
-        ? `<button onclick="if(confirm('¿Desconectar Google?'))window.location.href='/auth/logout'" style="width:100%;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;">Desconectar Google</button>`
-        : `<a href="/auth/google" style="display:block;width:100%;padding:10px;background:linear-gradient(90deg,#4285f4,#34a853);border:none;border-radius:8px;color:#eef0f8;font-size:13px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;">🔗 Conectar con Google</a>`;
+      clearElement(btnArea);
+      if (googleOk) {
+        btnArea.appendChild(createActionButton('Desconectar Google', function() {
+          if (confirm('¿Desconectar Google?')) window.location.href='/auth/logout';
+        }, 'width:100%;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;'));
+      } else {
+        var link = document.createElement('a');
+        link.href = '/auth/google';
+        link.textContent = '🔗 Conectar con Google';
+        link.style.cssText = 'display:block;width:100%;padding:10px;background:linear-gradient(90deg,#4285f4,#34a853);border:none;border-radius:8px;color:#eef0f8;font-size:13px;font-weight:700;text-align:center;text-decoration:none;cursor:pointer;';
+        btnArea.appendChild(link);
+      }
     }
     updateIntgSummary(googleOk);
+    renderIntegrationsHero(googleOk);
   }).catch(() => {
     const statusEl = document.getElementById('intg-google-status');
     if (statusEl) { statusEl.textContent = 'ERROR'; statusEl.style.color = 'var(--danger)'; }
+    renderIntegrationsHero(false);
   });
 
   // Render saved connections
   renderSavedConnections();
   renderIntegrationRecommendations();
+  renderIntegrationsHero(Boolean(appSession?.user?.googleId));
 }
 
 function updateIntgSummary(googleOk) {
@@ -8240,8 +8732,8 @@ function updateIntgSummary(googleOk) {
     intgConnections.email && 'Email'
   ].filter(Boolean);
   summary.textContent = connected.length
-    ? `${connected.length} plataforma(s) conectada(s): ${connected.join(', ')}`
-    : 'Sin plataformas conectadas — agrega tus credenciales';
+    ? `${connected.length} plataforma(s) listas: ${connected.join(', ')}`
+    : 'Sin plataformas conectadas todavía';
 }
 
 function renderSavedConnections() {
@@ -8280,6 +8772,16 @@ function switchIntgTab(tab) {
   currentIntegrationFocus = tab;
   const guide = document.getElementById('intg-guide-copy');
   if (guide) guide.textContent = INTEGRATION_GUIDES[tab] || INTEGRATION_GUIDES.connections;
+  const title = document.getElementById('intg-guide-title');
+  if (title) {
+    title.textContent = {
+      connections: 'Conecta primero lo esencial',
+      meta: 'Crea tu campaña de Meta paso a paso',
+      'google-ads': 'Lanza Google Ads con intención alta',
+      'email-mkt': 'Activa secuencias de email guiadas',
+      webhooks: 'Automatizaciones avanzadas'
+    }[tab] || 'Integraciones';
+  }
 }
 
 function setIntegrationFocus(tab, silent = false) {
@@ -8373,7 +8875,8 @@ async function generateMetaCampaign() {
   const btn = document.getElementById('meta-gen-btn');
   const area = document.getElementById('meta-result-area');
   btn.disabled = true; btn.textContent = '⏳ Generando...';
-  area.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ La IA está creando tu campaña...</div>';
+  clearElement(area);
+  appendTextLine(area, '⏳ La IA está creando tu campaña...', 'padding:20px;text-align:center;color:var(--muted);');
 
   try {
     const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'},
@@ -8383,21 +8886,30 @@ async function generateMetaCampaign() {
     });
     const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
-    area.innerHTML = `<div class="card" style="margin:0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:14px;">📘 Campaña Meta Ads — ${product.substring(0,30)}</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="copyText(this,'${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-          <button onclick="downloadText('Meta-Ads','${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">⬇ TXT</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${reply}</div>
-    </div>`;
+    clearElement(area);
+    var metaCard = createInfoCard({ style: 'margin:0;' });
+    var metaHeader = document.createElement('div');
+    metaHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;';
+    appendTextLine(metaHeader, '📘 Campaña Meta Ads — ' + product.substring(0,30), 'font-weight:700;font-size:14px;');
+    var metaActions = document.createElement('div');
+    metaActions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    metaActions.appendChild(createUtilityButton('📋 Copiar', function(event) { copyText(event.currentTarget, reply); }));
+    metaActions.appendChild(createUtilityButton('⬇ TXT', function() { downloadText('Meta-Ads', reply); }));
+    metaHeader.appendChild(metaActions);
+    metaCard.appendChild(metaHeader);
+    var metaContent = document.createElement('div');
+    metaContent.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;';
+    setFormattedText(metaContent, reply);
+    metaCard.appendChild(metaContent);
+    area.appendChild(metaCard);
     saveDeliverable('Anuncios & Campañas', '📘', 'Meta Ads — ' + product.substring(0,25), reply);
   } catch(e) {
-    area.innerHTML = e?.status === 401
-      ? getAuthCtaHtml('Tu sesión no está activa para generar campañas de Meta.')
-      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    clearElement(area);
+    if (e?.status === 401) {
+      renderAuthCta(area, 'Tu sesión no está activa para generar campañas de Meta.');
+    } else {
+      area.appendChild(createErrorNotice('Error al conectar. ' + String(e?.message || '')));
+    }
     showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la campaña');
   }
   btn.disabled = false; btn.textContent = '📘 Generar Campaña con IA';
@@ -8413,7 +8925,8 @@ async function generateGAdsCampaign() {
   const btn = document.getElementById('gads-gen-btn');
   const area = document.getElementById('gads-result-area');
   btn.disabled = true; btn.textContent = '⏳ Generando...';
-  area.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ Generando campaña Google Ads...</div>';
+  clearElement(area);
+  appendTextLine(area, '⏳ Generando campaña Google Ads...', 'padding:20px;text-align:center;color:var(--muted);');
 
   try {
     const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'},
@@ -8423,21 +8936,30 @@ async function generateGAdsCampaign() {
     });
     const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
-    area.innerHTML = `<div class="card" style="margin:0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:14px;">🔵 ${type} — ${product.substring(0,30)}</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="copyText(this,'${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-          <button onclick="downloadText('Google-Ads','${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">⬇ TXT</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${reply}</div>
-    </div>`;
+    clearElement(area);
+    var gadsCard = createInfoCard({ style: 'margin:0;' });
+    var gadsHeader = document.createElement('div');
+    gadsHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;';
+    appendTextLine(gadsHeader, '🔵 ' + String(type || '') + ' — ' + product.substring(0,30), 'font-weight:700;font-size:14px;');
+    var gadsActions = document.createElement('div');
+    gadsActions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    gadsActions.appendChild(createUtilityButton('📋 Copiar', function(event) { copyText(event.currentTarget, reply); }));
+    gadsActions.appendChild(createUtilityButton('⬇ TXT', function() { downloadText('Google-Ads', reply); }));
+    gadsHeader.appendChild(gadsActions);
+    gadsCard.appendChild(gadsHeader);
+    var gadsContent = document.createElement('div');
+    gadsContent.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;';
+    setFormattedText(gadsContent, reply);
+    gadsCard.appendChild(gadsContent);
+    area.appendChild(gadsCard);
     saveDeliverable('SEM / Paid Media', '🔵', 'Google Ads — ' + product.substring(0,25), reply);
   } catch(e) {
-    area.innerHTML = e?.status === 401
-      ? getAuthCtaHtml('Tu sesión no está activa para generar campañas de Google Ads.')
-      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    clearElement(area);
+    if (e?.status === 401) {
+      renderAuthCta(area, 'Tu sesión no está activa para generar campañas de Google Ads.');
+    } else {
+      area.appendChild(createErrorNotice('Error al conectar. ' + String(e?.message || '')));
+    }
     showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la campaña');
   }
   btn.disabled = false; btn.textContent = '🔵 Generar con IA';
@@ -8450,7 +8972,8 @@ async function generateEmailSequence() {
   if (!product) { showToast('Describe tu negocio o producto'); return; }
 
   const area = document.getElementById('email-result-area');
-  area.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ Generando secuencia de emails...</div>';
+  clearElement(area);
+  appendTextLine(area, '⏳ Generando secuencia de emails...', 'padding:20px;text-align:center;color:var(--muted);');
 
   try {
     const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'},
@@ -8460,21 +8983,30 @@ async function generateEmailSequence() {
     });
     const data = await parseApiResponse(res);
     const reply = data.reply || 'Error.';
-    area.innerHTML = `<div class="card" style="margin:0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <div style="font-weight:700;font-size:14px;">✉️ ${type}</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="copyText(this,'${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-          <button onclick="downloadText('Email-Sequence','${reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">⬇ TXT</button>
-        </div>
-      </div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:500px;overflow-y:auto;">${reply}</div>
-    </div>`;
+    clearElement(area);
+    var card = createInfoCard({ style: 'margin:0;' });
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;';
+    appendTextLine(header, '✉️ ' + String(type || ''), 'font-weight:700;font-size:14px;');
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    actions.appendChild(createUtilityButton('📋 Copiar', function(event) { copyText(event.currentTarget, reply); }));
+    actions.appendChild(createUtilityButton('⬇ TXT', function() { downloadText('Email-Sequence', reply); }));
+    header.appendChild(actions);
+    card.appendChild(header);
+    var content = document.createElement('div');
+    content.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;max-height:500px;overflow-y:auto;';
+    setFormattedText(content, reply);
+    card.appendChild(content);
+    area.appendChild(card);
     saveDeliverable('Email Marketing', '✉️', type, reply);
   } catch(e) {
-    area.innerHTML = e?.status === 401
-      ? getAuthCtaHtml('Tu sesión no está activa para generar secuencias de email.')
-      : `<div style="padding:20px;color:var(--danger);">Error al conectar. ${esc(e?.message || '')}</div>`;
+    clearElement(area);
+    if (e?.status === 401) {
+      renderAuthCta(area, 'Tu sesión no está activa para generar secuencias de email.');
+    } else {
+      area.appendChild(createErrorNotice('Error al conectar. ' + String(e?.message || '')));
+    }
     showToast(e?.status === 401 ? 'Tu sesión expiró' : 'No pude generar la secuencia');
   }
 }
@@ -8519,10 +9051,21 @@ openAgentWorkspace = function(idx) {
     // Add standalone context tip
     const ctxInfo = document.getElementById('ctx-analysis-info');
     if (ctxInfo && !currentAnalysis) {
-      ctxInfo.innerHTML = `<div style="font-size:12px;color:var(--muted);">
-        Sin análisis. Los agentes funcionan perfectamente sin él — describe tu negocio en el campo de abajo.<br>
-        <a href="#" onclick="closeModal && document.getElementById('agent-workspace-modal').classList.remove('open');showPage('analyze');" style="color:var(--accent);font-size:11px;">+ Analizar un sitio para datos reales →</a>
-      </div>`;
+      clearElement(ctxInfo);
+      var standaloneWrap = document.createElement('div');
+      standaloneWrap.style.cssText = 'font-size:12px;color:var(--muted);';
+      appendTextLine(standaloneWrap, 'Sin análisis. Los agentes funcionan perfectamente sin él — describe tu negocio en el campo de abajo.', 'margin-bottom:4px;');
+      var analyzeLink = document.createElement('a');
+      analyzeLink.href = '#';
+      analyzeLink.textContent = '+ Analizar un sitio para datos reales →';
+      analyzeLink.style.cssText = 'color:var(--accent);font-size:11px;';
+      analyzeLink.addEventListener('click', function(event) {
+        event.preventDefault();
+        if (closeModal) document.getElementById('agent-workspace-modal').classList.remove('open');
+        showPage('analyze');
+      });
+      standaloneWrap.appendChild(analyzeLink);
+      ctxInfo.appendChild(standaloneWrap);
     }
   }, 150);
 };
@@ -8558,71 +9101,124 @@ async function loadGSCDashboard() {
   }
 
   if (!authData.connected) {
-    dashSection.innerHTML = `
-      <div style="margin-top:16px;padding:20px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);">
-        <div style="font-size:32px;margin-bottom:10px;">📊</div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Datos reales de tu sitio</div>
-        <div style="font-size:12px;margin-bottom:16px;">Conecta Google para ver Search Console y Google Analytics en tiempo real</div>
-        <a href="/auth/google" style="padding:10px 20px;background:linear-gradient(90deg,#4285f4,#34a853);border:none;border-radius:8px;color:#eef0f8;font-size:13px;font-weight:700;text-decoration:none;display:inline-block;">🔗 Conectar Google</a>
-      </div>`;
+    clearElement(dashSection);
+    var authCard = document.createElement('div');
+    authCard.style.cssText = 'margin-top:16px;padding:20px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);';
+    appendTextLine(authCard, '📊', 'font-size:32px;margin-bottom:10px;');
+    appendTextLine(authCard, 'Datos reales de tu sitio', 'font-size:14px;font-weight:700;margin-bottom:6px;');
+    appendTextLine(authCard, 'Conecta Google para ver Search Console y Google Analytics en tiempo real', 'font-size:12px;margin-bottom:16px;');
+    var authLink = document.createElement('a');
+    authLink.href = '/auth/google';
+    authLink.textContent = '🔗 Conectar Google';
+    authLink.style.cssText = 'padding:10px 20px;background:linear-gradient(90deg,#4285f4,#34a853);border:none;border-radius:8px;color:#eef0f8;font-size:13px;font-weight:700;text-decoration:none;display:inline-block;';
+    authCard.appendChild(authLink);
+    dashSection.appendChild(authCard);
     return;
   }
 
   // Connected — show loading then fetch real data
-  dashSection.innerHTML = `
-    <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">DATOS EN TIEMPO REAL — GOOGLE</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:11px;color:#5ec9a0;">● ${authData.user?.name || 'Conectado'}</span>
-          <button onclick="loadGSCWithUrl()" style="font-size:11px;padding:4px 10px;background:rgba(94,201,160,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:5px;color:#5ec9a0;cursor:pointer;">🔄 Actualizar</button>
-        </div>
-      </div>
-      
-      <!-- URL Input for GSC query -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;">
-        <input id="intg-gsc-url" type="url" placeholder="https://tu-sitio.com — ingresa para ver datos de GSC" 
-          value="${userProfile.url || ''}"
-          style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"
-          onfocus="this.style.borderColor='#5ec9a0'" onblur="this.style.borderColor='var(--border)'"
-          onkeydown="if(event.key==='Enter')loadGSCWithUrl()"/>
-        <input id="intg-ga4-id" type="text" placeholder="GA4 Property ID (opcional)" 
-          style="width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"
-          onfocus="this.style.borderColor='#5ec9a0'" onblur="this.style.borderColor='var(--border)'"/>
-        <button onclick="loadGSCWithUrl()" style="padding:9px 16px;background:#5ec9a0;border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer;">Ver Datos</button>
-        <button onclick="diagnosGSC()" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;" title="Ver qué sitios tiene esta cuenta">🔍 Diagnóstico</button>
-      </div>
-      
-      <div id="intg-gsc-content">
-        <div style="text-align:center;padding:30px;color:var(--muted);font-size:12px;">
-          Ingresa la URL de tu sitio y haz clic en "Ver Datos" para cargar GSC y GA4.
-        </div>
-      </div>
-    </div>`;
+  clearElement(dashSection);
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'border-top:1px solid var(--border);margin-top:16px;padding-top:20px;';
+  var top = document.createElement('div');
+  top.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;';
+  appendTextLine(top, 'DATOS EN TIEMPO REAL — GOOGLE', 'font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;');
+  var topActions = document.createElement('div');
+  topActions.style.cssText = 'display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+  appendTextLine(topActions, '● ' + String(authData.user?.name || 'Conectado'), 'font-size:11px;color:#5ec9a0;');
+  topActions.appendChild(createActionButton('🔄 Actualizar', loadGSCWithUrl, 'font-size:11px;padding:4px 10px;background:rgba(94,201,160,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:5px;color:#5ec9a0;cursor:pointer;'));
+  top.appendChild(topActions);
+  wrap.appendChild(top);
+  var formRow = document.createElement('div');
+  formRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
+  var urlField = document.createElement('input');
+  urlField.id = 'intg-gsc-url';
+  urlField.type = 'url';
+  urlField.placeholder = 'https://tu-sitio.com — ingresa para ver datos de GSC';
+  urlField.value = userProfile.url || '';
+  urlField.style.cssText = 'flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
+  urlField.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
+  urlField.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
+  urlField.addEventListener('keydown', function(event){ if (event.key === 'Enter') loadGSCWithUrl(); });
+  formRow.appendChild(urlField);
+  var ga4Field = document.createElement('input');
+  ga4Field.id = 'intg-ga4-id';
+  ga4Field.type = 'text';
+  ga4Field.placeholder = 'GA4 Property ID (opcional)';
+  ga4Field.style.cssText = 'width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
+  ga4Field.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
+  ga4Field.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
+  formRow.appendChild(ga4Field);
+  formRow.appendChild(createActionButton('Ver Datos', loadGSCWithUrl, 'padding:9px 16px;background:#5ec9a0;border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer;'));
+  var diagnoseBtn = createActionButton('🔍 Diagnóstico', diagnosGSC, 'padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;');
+  diagnoseBtn.title = 'Ver qué sitios tiene esta cuenta';
+  formRow.appendChild(diagnoseBtn);
+  wrap.appendChild(formRow);
+  var content = document.createElement('div');
+  content.id = 'intg-gsc-content';
+  appendTextLine(content, 'Ingresa la URL de tu sitio y haz clic en "Ver Datos" para cargar GSC y GA4.', 'text-align:center;padding:30px;color:var(--muted);font-size:12px;');
+  wrap.appendChild(content);
+  dashSection.appendChild(wrap);
 }
 
 async function diagnosGSC() {
   const content = document.getElementById('intg-gsc-content');
   if (!content) return;
-  content.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px;">⏳ Consultando tu cuenta de Google...</div>';
+  clearElement(content);
+  appendTextLine(content, '⏳ Consultando tu cuenta de Google...', 'padding:14px;color:var(--muted);font-size:12px;');
   try {
     const res = await fetch('/api/debug/gsc-sites');
     const data = await res.json();
     if (data.error) {
-      content.innerHTML = '<div style="padding:14px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;">⚠️ ' + esc(data.error) + '<br><br><a href="/auth/google" style="color:var(--accent);font-weight:700;">→ Reconectar Google</a></div>';
+      clearElement(content);
+      var errorCard = document.createElement('div');
+      errorCard.style.cssText = 'padding:14px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;';
+      appendTextLine(errorCard, '⚠️ ' + String(data.error || ''), 'margin-bottom:10px;');
+      var reconnect = document.createElement('a');
+      reconnect.href = '/auth/google';
+      reconnect.textContent = '→ Reconectar Google';
+      reconnect.style.cssText = 'color:var(--accent);font-weight:700;';
+      errorCard.appendChild(reconnect);
+      content.appendChild(errorCard);
       return;
     }
-    var html = '<div style="padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">'
-      + '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">DIAGNÓSTICO SEARCH CONSOLE</div>'
-      + '<div style="font-size:12px;margin-bottom:8px;">📧 Cuenta: <strong style="color:var(--accent);">' + esc(data.user || '?') + '</strong></div>'
-      + '<div style="font-size:12px;margin-bottom:10px;">🌐 Sitios verificados: <strong>' + esc(data.totalSites) + '</strong></div>';
+    clearElement(content);
+    var card = document.createElement('div');
+    card.style.cssText = 'padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;';
+    appendTextLine(card, 'DIAGNÓSTICO SEARCH CONSOLE', 'font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:10px;');
+    var userRow = document.createElement('div');
+    userRow.style.cssText = 'font-size:12px;margin-bottom:8px;';
+    userRow.appendChild(document.createTextNode('📧 Cuenta: '));
+    var userStrong = document.createElement('strong');
+    userStrong.style.color = 'var(--accent)';
+    userStrong.textContent = String(data.user || '?');
+    userRow.appendChild(userStrong);
+    card.appendChild(userRow);
+    var totalRow = document.createElement('div');
+    totalRow.style.cssText = 'font-size:12px;margin-bottom:10px;';
+    totalRow.appendChild(document.createTextNode('🌐 Sitios verificados: '));
+    var totalStrong = document.createElement('strong');
+    totalStrong.textContent = String(data.totalSites || 0);
+    totalRow.appendChild(totalStrong);
+    card.appendChild(totalRow);
     if (data.totalSites === 0) {
-      html += '<div style="padding:10px;background:rgba(224,112,112,0.06);border-radius:7px;font-size:12px;color:#e07070;">⚠️ Esta cuenta no tiene sitios en Search Console.<br><br>¿El sitio está en otra cuenta? <a href="/auth/logout" style="color:var(--accent);">Cambiar cuenta →</a></div>';
+      var noSites = document.createElement('div');
+      noSites.style.cssText = 'padding:10px;background:rgba(224,112,112,0.06);border-radius:7px;font-size:12px;color:#e07070;';
+      appendTextLine(noSites, '⚠️ Esta cuenta no tiene sitios en Search Console.', 'margin-bottom:8px;');
+      appendTextLine(noSites, '¿El sitio está en otra cuenta? ', 'display:inline;');
+      var logout = document.createElement('a');
+      logout.href = '/auth/logout';
+      logout.textContent = 'Cambiar cuenta →';
+      logout.style.cssText = 'color:var(--accent);';
+      noSites.appendChild(logout);
+      card.appendChild(noSites);
     } else {
-      html += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Haz clic para cargar ese sitio:</div><div id="diag-sites-list"></div>';
+      appendTextLine(card, 'Haz clic para cargar ese sitio:', 'font-size:11px;color:var(--muted);margin-bottom:8px;');
+      var listEl = document.createElement('div');
+      listEl.id = 'diag-sites-list';
+      card.appendChild(listEl);
     }
-    html += '</div>';
-    content.innerHTML = html;
+    content.appendChild(card);
     if (data.sites && data.sites.length) {
       var listEl = document.getElementById('diag-sites-list');
       if (listEl) {
@@ -8641,7 +9237,8 @@ async function diagnosGSC() {
       }
     }
   } catch(e) {
-    content.innerHTML = '<div style="padding:14px;color:#e07070;font-size:12px;">Error: ' + esc(e.message) + '</div>';
+    clearElement(content);
+    appendTextLine(content, 'Error: ' + String(e.message || ''), 'padding:14px;color:#e07070;font-size:12px;');
   }
 }
 
@@ -8654,7 +9251,8 @@ async function loadGSCWithUrl() {
   if (!url) { showToast('Ingresa la URL de tu sitio'); urlInput?.focus(); return; }
   if (!content) return;
   
-  content.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">⏳ Cargando datos de Google Search Console y GA4...</div>';
+  clearElement(content);
+  appendTextLine(content, '⏳ Cargando datos de Google Search Console y GA4...', 'text-align:center;padding:24px;color:var(--muted);font-size:12px;');
   
   try {
     const res = await fetch('/api/traffic-data', {
@@ -8665,15 +9263,23 @@ async function loadGSCWithUrl() {
     const data = await res.json();
     
     if (data.error) {
-      content.innerHTML = `<div style="padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(224,112,112,0.18);border-radius:8px;font-size:12px;color:#f87171;">
-        ⚠️ ${esc(getFriendlyUiError(data.error))}<br><span style="font-size:11px;color:var(--muted);">Verifica que tu sitio esté registrado en Search Console y que estás usando la cuenta correcta.</span>
-      </div>`;
+      clearElement(content);
+      var errorBox = document.createElement('div');
+      errorBox.style.cssText = 'padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(224,112,112,0.18);border-radius:8px;font-size:12px;color:#f87171;';
+      appendTextLine(errorBox, '⚠️ ' + getFriendlyUiError(data.error), 'margin-bottom:6px;');
+      appendTextLine(errorBox, 'Verifica que tu sitio esté registrado en Search Console y que estás usando la cuenta correcta.', 'font-size:11px;color:var(--muted);');
+      content.appendChild(errorBox);
       return;
     }
     
     renderGSCDashboard(content, data, url);
   } catch(e) {
-    content.innerHTML = `<div style="padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(224,112,112,0.18);border-radius:8px;font-size:12px;color:#f87171;">${esc(getFriendlyUiError(e.message))}<br><span style="font-size:11px;color:var(--muted);">Vuelve a intentarlo cuando la conexión esté estable.</span></div>`;
+    clearElement(content);
+    var networkError = document.createElement('div');
+    networkError.style.cssText = 'padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(224,112,112,0.18);border-radius:8px;font-size:12px;color:#f87171;';
+    appendTextLine(networkError, getFriendlyUiError(e.message), 'margin-bottom:6px;');
+    appendTextLine(networkError, 'Vuelve a intentarlo cuando la conexión esté estable.', 'font-size:11px;color:var(--muted);');
+    content.appendChild(networkError);
   }
 }
 
@@ -8774,7 +9380,11 @@ function renderGSCDashboard(container, data, url) {
 async function getGSCInsights(url, topQueriesJson) {
   const el = document.getElementById('gsc-ai-insights');
   if (!el) return;
-  el.innerHTML = '<div style="padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted);">⏳ El agente SEO está analizando tus datos...</div>';
+  clearElement(el);
+  var loading = document.createElement('div');
+  loading.style.cssText = 'padding:14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted);';
+  loading.textContent = '⏳ El agente SEO está analizando tus datos...';
+  el.appendChild(loading);
   
   let queriesText = '';
   try { queriesText = Array.isArray(topQueriesJson) ? topQueriesJson.slice(0,5).map(q => q.query).join(', ') : ''; } catch(e) {}
@@ -8791,16 +9401,23 @@ async function getGSCInsights(url, topQueriesJson) {
     });
     const data = await res.json();
     _lastReply = data.reply || '';
-    el.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <div style="padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--accent);">🧠 ANÁLISIS SEO — ${url.replace(/https?:\/\//,'')}</div>
-      <div style="padding:14px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">${data.reply}</div>
-      <div style="padding:8px 12px;border-top:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;">
-        <button onclick="copyText(this,'${data.reply.replace(/'/g,"\\'").replace(/\n/g,'\\n')}')" style="font-size:10px;padding:4px 9px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">📋 Copiar</button>
-        <button onclick="saveLastReply('Agente SEO','🔍','Insights GSC')" style="font-size:10px;padding:4px 9px;background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">💾 Guardar</button>
-      </div>
-    </div>`;
+    clearElement(el);
+    var insightCard = document.createElement('div');
+    insightCard.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;';
+    appendTextLine(insightCard, '🧠 ANÁLISIS SEO — ' + url.replace(/https?:\/\//,''), 'padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--accent);');
+    var insightBody = document.createElement('div');
+    insightBody.style.cssText = 'padding:14px;font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;';
+    setFormattedText(insightBody, data.reply || '');
+    insightCard.appendChild(insightBody);
+    var insightActions = document.createElement('div');
+    insightActions.style.cssText = 'padding:8px 12px;border-top:1px solid var(--border);background:var(--surface2);display:flex;gap:6px;flex-wrap:wrap;';
+    insightActions.appendChild(createUtilityButton('📋 Copiar', function(event) { copyText(event.currentTarget, data.reply || ''); }));
+    insightActions.appendChild(createUtilityButton('💾 Guardar', function() { saveLastReply('Agente SEO','🔍','Insights GSC'); }));
+    insightCard.appendChild(insightActions);
+    el.appendChild(insightCard);
   } catch(e) {
-    el.innerHTML = '<div style="padding:14px;color:var(--danger);font-size:12px;">Error al conectar.</div>';
+    clearElement(el);
+    appendTextLine(el, 'Error al conectar.', 'padding:14px;color:var(--danger);font-size:12px;');
   }
 }
 
@@ -9057,7 +9674,10 @@ async function sendGuideChatMessage() {
   const typing = document.createElement('div');
   typing.id = 'guide-typing';
   typing.style.cssText = 'padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--muted);';
-  typing.innerHTML = '💬 <em>El asistente está preparando la respuesta...</em>';
+  typing.append(
+    document.createTextNode('💬 '),
+    Object.assign(document.createElement('em'), { textContent: 'El asistente está preparando la respuesta...' })
+  );
   if (msgs) { msgs.appendChild(typing); msgs.scrollTop = msgs.scrollHeight; }
 
   try {
@@ -9093,20 +9713,41 @@ function renderGuideChat() {
   const msgs = document.getElementById('guide-chat-messages');
   if (!msgs) return;
   if (!guideChatHistory.length) {
-    msgs.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;"><div style="font-size:24px;margin-bottom:6px;">💬</div>Pregúntame cómo usar cualquier módulo de BearAds.</div>';
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:20px 0;color:var(--muted);font-size:12px;';
+    const icon = document.createElement('div');
+    icon.style.cssText = 'font-size:24px;margin-bottom:6px;';
+    icon.textContent = '💬';
+    const text = document.createElement('div');
+    text.textContent = 'Pregúntame cómo usar cualquier módulo de BearAds.';
+    empty.append(icon, text);
+    msgs.replaceChildren(empty);
     return;
   }
-  msgs.innerHTML = guideChatHistory.map(m => {
-    if (m.role === 'user') return `
-      <div style="display:flex;justify-content:flex-end;">
-        <div style="max-width:80%;padding:9px 13px;background:rgba(123,167,232,0.12);border:1px solid rgba(96,165,250,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);">${escPreserve(m.content)}</div>
-      </div>`;
-    return `
-      <div style="display:flex;gap:8px;align-items:flex-start;">
-        <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;">💬</div>
-        <div style="max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${escPreserve(m.content)}</div>
-      </div>`;
-  }).join('');
+  msgs.replaceChildren();
+  guideChatHistory.forEach(function(m) {
+    if (m.role === 'user') {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:flex-end;';
+      const bubble = document.createElement('div');
+      bubble.style.cssText = 'max-width:80%;padding:9px 13px;background:rgba(123,167,232,0.12);border:1px solid rgba(96,165,250,0.2);border-radius:10px 10px 2px 10px;font-size:12px;color:var(--text);white-space:pre-wrap;';
+      bubble.textContent = m.content;
+      row.appendChild(bubble);
+      msgs.appendChild(row);
+      return;
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:flex-start;';
+    const avatar = document.createElement('div');
+    avatar.style.cssText = 'width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;';
+    avatar.textContent = '💬';
+    const bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:88%;background:var(--surface2);border:1px solid var(--border);border-radius:2px 10px 10px 10px;padding:10px 12px;font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;';
+    bubble.textContent = m.content;
+    row.append(avatar, bubble);
+    msgs.appendChild(row);
+  });
   msgs.scrollTop = msgs.scrollHeight;
 }
 
@@ -9601,10 +10242,21 @@ async function loadGAdsForPlan() {
     if (metrics) {
       var totalSpend = data.campaigns.reduce(function(s,c){return s+parseFloat(c.spend||0);},0);
       var totalConv = data.campaigns.reduce(function(s,c){return s+parseInt(c.conversions||0);},0);
-      metrics.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-        + '<div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;"><div style="font-size:18px;font-weight:800;color:#d4a843;">$'+totalSpend.toFixed(0)+'</div><div style="font-size:10px;color:var(--muted);">Gasto 30d</div></div>'
-        + '<div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;"><div style="font-size:18px;font-weight:800;color:#5ec9a0;">'+totalConv+'</div><div style="font-size:10px;color:var(--muted);">Conversiones</div></div>'
-        + '</div><div style="font-size:11px;color:var(--muted);margin-top:6px;">'+data.campaigns.length+' campañas activas</div>';
+      clearElement(metrics);
+      var grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+      [
+        { value: '$' + totalSpend.toFixed(0), label: 'Gasto 30d', color: '#d4a843' },
+        { value: String(totalConv), label: 'Conversiones', color: '#5ec9a0' }
+      ].forEach(function(item) {
+        var stat = document.createElement('div');
+        stat.style.cssText = 'text-align:center;padding:8px;background:var(--surface2);border-radius:6px;';
+        appendTextLine(stat, item.value, 'font-size:18px;font-weight:800;color:' + item.color + ';');
+        appendTextLine(stat, item.label, 'font-size:10px;color:var(--muted);');
+        grid.appendChild(stat);
+      });
+      metrics.appendChild(grid);
+      appendTextLine(metrics, data.campaigns.length + ' campañas activas', 'font-size:11px;color:var(--muted);margin-top:6px;');
     }
     showToast('Google Ads: '+data.campaigns.length+' campañas cargadas');
   }
@@ -9655,23 +10307,41 @@ async function generateStrategicPlan() {
     if (loadEl) loadEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = '<div class="card">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">'
-        + '<div style="font-size:15px;font-weight:800;">🗺️ Plan Estratégico — '+esc(duration)+' días</div>'
-        + '<div style="display:flex;gap:6px;">'
-        + '<button onclick="copyLastReply(this)" style="font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">📋 Copiar</button>'
-        + '<button onclick="downloadTextFile(\'Plan-Estrategico\',window._lastStrategicPlan||\'\')" style="font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">⬇ Descargar</button>'
-        + '<button onclick="saveLastReply(\'Director Estratégico\',\'🗺️\',\'Plan Estratégico\')" style="font-size:11px;padding:5px 10px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:6px;color:var(--accent);cursor:pointer;font-weight:600;">💾 Guardar</button>'
-        + '</div></div>'
-        + '<div style="font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;">'+escPreserve(data.plan)+'</div>'
-        + '</div>';
       _lastReply = data.plan;
       window._lastStrategicPlan = data.plan;
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;';
+      appendTextLine(header, '🗺️ Plan Estratégico — ' + duration + ' días', 'font-size:15px;font-weight:800;');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        navigator.clipboard.writeText(data.plan);
+        ev.currentTarget.textContent = '✓';
+        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
+      actions.appendChild(createUtilityButton('⬇ Descargar', function() {
+        downloadTextFile('Plan-Estrategico', window._lastStrategicPlan || '');
+      }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
+      actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+        saveLastReply('Director Estratégico', '🗺️', 'Plan Estratégico');
+      }));
+      header.appendChild(actions);
+      renderTextCard(resultEl, {
+        header: header,
+        contentStyle: 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
+        content: data.plan
+      });
       saveDeliverable('Director Estratégico', '🗺️', 'Plan Estratégico '+duration+'d', data.plan);
     }
   } catch(e) {
     if (loadEl) loadEl.style.display = 'none';
-    if (emptyEl) emptyEl.style.display = 'flex';
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      clearElement(resultEl);
+      resultEl.appendChild(createErrorNotice(getFriendlyUiError(e.message)));
+    } else if (emptyEl) {
+      emptyEl.style.display = 'flex';
+    }
     showToast(getFriendlyUiError(e.message));
   }
   if (btn) { btn.disabled = false; btn.textContent = '🗺️ Generar Plan Completo'; }
@@ -9751,14 +10421,16 @@ function syncCreativeGuide() {
 function renderCreativeQuickStart() {
   var host = document.getElementById('cr-quick-start');
   if (!host) return;
-  host.innerHTML = Object.keys(CREATIVE_TEMPLATES).map(function(key) {
+  clearElement(host);
+  Object.keys(CREATIVE_TEMPLATES).forEach(function(key) {
     var tpl = CREATIVE_TEMPLATES[key];
-    return '<button onclick="applyCreativeTemplate(\'' + esc(key) + '\')"'
-      + ' style="text-align:left;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;cursor:pointer;">'
-      + '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">' + esc(tpl.label) + '</div>'
-      + '<div style="font-size:11px;color:var(--muted);line-height:1.6;">' + esc(tpl.hint) + '</div>'
-      + '</button>';
-  }).join('');
+    var button = createActionButton('', function() { applyCreativeTemplate(key); }, 'text-align:left;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;cursor:pointer;');
+    button.appendChild(createLabeledBlock(tpl.label, tpl.hint, {
+      titleStyle: 'font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;',
+      bodyStyle: 'font-size:11px;color:var(--muted);line-height:1.6;'
+    }));
+    host.appendChild(button);
+  });
 }
 
 function setCreativePlatform(platform, activeEl) {
@@ -9813,7 +10485,13 @@ function syncCreativeAuthUI(session) {
   }
   if (hint) {
     hint.style.display = 'block';
-    hint.innerHTML = 'Necesitas una sesión activa en BearAds para crear anuncios con IA. <a href="/auth/google" style="color:var(--accent);font-weight:700;text-decoration:none;">Entrar con Google</a>';
+    clearElement(hint);
+    appendTextLine(hint, 'Necesitas una sesión activa en BearAds para crear anuncios con IA.', 'font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px;');
+    var link = document.createElement('a');
+    link.href = '/auth/google';
+    link.textContent = 'Entrar con Google';
+    link.style.cssText = 'color:var(--accent);font-weight:700;text-decoration:none;font-size:12px;';
+    hint.appendChild(link);
   }
 }
 
@@ -9853,6 +10531,10 @@ async function generateCreative() {
   if (!product) { showToast('Ingresa el producto'); return; }
   if (!hasActiveBearAdsSession()) {
     syncCreativeAuthUI(appSession);
+    if (resultEl) {
+      resultEl.style.display = 'block';
+      renderAuthCta(resultEl, 'Tu sesión no está activa para generar creativos.');
+    }
     showToast('Primero inicia sesión en BearAds');
     return;
   }
@@ -9890,16 +10572,28 @@ async function generateCreative() {
     if (loadEl) loadEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = '<div class="card">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
-        + '<div style="font-size:14px;font-weight:800;">🎨 Creativos — '+crPlatform.toUpperCase()+' · 3 versiones A/B</div>'
-        + '<div style="display:flex;gap:6px;">'
-        + '<button onclick="copyLastReply(this)" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">📋 Copiar</button>'
-        + '<button onclick="downloadTextFile(\'Creativos-'+crPlatform+'\',window._lastCreative||\'\')" style="font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;">⬇ TXT</button>'
-        + '<button onclick="saveLastReply(\'Agente Creativo\',\'🎨\',\'Creativos '+crPlatform+'\')" style="font-size:11px;padding:4px 9px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);cursor:pointer;font-weight:600;">💾 Guardar</button>'
-        + '</div></div>'
-        + '<div style="font-size:12px;color:var(--text2);line-height:1.9;white-space:pre-wrap;">'+escPreserve(data.copy)+'</div>'
-        + '</div>';
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;';
+      appendTextLine(header, '🎨 Creativos — ' + crPlatform.toUpperCase() + ' · 3 versiones A/B', 'font-size:14px;font-weight:800;');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        navigator.clipboard.writeText(data.copy);
+        ev.currentTarget.textContent = '✓';
+        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      }, 'font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
+      actions.appendChild(createUtilityButton('⬇ TXT', function() {
+        downloadTextFile('Creativos-' + crPlatform, window._lastCreative || '');
+      }, 'font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
+      actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+        saveLastReply('Agente Creativo', '🎨', 'Creativos ' + crPlatform);
+      }));
+      header.appendChild(actions);
+      renderTextCard(resultEl, {
+        header: header,
+        contentStyle: 'font-size:12px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
+        content: data.copy
+      });
 
       // Show image generation section after getting copy
       var imgSection = document.getElementById('cr-img-section');
@@ -9918,14 +10612,19 @@ async function generateCreative() {
     if (emptyEl) emptyEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      resultEl.innerHTML = e && e.status === 401
-        ? getAuthCtaHtml('Tu sesión no está activa para generar creativos.')
-        : '<div class="card" style="text-align:center;padding:28px 24px;">'
-          + '<div style="font-size:34px;margin-bottom:10px;">🎨</div>'
-          + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px;">No pude armar esos anuncios</div>'
-          + '<div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:440px;margin:0 auto 14px;">Revisa el producto o prueba con una audiencia más simple. BearAds necesita una base clara para proponerte hooks y visuales útiles.</div>'
-          + '<button onclick="generateCreative()" style="padding:10px 14px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:9px;color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;">🔄 Intentar de nuevo</button>'
-          + '</div>';
+      clearElement(resultEl);
+      if (e && e.status === 401) {
+        renderAuthCta(resultEl, 'Tu sesión no está activa para generar creativos.');
+      } else {
+        var card = createInfoCard({ style: 'text-align:center;padding:28px 24px;' });
+        appendTextLine(card, '🎨', 'font-size:34px;margin-bottom:10px;');
+        appendTextLine(card, 'No pude armar esos anuncios', 'font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px;');
+        appendTextLine(card, 'Revisa el producto o prueba con una audiencia más simple. BearAds necesita una base clara para proponerte hooks y visuales útiles.', 'font-size:12px;color:var(--muted);line-height:1.7;max-width:440px;margin:0 auto 14px;');
+        card.appendChild(createPrimaryUtilityButton('🔄 Intentar de nuevo', function() {
+          generateCreative();
+        }));
+        resultEl.appendChild(card);
+      }
     }
     showToast('Error: '+e.message);
   }
@@ -9941,7 +10640,10 @@ async function generateCreativeImage() {
   if (!prompt) { showToast('Describe la imagen'); return; }
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-  if (resultEl) resultEl.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px;">⏳ Generando imagen con DALL-E 3...</div>';
+  if (resultEl) {
+    clearElement(resultEl);
+    appendTextLine(resultEl, '⏳ Generando imagen con DALL-E 3...', 'padding:12px;text-align:center;color:var(--muted);font-size:12px;');
+  }
 
   try {
     var res = await fetch('/api/generate-image', {
@@ -9952,15 +10654,33 @@ async function generateCreativeImage() {
     if (data.error) throw new Error(data.error);
 
     if (resultEl) {
-      resultEl.innerHTML = '<div style="border-radius:10px;overflow:hidden;border:1px solid var(--border);">'
-        + '<img src="'+safeUrl(data.url)+'" style="width:100%;display:block;" alt="Creative image"/>'
-        + '<div style="padding:8px 10px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;">'
-        + '<span style="font-size:10px;color:var(--muted);">'+esc(size)+' · DALL-E 3</span>'
-        + '<a href="'+safeUrl(data.url)+'" download="bearads-creative-'+Date.now()+'.png" target="_blank" rel="noopener noreferrer" style="font-size:11px;padding:4px 10px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);text-decoration:none;font-weight:600;">⬇ Descargar</a>'
-        + '</div></div>';
+      clearElement(resultEl);
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'border-radius:10px;overflow:hidden;border:1px solid var(--border);';
+      var img = document.createElement('img');
+      img.src = safeUrl(data.url);
+      img.style.cssText = 'width:100%;display:block;';
+      img.alt = 'Creative image';
+      wrap.appendChild(img);
+      var footer = document.createElement('div');
+      footer.style.cssText = 'padding:8px 10px;background:var(--surface2);display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;';
+      appendTextLine(footer, size + ' · DALL-E 3', 'font-size:10px;color:var(--muted);');
+      var link = document.createElement('a');
+      link.href = safeUrl(data.url);
+      link.download = 'bearads-creative-' + Date.now() + '.png';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = '⬇ Descargar';
+      link.style.cssText = 'font-size:11px;padding:4px 10px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);text-decoration:none;font-weight:600;';
+      footer.appendChild(link);
+      wrap.appendChild(footer);
+      resultEl.appendChild(wrap);
     }
   } catch(e) {
-    if (resultEl) resultEl.innerHTML = '<div style="padding:12px;color:#e07070;font-size:12px;">'+esc(e.message)+'</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      appendTextLine(resultEl, e.message, 'padding:12px;color:#e07070;font-size:12px;');
+    }
   }
   if (btn) { btn.disabled = false; btn.textContent = '🖼️ Generar'; }
 }
@@ -9983,7 +10703,7 @@ async function connectGoogleAds() {
   var btn = document.getElementById('gads-connect-btn');
   var errEl = document.getElementById('gads-connect-error');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Verificando...'; }
-  if (errEl) errEl.innerHTML = '';
+  if (errEl) clearElement(errEl);
 
   try {
     var r = await fetch('/api/gads/test', {
@@ -9996,18 +10716,21 @@ async function connectGoogleAds() {
     var test = await r.json();
 
     if (!test.ok) {
-      var statusHtml = Object.entries(test.status || {}).map(function(e) {
-        var ok = e[1].startsWith('✓');
-        return '<div style="font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;">'
-          + '<span style="color:var(--muted);">' + esc(e[0]) + '</span>'
-          + '<span style="color:' + (ok ? '#5ec9a0' : '#e07070') + ';font-weight:600;">' + esc(e[1]) + '</span></div>';
-      }).join('');
-
-      if (errEl) errEl.innerHTML = '<div style="margin-top:8px;padding:14px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;">'
-        + '<div style="font-size:12px;font-weight:700;color:#e07070;margin-bottom:10px;">⚠️ ' + esc(test.message || 'Error') + '</div>'
-        + statusHtml
-        + '<div style="margin-top:10px;font-size:11px;color:var(--muted);">Configura las credenciales en el archivo .env del servidor y reinicia.</div>'
-        + '</div>';
+      if (errEl) {
+        clearElement(errEl);
+        var errorWrap = document.createElement('div');
+        errorWrap.style.cssText = 'margin-top:8px;padding:14px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;';
+        appendTextLine(errorWrap, '⚠️ ' + String(test.message || 'Error'), 'font-size:12px;font-weight:700;color:#e07070;margin-bottom:10px;');
+        Object.entries(test.status || {}).forEach(function(entry) {
+          var row = document.createElement('div');
+          row.style.cssText = 'font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;';
+          appendTextLine(row, entry[0], 'color:var(--muted);');
+          appendTextLine(row, entry[1], 'color:' + (String(entry[1] || '').startsWith('✓') ? '#5ec9a0' : '#e07070') + ';font-weight:600;');
+          errorWrap.appendChild(row);
+        });
+        appendTextLine(errorWrap, 'Configura las credenciales en el archivo .env del servidor y reinicia.', 'margin-top:10px;font-size:11px;color:var(--muted);');
+        errEl.appendChild(errorWrap);
+      }
       if (btn) { btn.disabled = false; btn.textContent = '📢 Conectar Google Ads'; }
       return;
     }
@@ -10019,7 +10742,13 @@ async function connectGoogleAds() {
     loadGAdsDashboard();
     showToast('✓ Google Ads conectado');
   } catch(e) {
-    if (errEl) errEl.innerHTML = '<div style="padding:10px;color:#e07070;font-size:12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:7px;margin-top:8px;">Error: ' + esc(e.message) + '</div>';
+    if (errEl) {
+      clearElement(errEl);
+      var fatalError = document.createElement('div');
+      fatalError.style.cssText = 'padding:10px;color:#e07070;font-size:12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:7px;margin-top:8px;';
+      fatalError.textContent = 'Error: ' + String(e.message || '');
+      errEl.appendChild(fatalError);
+    }
     if (btn) { btn.disabled = false; btn.textContent = '📢 Conectar Google Ads'; }
   }
 }
@@ -10028,10 +10757,17 @@ function checkGAdsAuthStatus() {
   fetch('/auth/status').then(function(r){return r.json();}).then(function(data) {
     var statusEl = document.getElementById('gads-google-status');
     if (!statusEl) return;
+    clearElement(statusEl);
     if (data.connected) {
-      statusEl.innerHTML = '<span style="color:#5ec9a0;font-weight:600;">✓ '+esc(data.user.name)+' ('+esc(data.user.email)+')</span>';
+      appendTextLine(statusEl, '✓ ' + data.user.name + ' (' + data.user.email + ')', 'color:#5ec9a0;font-weight:600;');
     } else {
-      statusEl.innerHTML = '<span style="color:#e07070;">✗ No conectado</span> — <a href="/auth/google" style="color:var(--accent);font-weight:600;">Conectar Google →</a>';
+      appendTextLine(statusEl, '✗ No conectado', 'color:#e07070;display:inline-block;margin-right:6px;');
+      var link = document.createElement('a');
+      link.href = '/auth/google';
+      link.textContent = 'Conectar Google →';
+      link.style.cssText = 'color:var(--accent);font-weight:600;text-decoration:none;';
+      statusEl.appendChild(document.createTextNode(' — '));
+      statusEl.appendChild(link);
     }
   }).catch(function(){});
 }
@@ -10039,7 +10775,8 @@ function checkGAdsAuthStatus() {
 async function loadGAdsDashboard() {
   var content = document.getElementById('gads-dashboard-content');
   if (!content) return;
-  content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ Cargando Google Ads...</div>';
+  clearElement(content);
+  appendTextLine(content, '⏳ Cargando Google Ads...', 'padding:20px;text-align:center;color:var(--muted);');
 
   try {
     var campsRes = await fetch('/api/gads/campaigns', {
@@ -10069,32 +10806,54 @@ async function loadGAdsDashboard() {
       renderGAdsDashboard(content, camps, kws);
     }
   } catch(e) {
-    content.innerHTML = '<div style="padding:24px;text-align:center;">'
-      + '<div style="font-size:13px;color:#e07070;margin-bottom:12px;font-weight:700;">⚠️ ' + esc(e.message) + '</div>'
-      + '<button onclick="resetGAdsDashboard()" style="padding:7px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:12px;color:var(--muted);cursor:pointer;">← Cambiar Customer ID</button>'
-      + '</div>';
+    clearElement(content);
+    var errorCard = createInfoCard({ style: 'padding:24px;text-align:center;' });
+    appendTextLine(errorCard, '⚠️ ' + e.message, 'font-size:13px;color:#e07070;margin-bottom:12px;font-weight:700;');
+    errorCard.appendChild(createUtilityButton('← Cambiar Customer ID', function() {
+      resetGAdsDashboard();
+    }, 'padding:7px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:12px;color:var(--muted);cursor:pointer;'));
+    content.appendChild(errorCard);
   }
 }
 
 function renderGAdsAIMode(container, customerId) {
-  container.innerHTML = '<div style="padding:20px;">'
-    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;">'
-    + '<div style="font-size:24px;">🤖</div>'
-    + '<div><div style="font-size:13px;font-weight:700;color:#d4a843;">Modo IA — Customer ID: ' + esc(customerId) + '</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:2px;">La API de Google Ads requiere configuración adicional. Mientras tanto, usa el análisis y optimización con IA.</div></div>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">'
-    + '<button onclick="generateGAdsStrategyAI()" style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-    + '<div style="font-size:18px;margin-bottom:6px;">🔍</div><div style="font-size:13px;font-weight:700;">Auditoría de cuenta</div><div style="font-size:11px;color:var(--muted);">Análisis de estructura y oportunidades</div></button>'
-    + '<button onclick="generateGAdsKeywordsAI()" style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-    + '<div style="font-size:18px;margin-bottom:6px;">🔑</div><div style="font-size:13px;font-weight:700;">Keywords con IA</div><div style="font-size:11px;color:var(--muted);">Genera keywords de alto rendimiento</div></button>'
-    + '<button onclick="generateGAdsCopyAI()" style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-    + '<div style="font-size:18px;margin-bottom:6px;">✍️</div><div style="font-size:13px;font-weight:700;">Copies de anuncios</div><div style="font-size:11px;color:var(--muted);">Headlines y descripciones RSA</div></button>'
-    + '<button onclick="generateGAdsBudgetAI()" style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-    + '<div style="font-size:18px;margin-bottom:6px;">💰</div><div style="font-size:13px;font-weight:700;">Presupuesto y pujas</div><div style="font-size:11px;color:var(--muted);">Estrategia de inversión</div></button>'
-    + '</div>'
-    + '<div id="gads-ai-output" style="min-height:60px;"></div>'
-    + '</div>';
+  clearElement(container);
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'padding:20px;';
+  var banner = document.createElement('div');
+  banner.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;';
+  appendTextLine(banner, '🤖', 'font-size:24px;');
+  var bannerBody = document.createElement('div');
+  appendTextLine(bannerBody, 'Modo IA — Customer ID: ' + customerId, 'font-size:13px;font-weight:700;color:#d4a843;');
+  appendTextLine(bannerBody, 'La API de Google Ads requiere configuración adicional. Mientras tanto, usa el análisis y optimización con IA.', 'font-size:11px;color:var(--muted);margin-top:2px;');
+  banner.appendChild(bannerBody);
+  wrap.appendChild(banner);
+
+  var actionsGrid = document.createElement('div');
+  actionsGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;';
+  [
+    { icon: '🔍', title: 'Auditoría de cuenta', body: 'Análisis de estructura y oportunidades', action: generateGAdsStrategyAI },
+    { icon: '🔑', title: 'Keywords con IA', body: 'Genera keywords de alto rendimiento', action: generateGAdsKeywordsAI },
+    { icon: '✍️', title: 'Copies de anuncios', body: 'Headlines y descripciones RSA', action: generateGAdsCopyAI },
+    { icon: '💰', title: 'Presupuesto y pujas', body: 'Estrategia de inversión', action: generateGAdsBudgetAI }
+  ].forEach(function(item) {
+    var button = createActionButton('', item.action, 'padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;transition:all 0.15s;');
+    button.onmouseover = function() { button.style.borderColor = 'var(--accent)'; };
+    button.onmouseout = function() { button.style.borderColor = 'var(--border)'; };
+    appendTextLine(button, item.icon, 'font-size:18px;margin-bottom:6px;');
+    button.appendChild(createLabeledBlock(item.title, item.body, {
+      titleStyle: 'font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;',
+      bodyStyle: 'font-size:11px;color:var(--muted);'
+    }));
+    actionsGrid.appendChild(button);
+  });
+  wrap.appendChild(actionsGrid);
+
+  var output = document.createElement('div');
+  output.id = 'gads-ai-output';
+  output.style.minHeight = '60px';
+  wrap.appendChild(output);
+  container.appendChild(wrap);
 }
 
 async function generateGAdsStrategyAI() {
@@ -10113,7 +10872,8 @@ async function generateGAdsBudgetAI() {
 async function callGAdsAI(prompt, title) {
   var output = document.getElementById('gads-ai-output');
   if (!output) return;
-  output.innerHTML = '<div style="padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;">⏳ Generando ' + esc(title) + '...</div>';
+  clearElement(output);
+  appendTextLine(output, '⏳ Generando ' + title + '...', 'padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;');
   try {
     var res = await fetch('/api/chat', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -10124,17 +10884,28 @@ async function callGAdsAI(prompt, title) {
     });
     var data = await res.json();
     _lastReply = data.reply || '';
-    output.innerHTML = '<div class="card" style="margin:0;">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
-      + '<div style="font-size:13px;font-weight:700;">' + esc(title) + '</div>'
-      + '<div style="display:flex;gap:6px;">'
-      + '<button onclick="copyLastReply(this)" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;">📋 Copiar</button>'
-      + '<button onclick="saveLastReply(\'SEM/Paid Media\',\'📢\',\'' + title + '\')" style="font-size:10px;padding:3px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:4px;color:var(--accent);cursor:pointer;">💾 Guardar</button>'
-      + '</div></div>'
-      + '<div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">' + escPreserve(data.reply) + '</div>'
-      + '</div>';
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap;';
+    appendTextLine(header, title, 'font-size:13px;font-weight:700;');
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      navigator.clipboard.writeText(data.reply || '');
+      ev.currentTarget.textContent = '✓';
+      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+    }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
+    actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+      saveLastReply('SEM/Paid Media', '📢', title);
+    }, 'font-size:10px;padding:3px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:4px;color:var(--accent);cursor:pointer;font-weight:600;'));
+    header.appendChild(actions);
+    renderTextCard(output, {
+      header: header,
+      contentStyle: 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+      content: data.reply || ''
+    });
   } catch(e) {
-    output.innerHTML = '<div style="padding:12px;color:#e07070;font-size:12px;">Error: ' + esc(e.message) + '</div>';
+    clearElement(output);
+    output.appendChild(createErrorNotice('Error: ' + e.message));
   }
 }
 
@@ -10215,7 +10986,8 @@ function renderGAdsDashboard(container, camps, kws) {
 async function optimizeGAdsWithAI() {
   var resultEl = document.getElementById('gads-optimize-result');
   if (!resultEl || !spGadsData) return;
-  resultEl.innerHTML = '<div style="padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;">⏳ La IA está analizando tus campañas...</div>';
+  clearElement(resultEl);
+  appendTextLine(resultEl, '⏳ La IA está analizando tus campañas...', 'padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;');
 
   try {
     var res = await fetch('/api/gads/optimize', {
@@ -10224,15 +10996,27 @@ async function optimizeGAdsWithAI() {
     });
     var data = await res.json();
     _lastReply = data.reply || '';
-    resultEl.innerHTML = '<div class="card">'
-      + '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;">🧠 OPTIMIZACIÓN IA — Google Ads</div>'
-      + '<div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">'+escPreserve(data.reply)+'</div>'
-      + '<div style="margin-top:10px;display:flex;gap:6px;">'
-      + '<button onclick="copyLastReply(this)" style="font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;">📋 Copiar</button>'
-      + '<button onclick="saveLastReply(\'SEM/Paid Media\',\'📢\',\'Optimización Google Ads\')" style="font-size:10px;padding:4px 9px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);cursor:pointer;">💾 Guardar</button>'
-      + '</div></div>';
+    var header = document.createElement('div');
+    appendTextLine(header, '🧠 OPTIMIZACIÓN IA — Google Ads', 'font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;');
+    var footer = document.createElement('div');
+    footer.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
+    footer.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      navigator.clipboard.writeText(data.reply || '');
+      ev.currentTarget.textContent = '✓';
+      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+    }, 'font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;'));
+    footer.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+      saveLastReply('SEM/Paid Media', '📢', 'Optimización Google Ads');
+    }, 'font-size:10px;padding:4px 9px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);cursor:pointer;font-weight:600;'));
+    renderTextCard(resultEl, {
+      header: header,
+      contentStyle: 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+      content: data.reply || '',
+      footer: footer
+    });
   } catch(e) {
-    resultEl.innerHTML = '<div style="padding:12px;color:#e07070;font-size:12px;">Error: '+esc(e.message)+'</div>';
+    clearElement(resultEl);
+    resultEl.appendChild(createErrorNotice('Error: ' + e.message));
   }
 }
 
@@ -10251,7 +11035,10 @@ async function connectMetaAds() {
   if (!token || !accountId) { showToast('Completa token y account ID'); return; }
 
   var resultEl = document.getElementById('meta-verify-result');
-  if (resultEl) resultEl.innerHTML = '<div style="padding:8px;font-size:12px;color:var(--muted);">⏳ Verificando...</div>';
+  if (resultEl) {
+    clearElement(resultEl);
+    appendTextLine(resultEl, '⏳ Verificando...', 'padding:8px;font-size:12px;color:var(--muted);');
+  }
 
   try {
     var res = await fetch('/api/meta/verify', {
@@ -10268,14 +11055,18 @@ async function connectMetaAds() {
     loadMetaDashboard();
     showToast('✓ Meta Ads conectado: '+data.name);
   } catch(e) {
-    if (resultEl) resultEl.innerHTML = '<div style="padding:8px;font-size:12px;color:#e07070;">⚠️ '+esc(e.message)+'</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      appendTextLine(resultEl, '⚠️ ' + e.message, 'padding:8px;font-size:12px;color:#e07070;');
+    }
   }
 }
 
 async function loadMetaDashboard() {
   var content = document.getElementById('meta-dashboard-content');
   if (!content || !metaCredentials) return;
-  content.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">⏳ Cargando campañas de Meta Ads...</div>';
+  clearElement(content);
+  appendTextLine(content, '⏳ Cargando campañas de Meta Ads...', 'padding:20px;text-align:center;color:var(--muted);');
 
   try {
     var res = await fetch('/api/meta/campaigns', {
@@ -10288,7 +11079,14 @@ async function loadMetaDashboard() {
     spMetaData = data;
     renderMetaDashboard(content, data);
   } catch(e) {
-    content.innerHTML = '<div style="padding:20px;text-align:center;color:#e07070;font-size:13px;">⚠️ '+esc(e.message)+'<br><button onclick="metaCredentials=null;initMetaDashboard()" style="margin-top:10px;padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--muted);cursor:pointer;">Reconectar</button></div>';
+    clearElement(content);
+    var errorCard = createInfoCard({ style: 'padding:20px;text-align:center;' });
+    appendTextLine(errorCard, '⚠️ ' + e.message, 'color:#e07070;font-size:13px;margin-bottom:10px;');
+    errorCard.appendChild(createUtilityButton('Reconectar', function() {
+      metaCredentials = null;
+      initMetaDashboard();
+    }, 'padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--muted);cursor:pointer;'));
+    content.appendChild(errorCard);
   }
 }
 
@@ -10331,7 +11129,8 @@ function renderMetaDashboard(container, data) {
 async function optimizeMetaWithAI() {
   var resultEl = document.getElementById('meta-optimize-result');
   if (!resultEl || !spMetaData) return;
-  resultEl.innerHTML = '<div style="padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;">⏳ Analizando campañas de Meta...</div>';
+  clearElement(resultEl);
+  appendTextLine(resultEl, '⏳ Analizando campañas de Meta...', 'padding:14px;background:var(--surface2);border-radius:8px;color:var(--muted);font-size:12px;');
   try {
     var res = await fetch('/api/meta/optimize', {
       method: 'POST', headers: {'Content-Type':'application/json'},
@@ -10339,12 +11138,27 @@ async function optimizeMetaWithAI() {
     });
     var data = await res.json();
     _lastReply = data.reply || '';
-    resultEl.innerHTML = '<div class="card"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;">🧠 OPTIMIZACIÓN IA — Meta Ads</div>'
-      + '<div style="font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;">'+escPreserve(data.reply)+'</div>'
-      + '<div style="margin-top:10px;display:flex;gap:6px;"><button onclick="copyLastReply(this)" style="font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;">📋 Copiar</button>'
-      + '<button onclick="saveLastReply(\'Meta Ads\',\'📘\',\'Optimización Meta\')" style="font-size:10px;padding:4px 9px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);cursor:pointer;">💾 Guardar</button></div></div>';
+    var header = document.createElement('div');
+    appendTextLine(header, '🧠 OPTIMIZACIÓN IA — Meta Ads', 'font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;');
+    var footer = document.createElement('div');
+    footer.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
+    footer.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      navigator.clipboard.writeText(data.reply || '');
+      ev.currentTarget.textContent = '✓';
+      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+    }, 'font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;'));
+    footer.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+      saveLastReply('Meta Ads', '📘', 'Optimización Meta');
+    }, 'font-size:10px;padding:4px 9px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:5px;color:var(--accent);cursor:pointer;font-weight:600;'));
+    renderTextCard(resultEl, {
+      header: header,
+      contentStyle: 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+      content: data.reply || '',
+      footer: footer
+    });
   } catch(e) {
-    resultEl.innerHTML = '<div style="padding:12px;color:#e07070;font-size:12px;">Error: '+esc(e.message)+'</div>';
+    clearElement(resultEl);
+    resultEl.appendChild(createErrorNotice('Error: ' + e.message));
   }
 }
 
@@ -10401,7 +11215,7 @@ async function createGAdsCampaign() {
   if (!name) { showToast('Ingresa el nombre de la campaña'); return; }
 
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Creando...'; }
-  if (result) result.innerHTML = '';
+  if (result) clearElement(result);
 
   try {
     var res = await fetch('/api/gads/create-campaign', {
@@ -10418,10 +11232,10 @@ async function createGAdsCampaign() {
     if (data.error) throw new Error(data.error);
 
     gcCampaignResourceName = data.campaignResourceName;
-    if (result) result.innerHTML = '<div style="padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:7px;font-size:12px;color:var(--accent2);margin-top:8px;">✓ ' + esc(data.message) + '</div>';
+    if (result) result.replaceChildren(createStatusNotice('✓ ' + (data.message || ''), 'success', { marginTop: '8px' }));
     setTimeout(function() { setGAdsStep(2); }, 1500);
   } catch(e) {
-    if (result) result.innerHTML = '<div style="padding:10px;background:rgba(224,112,112,0.07);border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;color:#e07070;margin-top:8px;">⚠️ ' + esc(e.message) + '</div>';
+    if (result) result.replaceChildren(createStatusNotice('⚠️ ' + (e.message || 'Error'), 'error', { marginTop: '8px' }));
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Crear Campaña →'; }
 }
@@ -10462,10 +11276,10 @@ async function createGAdsAdGroup() {
     var adData = await adRes.json();
     if (adData.error) throw new Error(adData.error);
 
-    if (result) result.innerHTML = '<div style="padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:7px;font-size:12px;color:var(--accent2);margin-top:8px;">✓ Grupo de anuncios y anuncio RSA creados</div>';
+    if (result) result.replaceChildren(createStatusNotice('✓ Grupo de anuncios y anuncio RSA creados', 'success', { marginTop: '8px' }));
     setTimeout(function() { setGAdsStep(3); }, 1500);
   } catch(e) {
-    if (result) result.innerHTML = '<div style="padding:10px;background:rgba(224,112,112,0.07);border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;color:#e07070;margin-top:8px;">⚠️ ' + esc(e.message) + '</div>';
+    if (result) result.replaceChildren(createStatusNotice('⚠️ ' + (e.message || 'Error'), 'error', { marginTop: '8px' }));
   }
   if (btn) { btn.disabled = false; btn.textContent = 'Crear Grupo + Anuncio →'; }
 }
@@ -10494,17 +11308,43 @@ async function createGAdsKeywords() {
     var data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    if (result) result.innerHTML = '<div style="padding:14px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);margin-top:8px;">'
-      + '<div style="font-size:14px;font-weight:700;margin-bottom:6px;">🎉 ¡Campaña completa!</div>'
-      + esc(data.count) + ' keywords agregadas.<br><br>'
-      + 'Tu campaña está lista en Google Ads en estado <strong>PAUSADO</strong>.<br>'
-      + 'Revísala en <a href="https://ads.google.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">ads.google.com</a> y actívala cuando estés listo.'
-      + '</div>';
+    if (result) {
+      clearElement(result);
+      var success = document.createElement('div');
+      success.style.cssText = 'padding:14px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);margin-top:8px;';
+      var title = document.createElement('div');
+      title.style.cssText = 'font-size:14px;font-weight:700;margin-bottom:6px;';
+      title.textContent = '🎉 ¡Campaña completa!';
+      var line1 = document.createElement('div');
+      line1.textContent = String(data.count || 0) + ' keywords agregadas.';
+      var line2 = document.createElement('div');
+      line2.style.marginTop = '10px';
+      line2.append(
+        document.createTextNode('Tu campaña está lista en Google Ads en estado '),
+        Object.assign(document.createElement('strong'), { textContent: 'PAUSADO' }),
+        document.createTextNode('.')
+      );
+      var line3 = document.createElement('div');
+      line3.style.marginTop = '6px';
+      line3.append(
+        document.createTextNode('Revísala en '),
+        Object.assign(document.createElement('a'), {
+          href: 'https://ads.google.com',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          textContent: 'ads.google.com',
+          style: 'color:var(--accent);'
+        }),
+        document.createTextNode(' y actívala cuando estés listo.')
+      );
+      success.append(title, line1, line2, line3);
+      result.appendChild(success);
+    }
     saveDeliverable('Google Ads', '📢', 'Campaña creada', 'Campaña: ' + (document.getElementById('gc-name')?.value || '') + ' | Keywords: ' + data.count);
     showToast('✓ Campaña creada en Google Ads');
     setTimeout(function() { loadGAdsDashboard(); }, 2000);
   } catch(e) {
-    if (result) result.innerHTML = '<div style="padding:10px;background:rgba(224,112,112,0.07);border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;color:#e07070;margin-top:8px;">⚠️ ' + esc(e.message) + '</div>';
+    if (result) result.replaceChildren(createStatusNotice('⚠️ ' + (e.message || 'Error'), 'error', { marginTop: '8px' }));
   }
   if (btn) { btn.disabled = false; btn.textContent = '✓ Agregar Keywords y Finalizar'; }
 }
@@ -10680,7 +11520,10 @@ async function subscribeWeeklyScore() {
   var resultEl = document.getElementById('ws-subscribe-result');
   if (!cfg.email) { showToast('Ingresa tu email'); return; }
 
-  if (resultEl) resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);">⏳ Configurando...</div>';
+  if (resultEl) {
+    clearElement(resultEl);
+    appendTextLine(resultEl, '⏳ Configurando...', 'font-size:12px;color:var(--muted);');
+  }
 
   try {
     var res = await fetch('/api/email/subscribe', {
@@ -10690,14 +11533,25 @@ async function subscribeWeeklyScore() {
     var data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    if (resultEl) resultEl.innerHTML = '<div style="padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);">'
-      + '✓ ' + esc(data.message) + '</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      var success = document.createElement('div');
+      success.style.cssText = 'padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);';
+      success.textContent = '✓ ' + String(data.message || '');
+      resultEl.appendChild(success);
+    }
     showToast('✓ Reporte semanal activado');
 
     // Save to localStorage too
     DB.set('weekly_score_config', cfg);
   } catch(e) {
-    if (resultEl) resultEl.innerHTML = '<div style="padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;">⚠️ ' + esc(e.message) + '</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      var failure = document.createElement('div');
+      failure.style.cssText = 'padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;';
+      failure.textContent = '⚠️ ' + String(e.message || '');
+      resultEl.appendChild(failure);
+    }
   }
 }
 
@@ -10733,7 +11587,8 @@ async function previewWeeklyScore() {
     if (loadEl) loadEl.style.display = 'none';
     if (emptyEl) {
       emptyEl.style.display = 'flex';
-      emptyEl.innerHTML = '<div style="color:#e07070;font-size:13px;">⚠️ ' + esc(e.message) + '</div>';
+      clearElement(emptyEl);
+      appendTextLine(emptyEl, '⚠️ ' + String(e.message || ''), 'color:#e07070;font-size:13px;');
     }
     showToast('Error: ' + e.message);
   }
@@ -10744,7 +11599,10 @@ async function sendWeeklyScoreNow() {
   var resultEl = document.getElementById('ws-send-result');
   if (!cfg.email) { showToast('Ingresa el email destinatario'); return; }
 
-  if (resultEl) resultEl.innerHTML = '<div style="font-size:12px;color:var(--muted);">⏳ Generando y enviando...</div>';
+  if (resultEl) {
+    clearElement(resultEl);
+    appendTextLine(resultEl, '⏳ Generando y enviando...', 'font-size:12px;color:var(--muted);');
+  }
 
   try {
     var res = await fetch('/api/email/send-now', {
@@ -10754,10 +11612,22 @@ async function sendWeeklyScoreNow() {
     var data = await res.json();
     if (data.error) throw new Error(data.error);
 
-    if (resultEl) resultEl.innerHTML = '<div style="padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);">✓ Email enviado a ' + esc(cfg.email) + '</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      var sent = document.createElement('div');
+      sent.style.cssText = 'padding:10px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:12px;color:var(--accent2);';
+      sent.textContent = '✓ Email enviado a ' + String(cfg.email || '');
+      resultEl.appendChild(sent);
+    }
     showToast('✓ Reporte enviado');
   } catch(e) {
-    if (resultEl) resultEl.innerHTML = '<div style="padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;">⚠️ ' + esc(e.message) + '</div>';
+    if (resultEl) {
+      clearElement(resultEl);
+      var sendError = document.createElement('div');
+      sendError.style.cssText = 'padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;';
+      sendError.textContent = '⚠️ ' + String(e.message || '');
+      resultEl.appendChild(sendError);
+    }
   }
 }
 
@@ -10845,7 +11715,8 @@ Incluye screenshots conceptuales o descripción visual de cada issue.`
 async function runQATest(type) {
   var resultEl = document.getElementById('sa-qa-result');
   if (!resultEl) return;
-  resultEl.innerHTML = '<div style="color:rgba(224,112,112,0.6);font-size:12px;">⏳ Analizando...</div>';
+  clearElement(resultEl);
+  appendTextLine(resultEl, '⏳ Analizando...', 'color:rgba(224,112,112,0.6);font-size:12px;');
 
   var prompt = QA_PROMPTS[type] || QA_PROMPTS.full;
   try {
@@ -10858,13 +11729,23 @@ async function runQATest(type) {
     });
     var data = await res.json();
     _lastReply = data.reply || '';
-    resultEl.innerHTML = '<div style="white-space:pre-wrap;line-height:1.8;">' + escPreserve(data.reply || 'Sin respuesta') + '</div>'
-      + '<div style="margin-top:10px;display:flex;gap:6px;">'
-      + '<button onclick="copyLastReply(this)" style="font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;">📋 Copiar reporte</button>'
-      + '<button onclick="saveLastReply(\'QA & Seguridad\',\'🧪\',\'Reporte QA\')" style="font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;">💾 Guardar</button>'
-      + '</div>';
+    clearElement(resultEl);
+    var qaReply = document.createElement('div');
+    qaReply.style.cssText = 'white-space:pre-wrap;line-height:1.8;';
+    setFormattedText(qaReply, data.reply || 'Sin respuesta');
+    resultEl.appendChild(qaReply);
+    var qaActions = document.createElement('div');
+    qaActions.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
+    qaActions.appendChild(createActionButton('📋 Copiar reporte', function(event) {
+      copyLastReply(event.currentTarget);
+    }, 'font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;'));
+    qaActions.appendChild(createActionButton('💾 Guardar', function() {
+      saveLastReply('QA & Seguridad','🧪','Reporte QA');
+    }, 'font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;'));
+    resultEl.appendChild(qaActions);
   } catch(e) {
-    resultEl.innerHTML = '<div style="color:#e07070;">Error: ' + esc(e.message) + '</div>';
+    clearElement(resultEl);
+    appendTextLine(resultEl, 'Error: ' + String(e.message || ''), 'color:#e07070;');
   }
 }
 
@@ -10875,7 +11756,10 @@ async function runQACustom() {
   input.value = '';
   
   var resultEl = document.getElementById('sa-qa-result');
-  if (resultEl) resultEl.innerHTML = '<div style="color:rgba(224,112,112,0.6);font-size:12px;">⏳ Analizando: ' + esc(prompt) + '</div>';
+  if (resultEl) {
+    clearElement(resultEl);
+    appendTextLine(resultEl, '⏳ Analizando: ' + String(prompt || ''), 'color:rgba(224,112,112,0.6);font-size:12px;');
+  }
   
   try {
     var res = await fetch('/api/chat', {
@@ -10887,10 +11771,20 @@ async function runQACustom() {
     });
     var data = await res.json();
     _lastReply = data.reply || '';
-    resultEl.innerHTML = '<div style="white-space:pre-wrap;line-height:1.8;">' + escPreserve(data.reply || '') + '</div>'
-      + '<div style="margin-top:10px;"><button onclick="copyLastReply(this)" style="font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;">📋 Copiar</button></div>';
+    clearElement(resultEl);
+    var customReply = document.createElement('div');
+    customReply.style.cssText = 'white-space:pre-wrap;line-height:1.8;';
+    setFormattedText(customReply, data.reply || '');
+    resultEl.appendChild(customReply);
+    var customActions = document.createElement('div');
+    customActions.style.cssText = 'margin-top:10px;';
+    customActions.appendChild(createActionButton('📋 Copiar', function(event) {
+      copyLastReply(event.currentTarget);
+    }, 'font-size:10px;padding:3px 8px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.2);border-radius:4px;color:#e07070;cursor:pointer;'));
+    resultEl.appendChild(customActions);
   } catch(e) {
-    resultEl.innerHTML = '<div style="color:#e07070;">Error: ' + esc(e.message) + '</div>';
+    clearElement(resultEl);
+    appendTextLine(resultEl, 'Error: ' + String(e.message || ''), 'color:#e07070;');
   }
 }
 
