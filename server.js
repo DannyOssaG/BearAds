@@ -258,6 +258,9 @@ function defaultIntegrationHub() {
     notes: '',
     platforms: [],
     connections: {
+      google: null,
+      gsc: null,
+      ga4: null,
       meta: null,
       googleAds: null,
       email: null,
@@ -593,6 +596,78 @@ function upsertOAuthUser(profile, accessToken, refreshToken) {
 
   saveOAuthUsers();
   return userId;
+}
+
+function persistOAuthTokens(userId, credentials) {
+  if (!userId || !credentials) return;
+  const existing = oauthUsers[userId] || {};
+  oauthUsers[userId] = {
+    ...existing,
+    id: existing.id || userId,
+    accessToken: credentials.access_token || existing.accessToken || null,
+    refreshToken: credentials.refresh_token || existing.refreshToken || null,
+    updatedAt: new Date().toISOString()
+  };
+  saveOAuthUsers();
+}
+
+function getGoogleAuthSource(source) {
+  if (!source) return { userId: null, accessToken: null, refreshToken: null };
+  if (typeof source === 'string') {
+    return { userId: null, accessToken: source, refreshToken: null };
+  }
+  return {
+    userId: source.id || null,
+    accessToken: source.accessToken || null,
+    refreshToken: source.refreshToken || null
+  };
+}
+
+async function createGoogleOAuthClient(source) {
+  const authSource = getGoogleAuthSource(source);
+  const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.CALLBACK_URL || 'http://localhost:3000/auth/google/callback'
+  );
+
+  auth.setCredentials({
+    access_token: authSource.accessToken || undefined,
+    refresh_token: authSource.refreshToken || undefined
+  });
+
+  if (authSource.refreshToken) {
+    try {
+      const refreshResponse = await auth.refreshAccessToken();
+      const refreshedCredentials = refreshResponse?.credentials || auth.credentials || {};
+      auth.setCredentials({
+        ...auth.credentials,
+        ...refreshedCredentials,
+        refresh_token: authSource.refreshToken
+      });
+      persistOAuthTokens(authSource.userId, {
+        ...refreshedCredentials,
+        refresh_token: authSource.refreshToken
+      });
+    } catch (error) {
+      console.warn('Google token refresh error:', error.message);
+    }
+  }
+
+  return auth;
+}
+
+async function getGoogleBearerToken(source) {
+  const auth = await createGoogleOAuthClient(source);
+  const credentialsToken = auth.credentials?.access_token;
+  if (credentialsToken) return credentialsToken;
+  try {
+    const tokenResponse = await auth.getAccessToken();
+    return typeof tokenResponse === 'string' ? tokenResponse : tokenResponse?.token || null;
+  } catch (error) {
+    console.warn('Google access token lookup error:', error.message);
+    return null;
+  }
 }
 
 app.set('trust proxy', 1);
@@ -1235,15 +1310,147 @@ app.patch('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
 app.get('/api/debug/gsc-sites', async (req, res) => {
   if (!req.isAuthenticated()) return res.json({ error: 'No autenticado' });
   try {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: req.user.accessToken });
+    const currentUser = rehydrateRequestUser(req) || req.user;
+    const auth = await createGoogleOAuthClient(currentUser);
     const webmasters = google.webmasters({ version: 'v3', auth });
     const sitesRes = await webmasters.sites.list();
     const sites = sitesRes.data.siteEntry || [];
-    res.json({ user: req.user.email, totalSites: sites.length, sites: sites.map(s => ({ url: s.siteUrl, level: s.permissionLevel })) });
+    res.json({ user: currentUser.email, totalSites: sites.length, sites: sites.map(s => ({ url: s.siteUrl, level: s.permissionLevel })) });
   } catch(err) {
     res.json({ error: err.message });
   }
+});
+
+async function listGSCSites(source) {
+  try {
+    const auth = await createGoogleOAuthClient(source);
+    const webmasters = google.webmasters({ version: 'v3', auth });
+    const sitesRes = await webmasters.sites.list();
+    const sites = sitesRes.data.siteEntry || [];
+    return {
+      connected: true,
+      total: sites.length,
+      sites: sites.map(site => ({
+        url: site.siteUrl,
+        permissionLevel: site.permissionLevel
+      }))
+    };
+  } catch (error) {
+    return {
+      connected: false,
+      error: error.message
+    };
+  }
+}
+
+async function listGA4Properties(source) {
+  try {
+    const auth = await createGoogleOAuthClient(source);
+    const analyticsAdmin = google.analyticsadmin({ version: 'v1beta', auth });
+    const accountSummariesRes = await analyticsAdmin.accountSummaries.list({ pageSize: 200 });
+    const summaries = accountSummariesRes.data.accountSummaries || [];
+
+    const properties = summaries.flatMap(summary =>
+      (summary.propertySummaries || []).map(property => ({
+        account: summary.displayName || summary.name || 'Cuenta GA4',
+        propertyId: String(property.property || '').split('/').pop() || '',
+        property: property.property || '',
+        displayName: property.displayName || 'Propiedad sin nombre',
+        propertyType: property.propertyType || ''
+      }))
+    );
+
+    return {
+      connected: true,
+      totalAccounts: summaries.length,
+      totalProperties: properties.length,
+      properties
+    };
+  } catch (error) {
+    return {
+      connected: false,
+      error: error.message
+    };
+  }
+}
+
+async function listAccessibleGoogleAdsCustomers(req, source = null) {
+  if (!req.isAuthenticated()) {
+    return { connected: false, error: 'No autenticado' };
+  }
+
+  if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN) {
+    return {
+      connected: false,
+      error: 'GOOGLE_ADS_DEVELOPER_TOKEN no configurado en el servidor'
+    };
+  }
+
+  try {
+    const currentUser = source || rehydrateRequestUser(req) || req.user;
+    const bearerToken = await getGoogleBearerToken(currentUser);
+    if (!bearerToken) {
+      throw new Error('No pude obtener un access token válido de Google');
+    }
+    const response = await fetch('https://googleads.googleapis.com/v20/customers:listAccessibleCustomers', {
+      method: 'GET',
+      headers: {
+        Authorization: 'Bearer ' + bearerToken,
+        'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN
+      }
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+      let parsed = {};
+      try { parsed = JSON.parse(text); } catch (e) {}
+      throw new Error(parsed.error?.message || text.substring(0, 200) || `HTTP ${response.status}`);
+    }
+
+    const data = JSON.parse(text);
+    const resourceNames = Array.isArray(data.resourceNames) ? data.resourceNames : [];
+    const customers = resourceNames.map(name => ({
+      resourceName: name,
+      customerId: String(name).split('/').pop()
+    }));
+
+    return {
+      connected: true,
+      total: customers.length,
+      customers
+    };
+  } catch (error) {
+    return {
+      connected: false,
+      error: error.message
+    };
+  }
+}
+
+app.get('/api/google/connections', requireAuth, async (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  if (!currentUser?.accessToken && !currentUser?.refreshToken) {
+    return res.status(400).json({ error: 'La sesión no tiene access token de Google' });
+  }
+
+  const [gsc, ga4, googleAds] = await Promise.all([
+    listGSCSites(currentUser),
+    listGA4Properties(currentUser),
+    listAccessibleGoogleAdsCustomers(req, currentUser)
+  ]);
+
+  res.json({
+    connected: true,
+    user: {
+      email: currentUser.email,
+      name: currentUser.name
+    },
+    googleServices: {
+      gsc,
+      ga4,
+      googleAds
+    }
+  });
 });
 
 
@@ -1293,10 +1500,9 @@ async function scrapeSite(url) {
 // ── GOOGLE SEARCH CONSOLE DATA ──
 
 
-async function getGSCData(accessToken, siteUrl) {
+async function getGSCData(source, siteUrl) {
   try {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
+    const auth = await createGoogleOAuthClient(source);
     const webmasters = google.webmasters({ version: 'v3', auth });
 
     // ── Step 1: Get all verified sites from this Google account ──
@@ -1423,10 +1629,9 @@ async function getGSCData(accessToken, siteUrl) {
 // ── GOOGLE ANALYTICS 4 DATA ──
 
 
-async function getGA4Data(accessToken, propertyId) {
+async function getGA4Data(source, propertyId) {
   try {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
+    const auth = await createGoogleOAuthClient(source);
     const analyticsData = google.analyticsdata({ version: 'v1beta', auth });
 
     const endDate = 'today';
@@ -1575,9 +1780,10 @@ app.post('/api/analyze', async (req, res) => {
       scrapeSite(cleanUrl),
       req.isAuthenticated()
         ? (async () => {
+            const currentUser = rehydrateRequestUser(req) || req.user;
             const [gsc, ga4] = await Promise.allSettled([
-              getGSCData(req.user.accessToken, cleanUrl),
-              ga4PropertyId ? getGA4Data(req.user.accessToken, ga4PropertyId) : Promise.resolve({ connected: false })
+              getGSCData(currentUser, cleanUrl),
+              ga4PropertyId ? getGA4Data(currentUser, ga4PropertyId) : Promise.resolve({ connected: false })
             ]);
             return {
               gsc: gsc.status === 'fulfilled' ? gsc.value : { connected: false },
@@ -1606,12 +1812,12 @@ TEXTO: ${site.visibleText}`;
     const trafficContext = traffic.gsc?.connected
       ? `\nDATA REAL GOOGLE SEARCH CONSOLE (${traffic.gsc.period}):
 Total clics: ${traffic.gsc.totalClicks} | Impresiones: ${traffic.gsc.totalImpressions} | Posición media: ${traffic.gsc.avgPosition}
-Top keywords: ${traffic.gsc.queries?.slice(0,10).map(q => `"${q.query}" (${q.clicks} clics, pos ${q.position})`).join(', ')}
-Top páginas: ${traffic.gsc.pages?.slice(0,5).map(p => `${p.page} (${p.clicks} clics)`).join(', ')}` : '\nSin datos de Search Console conectados.';
+Top keywords: ${(traffic.gsc.topQueries || []).slice(0,10).map(q => `"${q.query}" (${q.clicks} clics, pos ${q.position})`).join(', ')}
+Top páginas: ${(traffic.gsc.topPages || []).slice(0,5).map(p => `${p.page} (${p.clicks} clics)`).join(', ')}` : '\nSin datos de Search Console conectados.';
 
     const ga4Context = traffic.ga4?.connected
       ? `\nDATA REAL GOOGLE ANALYTICS 4 (${traffic.ga4.period}):
-Sesiones: ${traffic.ga4.overview?.sessions} | Usuarios: ${traffic.ga4.overview?.users} | Rebote: ${traffic.ga4.overview?.bounceRate} | Duración media: ${traffic.ga4.overview?.avgDuration}
+Sesiones: ${traffic.ga4.sessions} | Usuarios: ${traffic.ga4.users} | Rebote: ${traffic.ga4.bounceRate} | Duración media: ${traffic.ga4.avgSessionDuration}
 Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`).join(', ')}` : '\nSin datos de GA4 conectados.';
 
     const fullContext = siteContext + trafficContext + ga4Context;
@@ -2410,11 +2616,11 @@ app.post('/api/traffic-data', async (req, res) => {
     return res.json({ gsc: { connected: false }, ga4: { connected: false }, reason: 'not_authenticated' });
   }
   const { siteUrl, ga4PropertyId } = req.body;
-  const { accessToken } = req.user;
+  const currentUser = rehydrateRequestUser(req) || req.user;
 
   const [gsc, ga4] = await Promise.allSettled([
-    siteUrl ? getGSCData(accessToken, siteUrl) : Promise.resolve({ connected: false, reason: 'no_url' }),
-    ga4PropertyId ? getGA4Data(accessToken, ga4PropertyId) : Promise.resolve({ connected: false, reason: 'no_property_id' })
+    siteUrl ? getGSCData(currentUser, siteUrl) : Promise.resolve({ connected: false, reason: 'no_url' }),
+    ga4PropertyId ? getGA4Data(currentUser, ga4PropertyId) : Promise.resolve({ connected: false, reason: 'no_property_id' })
   ]);
 
   res.json({

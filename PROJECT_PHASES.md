@@ -231,3 +231,43 @@ Cada vez que cerremos una conversacion de trabajo, este archivo debe actualizars
 Objetivo:
 
 usar este archivo como memoria operativa del proyecto para no depender solo del contexto del chat.
+
+## Ultima actualizacion de trabajo
+
+Fecha:
+2026-04-11
+
+Fase actual:
+Fase 2 - Diagnostico con datos reales
+
+Avances realizados en esta conversacion:
+
+- Se documento formalmente la finalidad del proyecto y el esquema de fases.
+- Se dejo registrado que Google OAuth es acceso temporal controlado para pruebas internas.
+- Se dejo visible pero desactivada la opcion de registro con correo como decision operativa temporal.
+- Se hizo limpieza de branding legado en backend, tests y documentacion base.
+- Se corrigieron mensajes de UI que prometian fases futuras dentro del core.
+- Se alineo mejor la landing con el nucleo real del producto: diagnostico, estrategia y activacion.
+- Se agrego deteccion automatica de Google Search Console, GA4 y Google Ads despues del login con Google.
+- Se conecto esa deteccion al frontend en Integraciones.
+- Se permitio guardar en el workspace la seleccion de:
+  - sitio de Search Console,
+  - propiedad GA4,
+  - cuenta de Google Ads.
+- Se configuro el sistema para reutilizar por defecto esos valores guardados en:
+  - Integraciones,
+  - dashboard live de Google,
+  - flujo de analisis.
+- Se corrigio el flujo de "Analisis recientes" para que los nuevos reportes se guarden completos y puedan volver a abrirse desde el historial sin quedar vacios.
+- Se agregaron menus desplegables para elegir desde la cuenta conectada el sitio de Search Console, la propiedad de GA4 y la cuenta de Google Ads que se quiere usar.
+
+Pendientes inmediatos:
+
+- usar de forma mas automatica la seleccion guardada para disminuir pasos manuales,
+- revisar el flujo completo URL + Google -> analisis -> dashboard -> estrategia,
+- validar visualmente que GA4 renderice sus metricas dentro del reporte final cuando la propiedad seleccionada devuelve datos,
+- seguir reduciendo ruido de modulos no core.
+
+Siguiente paso recomendado:
+
+cerrar el flujo principal dentro de la app para que, despues del login con Google, el usuario llegue a un analisis con contexto precargado y una ruta obvia hacia estrategia.

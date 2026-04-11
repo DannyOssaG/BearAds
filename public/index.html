@@ -2467,10 +2467,10 @@ tr:hover td { background: var(--surface2); }
             <div style="font-weight:700;font-size:14px;">TikTok Ads</div>
             <div style="font-size:11px;color:var(--muted);">In-Feed · TopView · Branded</div>
           </div>
-          <div style="font-size:10px;padding:3px 8px;border-radius:5px;font-weight:700;background:rgba(107,114,128,0.15);color:var(--muted);">FASE 2</div>
+          <div style="font-size:10px;padding:3px 8px;border-radius:5px;font-weight:700;background:rgba(107,114,128,0.15);color:var(--muted);">NO ACTIVO</div>
         </div>
         <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">Crea y optimiza campañas de TikTok Ads con IA. Guiones de video, audiencias y presupuestos automáticos.</div>
-        <button onclick="showToast('TikTok Ads llega en la próxima actualización')" style="width:100%;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;">Notificarme cuando esté disponible</button>
+        <button onclick="showToast('TikTok Ads no está activo en esta etapa del producto')" style="width:100%;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);cursor:pointer;">Ver estado actual</button>
       </div>
 
       <!-- Email (Mailchimp/Klaviyo) -->
@@ -2661,7 +2661,7 @@ tr:hover td { background: var(--surface2); }
         <div style="padding:12px;background:var(--surface2);border-radius:8px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:4px;">📤 Zapier / Make</div>
           <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Conecta con más de 5000 apps</div>
-          <button onclick="showToast('Integración con Zapier próximamente')" style="padding:8px 14px;background:rgba(255,100,0,0.1);border:1px solid rgba(255,100,0,0.2);border-radius:6px;font-size:12px;color:#ff6400;cursor:pointer;font-weight:600;">Conectar Zapier</button>
+          <button onclick="showToast('La integración con Zapier aún no está activa en esta etapa')" style="padding:8px 14px;background:rgba(255,100,0,0.1);border:1px solid rgba(255,100,0,0.2);border-radius:6px;font-size:12px;color:#ff6400;cursor:pointer;font-weight:600;">Estado de Zapier</button>
         </div>
         <div style="padding:12px;background:var(--surface2);border-radius:8px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🤖 API de BearAds</div>
@@ -3419,6 +3419,23 @@ tr:hover td { background: var(--surface2); }
           </div>
           <div id="google-connect-hint" style="font-size:11px;color:var(--muted);white-space:nowrap;"></div>
         </div>
+        <div id="analyze-google-selectors" style="display:none;margin-top:10px;padding:12px;background:rgba(255,255,255,0.7);border:1px solid rgba(123,167,232,0.12);border-radius:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:0.8px;margin-bottom:10px;">FUENTES DETECTADAS EN GOOGLE</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Search Console</div>
+              <select id="analyze-gsc-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"></select>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Google Analytics 4</div>
+              <select id="analyze-ga4-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"></select>
+            </div>
+            <div style="flex:1;min-width:220px;">
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">Google Ads</div>
+              <select id="analyze-gads-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"></select>
+            </div>
+          </div>
+        </div>
         <div style="margin-top:8px;font-size:10px;color:var(--muted);">
           BearAds cruza SEO, anuncios, contenido, conversión y tráfico. Si conectas Google, el resultado será más preciso.
         </div>
@@ -3998,7 +4015,7 @@ function createAuthCtaNode(message) {
   var disabled = document.createElement('button');
   disabled.type = 'button';
   disabled.disabled = true;
-  disabled.textContent = '✉️ Registro con correo (próximamente)';
+  disabled.textContent = '✉️ Registro con correo (temporalmente desactivado)';
   disabled.style.cssText = 'padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;';
   actions.appendChild(disabled);
 
@@ -4095,7 +4112,7 @@ function getAuthCtaHtml(message) {
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <a href="/auth/google" style="padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;">🔗 Entrar con Google</a>
       <button onclick="refreshAppSession().then(()=>showToast('Sesión actualizada'))" style="padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">🔄 Reintentar</button>
-      <button disabled style="padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;">✉️ Registro con correo (próximamente)</button>
+      <button disabled style="padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;">✉️ Registro con correo (temporalmente desactivado)</button>
     </div>
   </div>`;
 }
@@ -4128,6 +4145,7 @@ function saveAnalysisToHistory(data) {
     url: data.url,
     siteTitle: data.siteTitle || data.url,
     globalScore: data.globalScore,
+    report: data,
     seo: data.seo?.score, sem: data.sem?.score,
     contenido: data.contenido?.score, cro: data.cro?.score, trafico: data.trafico?.score,
     // Full agent summaries for comparison view
@@ -5117,6 +5135,27 @@ function loadAnalysisFromHistory(id) {
   setTimeout(()=>{
     const url = document.getElementById('analyze-url');
     if (url) url.value = item.url;
+    const fullReport = item.report || null;
+    if (!fullReport) {
+      document.getElementById('analyze-loading').style.display = 'none';
+      document.getElementById('analyze-results').style.display = 'none';
+      const emptyEl = document.getElementById('analyze-empty');
+      if (emptyEl) {
+        emptyEl.style.display = 'block';
+        clearElement(emptyEl);
+        appendTextLine(emptyEl, '📄', 'font-size:40px;margin-bottom:16px;');
+        appendTextLine(emptyEl, 'Este análisis reciente no tiene el reporte completo guardado', "font-family:'Plus Jakarta Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:8px;");
+        appendTextLine(emptyEl, 'Los análisis nuevos ya se guardan completos. Para este caso, vuelve a ejecutarlo y quedará disponible correctamente en el historial.', 'font-size:12px;color:var(--muted);line-height:1.7;max-width:620px;margin:0 auto 16px;');
+        emptyEl.appendChild(createActionButton('🔄 Volver a analizar', startAnalysis, 'font-size:13px;padding:10px 18px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-weight:800;cursor:pointer;'));
+      }
+      showToast('Este análisis viejo no tenía el reporte completo guardado');
+      return;
+    }
+    currentAnalysis = fullReport;
+    document.getElementById('analyze-empty').style.display = 'none';
+    document.getElementById('analyze-loading').style.display = 'none';
+    renderResults(fullReport);
+    document.getElementById('analyze-results').style.display = 'block';
     showToast(`Historial: ${item.siteTitle||item.url} — Score ${item.globalScore}/100`);
   }, 100);
 }
@@ -6077,7 +6116,8 @@ async function startAnalysis() {
 
   try {
     const ga4Input = document.getElementById('ga4-property-id');
-    const ga4PropertyId = ga4Input ? ga4Input.value.trim() : '';
+    const defaultSelection = getDefaultGoogleAnalysisSelection();
+    const ga4PropertyId = ga4Input ? (ga4Input.value.trim() || defaultSelection.ga4PropertyId || '') : (defaultSelection.ga4PropertyId || '');
     const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,ga4PropertyId:ga4PropertyId||undefined})});
     if (!res.ok) {
       let err = {};
@@ -6090,6 +6130,21 @@ async function startAnalysis() {
     const data = await res.json();
     currentAnalysis = data;
     saveAnalysisToHistory(data);
+    await saveGoogleConnectionSelection({
+      google: appSession?.user ? {
+        connectedAt: new Date().toISOString(),
+        email: appSession.user.email || '',
+        name: appSession.user.name || ''
+      } : intgConnections.google,
+      gsc: {
+        siteUrl: url,
+        selectedAt: new Date().toISOString()
+      },
+      ga4: ga4PropertyId ? {
+        propertyId: ga4PropertyId,
+        selectedAt: new Date().toISOString()
+      } : intgConnections.ga4
+    }, ['google', 'gsc', ga4PropertyId ? 'ga4' : null].filter(Boolean));
 
     badges.forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('loading');el.classList.add('done');}});
     setTimeout(()=>{
@@ -6231,6 +6286,7 @@ function renderResults(data) {
       // GSC
       if (data.gscData) {
         const g = data.gscData;
+        const topQueries = g.topQueries || g.queries || [];
         const setT = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
         setT('gsc-clicks', (g.totalClicks || 0).toLocaleString());
         setT('gsc-impressions', (g.totalImpressions || 0).toLocaleString());
@@ -6238,10 +6294,10 @@ function renderResults(data) {
         setT('gsc-position', g.avgPosition ? parseFloat(g.avgPosition).toFixed(1) : '--');
         setT('gsc-period', 'Últimos 28 días');
         // Top queries
-        const qEl = document.getElementById('gsc-top-queries');
-        if (qEl && g.topQueries?.length) {
+        const qEl = document.getElementById('gsc-keywords');
+        if (qEl && topQueries.length) {
           clearElement(qEl);
-          g.topQueries.slice(0, 5).forEach(function(query) {
+          topQueries.slice(0, 5).forEach(function(query) {
             var row = document.createElement('div');
             row.style.cssText = 'display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;';
             var label = document.createElement('span');
@@ -6262,8 +6318,8 @@ function renderResults(data) {
         const setT = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
         setT('ga4-sessions', (a.sessions || 0).toLocaleString());
         setT('ga4-users', (a.users || 0).toLocaleString());
-        setT('ga4-bounce', a.bounceRate ? (parseFloat(a.bounceRate) * 100).toFixed(1) + '%' : '--');
-        setT('ga4-duration', a.avgSessionDuration ? Math.round(parseFloat(a.avgSessionDuration)) + 's' : '--');
+        setT('ga4-bounce', a.bounceRate || '--');
+        setT('ga4-duration', a.avgSessionDuration || a.avgDuration || '--');
       }
     } else if (data.googleConnected === false) {
       // Google connected but no data — show connect prompt inside results
@@ -6629,6 +6685,11 @@ function renderRealData(trafficData) {
   const gsc = trafficData?.gsc;
   const ga4 = trafficData?.ga4;
   const hasRealData = gsc?.connected || ga4?.connected;
+  const ga4Sessions = ga4?.overview?.sessions ?? ga4?.sessions ?? 0;
+  const ga4Users = ga4?.overview?.users ?? ga4?.users ?? 0;
+  const ga4BounceRate = ga4?.overview?.bounceRate || ga4?.bounceRate || '--';
+  const ga4Duration = ga4?.overview?.avgDuration || ga4?.overview?.avgSessionDuration || ga4?.avgDuration || ga4?.avgSessionDuration || '--';
+  const gscQueries = gsc?.queries || gsc?.topQueries || [];
 
   document.getElementById('real-data-panels').style.display = hasRealData ? 'block' : 'none';
   document.getElementById('no-google-notice').style.display = hasRealData ? 'none' : 'block';
@@ -6640,10 +6701,10 @@ function renderRealData(trafficData) {
     document.getElementById('gsc-position').textContent = gsc.avgPosition || '--';
 
 	    const kwEl = document.getElementById('gsc-keywords');
-	    if (kwEl && gsc.queries?.length) {
-	      const maxClicks = Math.max(...gsc.queries.map(q => q.clicks), 1);
+	    if (kwEl && gscQueries.length) {
+	      const maxClicks = Math.max(...gscQueries.map(q => q.clicks), 1);
 	      clearElement(kwEl);
-	      gsc.queries.slice(0, 12).forEach(function(q) {
+	      gscQueries.slice(0, 12).forEach(function(q) {
 	        var row = document.createElement('div');
 	        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border-radius:6px;';
 	        appendTextLine(row, q.query || '', "flex:1;font-family:'Inter',sans-serif;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;");
@@ -6665,10 +6726,10 @@ function renderRealData(trafficData) {
 
   if (ga4?.connected) {
     document.getElementById('ga4-period').textContent = ga4.period || '28 días';
-    document.getElementById('ga4-sessions').textContent = (ga4.overview?.sessions || 0).toLocaleString();
-    document.getElementById('ga4-users').textContent = (ga4.overview?.users || 0).toLocaleString();
-    document.getElementById('ga4-bounce').textContent = ga4.overview?.bounceRate || '--';
-    document.getElementById('ga4-duration').textContent = ga4.overview?.avgDuration || '--';
+    document.getElementById('ga4-sessions').textContent = Number(ga4Sessions || 0).toLocaleString();
+    document.getElementById('ga4-users').textContent = Number(ga4Users || 0).toLocaleString();
+    document.getElementById('ga4-bounce').textContent = ga4BounceRate;
+    document.getElementById('ga4-duration').textContent = ga4Duration;
 
 	    const chEl = document.getElementById('ga4-channels');
 	    if (chEl && ga4.channels?.length) {
@@ -7031,7 +7092,8 @@ async function downloadPDF() {
     actions(currentAnalysis.trafico?.quick_wins||[],'QUICK WINS INMEDIATOS');
 
     // GSC keywords table — solo si hay datos reales
-    if(gsc?.connected && gsc.queries?.length && gsc.totalClicks>0){
+    const gscQueries = gsc?.queries || gsc?.topQueries || [];
+    if(gsc?.connected && gscQueries.length && gsc.totalClicks>0){
       sp(5); need(40);
       secHead('Keywords Reales — Google Search Console','[GSC]');
       sf(BR); doc.rect(M,y,CW,6,'F');
@@ -7039,8 +7101,8 @@ async function downloadPDF() {
       doc.text('KEYWORD',M+3,y+4); doc.text('CLICS',M+98,y+4);
       doc.text('IMPR',M+118,y+4); doc.text('CTR',M+143,y+4); doc.text('POS',M+162,y+4);
       y+=7;
-      const mc=Math.max(...gsc.queries.map(q=>q.clicks),1);
-      gsc.queries.slice(0,12).forEach((q,i)=>{
+      const mc=Math.max(...gscQueries.map(q=>q.clicks),1);
+      gscQueries.slice(0,12).forEach((q,i)=>{
         need(7);
         if(i%2===0){sf(S2);doc.rect(M,y-0.5,CW,6.5,'F');}
         sc(T2); doc.setFontSize(6.8); doc.setFont('helvetica','normal');
@@ -7066,10 +7128,11 @@ async function downloadPDF() {
 
     // GA4 — solo si tiene datos reales (sesiones > 0)
     const ga4=currentAnalysis.trafficData?.ga4;
-    if(ga4?.connected && ga4.overview && ga4.overview.sessions>0){
+    const ga4Overview=currentAnalysis.ga4Data || ga4?.overview || ga4 || null;
+    if(ga4?.connected && ga4Overview && (ga4Overview.sessions||0)>0){
       sp(4); need(40);
       secHead('Datos Reales — Google Analytics 4','[GA4]');
-      const g4m=[{l:'SESIONES',v:(ga4.overview.sessions||0).toLocaleString(),c:AC},{l:'USUARIOS',v:(ga4.overview.users||0).toLocaleString(),c:T2},{l:'REBOTE',v:ga4.overview.bounceRate||'--',c:WA},{l:'DURACIÓN',v:ga4.overview.avgDuration||'--',c:GR}];
+      const g4m=[{l:'SESIONES',v:(ga4Overview.sessions||0).toLocaleString(),c:AC},{l:'USUARIOS',v:(ga4Overview.users||0).toLocaleString(),c:T2},{l:'REBOTE',v:ga4Overview.bounceRate||'--',c:WA},{l:'DURACIÓN',v:ga4Overview.avgDuration||ga4Overview.avgSessionDuration||'--',c:GR}];
       const g4w=(CW-12)/4;
       g4m.forEach((m,i)=>{
         const gx=M+i*(g4w+4);
@@ -7264,7 +7327,7 @@ function getWorkspaceIntegrationHub(session = appSession) {
     status: 'pending',
     notes: '',
     platforms: [],
-    connections: { meta: null, googleAds: null, email: null, ecom: null }
+    connections: { google: null, gsc: null, ga4: null, meta: null, googleAds: null, email: null, ecom: null }
   };
 }
 
@@ -7512,6 +7575,9 @@ async function refreshAppSession() {
   renderRuntimeState(session);
   if (session?.workspace?.integrationHub?.connections) {
     intgConnections = {
+      google: session.workspace.integrationHub.connections.google || null,
+      gsc: session.workspace.integrationHub.connections.gsc || null,
+      ga4: session.workspace.integrationHub.connections.ga4 || null,
       meta: session.workspace.integrationHub.connections.meta || null,
       googleAds: session.workspace.integrationHub.connections.googleAds || null,
       email: session.workspace.integrationHub.connections.email || null,
@@ -7712,9 +7778,9 @@ function renderOnboardingModal() {
         }).join('')
       + '</div>'
       + '<div style="margin-top:14px;padding:12px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.06);border-radius:12px;font-size:12px;color:#51627f;line-height:1.7;">'
-      + '<strong style="color:#0f172a;display:block;margin-bottom:6px;">Registro con correo del mercado</strong>'
-      + 'Próximamente podrás crear cuenta con cualquier correo y validación por email. La opción quedará visible, pero por ahora sigue desactivada mientras terminamos el flujo.'
-      + '<div style="margin-top:8px;"><button disabled style="padding:9px 12px;background:#d8e0ea;border:none;border-radius:10px;color:#6b7280;font-size:12px;font-weight:800;cursor:not-allowed;">Registro con correo (próximamente)</button></div>'
+      + '<strong style="color:#0f172a;display:block;margin-bottom:6px;">Registro con correo</strong>'
+      + 'Esta opción queda visible, pero está desactivada temporalmente mientras BearAds sigue en pruebas internas y el acceso general aún no se abre.'
+      + '<div style="margin-top:8px;"><button disabled style="padding:9px 12px;background:#d8e0ea;border:none;border-radius:10px;color:#6b7280;font-size:12px;font-weight:800;cursor:not-allowed;">Registro con correo (temporalmente desactivado)</button></div>'
       + '</div>'
       + '</div>';
   }
@@ -8443,12 +8509,16 @@ function useCachedAnalysis() {
   const analyses = getAnalysisHistory();
   const normalize = u => u.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
   const cached = analyses.find(a => normalize(a.url||'') === normalize(url||''));
-  if (cached) {
-    currentAnalysis = cached;
-    // Reset the empty area
+  if (cached?.report) {
+    currentAnalysis = cached.report;
     const emptyEl = document.getElementById('analyze-empty');
     if (emptyEl) emptyEl.style.display = 'none';
+    document.getElementById('analyze-loading').style.display = 'none';
+    renderResults(cached.report);
+    document.getElementById('analyze-results').style.display = 'block';
     showToast('✓ Análisis cargado — Score: ' + cached.globalScore + '/100');
+  } else if (cached) {
+    showToast('Este análisis anterior no tenía el reporte completo guardado');
   }
 }
 
@@ -8467,6 +8537,15 @@ function forceNewAnalysis() {
   if (!url) return;
   // Trigger analysis
   document.getElementById('analyze-btn')?.click();
+}
+
+function getDefaultGoogleAnalysisSelection() {
+  const hub = getWorkspaceIntegrationHub();
+  const connections = hub?.connections || {};
+  return {
+    siteUrl: String(connections.gsc?.siteUrl || userProfile.url || '').replace('sc-domain:', ''),
+    ga4PropertyId: connections.ga4?.propertyId || ''
+  };
 }
 
 // Cache check disabled — causes button issues. Using manual offer instead.
@@ -8492,21 +8571,23 @@ document.addEventListener('keydown', e => {
 document.addEventListener('DOMContentLoaded', async () => {
   await loadProfileOnStart();
   refreshDashboard();
-  // Pre-fill analyze URL from profile
-  const profileUrl = userProfile.url;
-  if (profileUrl) {
-    const urlInput = document.getElementById('analyze-url');
-    if (urlInput && !urlInput.value) urlInput.value = profileUrl;
-  }
+  const defaults = getDefaultGoogleAnalysisSelection();
+  const urlInput = document.getElementById('analyze-url');
+  const ga4Input = document.getElementById('ga4-property-id');
+  if (urlInput && !urlInput.value && defaults.siteUrl) urlInput.value = defaults.siteUrl;
+  if (ga4Input && !ga4Input.value && defaults.ga4PropertyId) ga4Input.value = defaults.ga4PropertyId;
+  const snapshot = await ensureGoogleServiceSnapshot();
+  if (snapshot) populateAnalyzeGoogleSelectors(snapshot);
 });
 
 // ══════════════════════════════════════════
 // INTEGRATIONS — Real auth status + connections
 // ══════════════════════════════════════════
 let intgConnections = DB.get('intg_connections', {
-  meta: null, googleAds: null, email: null, ecom: null
+  google: null, gsc: null, ga4: null, meta: null, googleAds: null, email: null, ecom: null
 });
 let currentIntegrationFocus = 'connections';
+let googleServiceSnapshot = null;
 const INTEGRATION_GUIDES = {
   connections: 'Empieza conectando tus fuentes principales. Eso te da datos reales y evita trabajar a ciegas.',
   meta: 'Aquí puedes sacar una campaña Meta guiada: producto, audiencia, presupuesto y checklist listo.',
@@ -8648,6 +8729,327 @@ function renderIntegrationRecommendations() {
   });
 }
 
+function formatGoogleAdsCustomerId(customerId) {
+  var clean = String(customerId || '').replace(/\D/g, '');
+  if (clean.length !== 10) return customerId || '';
+  return clean.slice(0, 3) + '-' + clean.slice(3, 6) + '-' + clean.slice(6);
+}
+
+function fillSelectOptions(selectEl, options, placeholder, selectedValue) {
+  if (!selectEl) return;
+  clearElement(selectEl);
+  var placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = placeholder;
+  selectEl.appendChild(placeholderOption);
+  (options || []).forEach(function(option) {
+    var el = document.createElement('option');
+    el.value = option.value;
+    el.textContent = option.label;
+    if (option.value === selectedValue) el.selected = true;
+    selectEl.appendChild(el);
+  });
+  if (selectedValue && !Array.from(selectEl.options).some(function(option) { return option.value === selectedValue; })) {
+    selectEl.value = '';
+  }
+}
+
+async function ensureGoogleServiceSnapshot() {
+  if (googleServiceSnapshot?.googleServices) return googleServiceSnapshot;
+  try {
+    var authRes = await fetch('/auth/status');
+    var authData = await authRes.json();
+    if (!authData.connected) return null;
+    var connectionsRes = await fetch('/api/google/connections');
+    googleServiceSnapshot = await connectionsRes.json();
+    return googleServiceSnapshot;
+  } catch (error) {
+    return null;
+  }
+}
+
+function populateAnalyzeGoogleSelectors(snapshot) {
+  var panel = document.getElementById('analyze-google-selectors');
+  var gscSelect = document.getElementById('analyze-gsc-select');
+  var ga4Select = document.getElementById('analyze-ga4-select');
+  var gadsSelect = document.getElementById('analyze-gads-select');
+  var urlInput = document.getElementById('analyze-url');
+  var ga4Input = document.getElementById('ga4-property-id');
+  var hint = document.getElementById('google-connect-hint');
+  var defaults = getDefaultGoogleAnalysisSelection();
+  var services = snapshot?.googleServices || {};
+  var gscSites = Array.isArray(services.gsc?.sites) ? services.gsc.sites : [];
+  var ga4Properties = Array.isArray(services.ga4?.properties) ? services.ga4.properties : [];
+  var gadsCustomers = Array.isArray(services.googleAds?.customers) ? services.googleAds.customers : [];
+  var selectedGscValue = intgConnections.gsc?.siteUrl || '';
+  if (!selectedGscValue && defaults.siteUrl) {
+    selectedGscValue = gscSites.find(function(site) {
+      return String(site.url || '').replace('sc-domain:', '') === defaults.siteUrl;
+    })?.url || defaults.siteUrl;
+  }
+
+  if (!panel || !gscSelect || !ga4Select || !gadsSelect) return;
+
+  fillSelectOptions(
+    gscSelect,
+    gscSites.map(function(site) {
+      return {
+        value: String(site.url || ''),
+        label: String(site.url || '').replace('sc-domain:', '')
+      };
+    }),
+    gscSites.length ? 'Selecciona un sitio de Search Console' : 'No se detectaron sitios de Search Console',
+    selectedGscValue
+  );
+
+  fillSelectOptions(
+    ga4Select,
+    ga4Properties.map(function(property) {
+      return {
+        value: String(property.propertyId || ''),
+        label: (property.displayName || 'GA4') + ' · ' + (property.propertyId || '')
+      };
+    }),
+    ga4Properties.length ? 'Selecciona una propiedad de Google Analytics 4' : 'No se detectaron propiedades de Google Analytics 4',
+    intgConnections.ga4?.propertyId || defaults.ga4PropertyId || ''
+  );
+
+  fillSelectOptions(
+    gadsSelect,
+    gadsCustomers.map(function(customer) {
+      return {
+        value: String(customer.customerId || ''),
+        label: 'Google Ads · ' + formatGoogleAdsCustomerId(customer.customerId || '')
+      };
+    }),
+    gadsCustomers.length ? 'Selecciona una cuenta de Google Ads' : 'No se detectaron cuentas de Google Ads',
+    intgConnections.googleAds?.customerId || ''
+  );
+
+  panel.style.display = (gscSites.length || ga4Properties.length || gadsCustomers.length) ? 'block' : 'none';
+  if (hint) {
+    if (ga4Properties.length) {
+      hint.textContent = ga4Properties.length + ' propiedad(es) GA4 detectadas';
+    } else if (gscSites.length) {
+      hint.textContent = gscSites.length + ' sitio(s) de GSC detectados';
+    } else {
+      hint.textContent = '';
+    }
+  }
+
+  gscSelect.onchange = function() {
+    var value = gscSelect.value || '';
+    if (value && urlInput) urlInput.value = value.replace('sc-domain:', '');
+    saveGoogleConnectionSelection({
+      google: appSession?.user ? {
+        connectedAt: new Date().toISOString(),
+        email: appSession.user.email || '',
+        name: appSession.user.name || ''
+      } : intgConnections.google,
+      gsc: value ? {
+        siteUrl: value,
+        selectedAt: new Date().toISOString()
+      } : null
+    }, ['google', 'gsc'], value ? 'Sitio de Search Console seleccionado' : '');
+  };
+
+  ga4Select.onchange = function() {
+    var value = ga4Select.value || '';
+    var selectedProperty = ga4Properties.find(function(property) { return String(property.propertyId || '') === value; }) || null;
+    if (ga4Input) ga4Input.value = value;
+    saveGoogleConnectionSelection({
+      google: appSession?.user ? {
+        connectedAt: new Date().toISOString(),
+        email: appSession.user.email || '',
+        name: appSession.user.name || ''
+      } : intgConnections.google,
+      ga4: value ? {
+        propertyId: value,
+        property: selectedProperty?.property || '',
+        displayName: selectedProperty?.displayName || '',
+        account: selectedProperty?.account || '',
+        selectedAt: new Date().toISOString()
+      } : null
+    }, ['google', 'ga4'], value ? 'Propiedad GA4 seleccionada' : '');
+  };
+
+  gadsSelect.onchange = function() {
+    var value = gadsSelect.value || '';
+    var selectedCustomer = gadsCustomers.find(function(customer) { return String(customer.customerId || '') === value; }) || null;
+    saveGoogleConnectionSelection({
+      googleAds: value ? {
+        customerId: value,
+        resourceName: selectedCustomer?.resourceName || '',
+        selectedAt: new Date().toISOString()
+      } : null
+    }, ['googleAds'], value ? 'Cuenta de Google Ads seleccionada' : '');
+  };
+}
+
+async function saveGoogleConnectionSelection(nextConnections, nextPlatforms, successMessage) {
+  try {
+    intgConnections = {
+      ...intgConnections,
+      ...(nextConnections || {})
+    };
+    DB.set('intg_connections', intgConnections);
+    await persistIntegrationHub({
+      status: 'in_progress',
+      platforms: Array.from(new Set([
+        ...(Array.isArray(getWorkspaceIntegrationHub().platforms) ? getWorkspaceIntegrationHub().platforms : []),
+        ...(nextPlatforms || [])
+      ]))
+    });
+    renderSavedConnections();
+    updateIntgSummary(Boolean(appSession?.user?.googleId));
+    if (successMessage) showToast(successMessage);
+  } catch (error) {
+    showToast(error?.message || 'No pude guardar la selección');
+  }
+}
+
+function applyDetectedGoogleAssets(snapshot) {
+  if (!snapshot || !snapshot.googleServices) return;
+
+  var services = snapshot.googleServices;
+  var hubConnections = getWorkspaceIntegrationHub().connections || {};
+  var firstSite = services.gsc?.sites?.[0]?.url || '';
+  var firstGA4PropertyId = services.ga4?.properties?.[0]?.propertyId || '';
+  var firstGoogleAdsCustomer = services.googleAds?.customers?.[0]?.customerId || '';
+
+  var urlField = document.getElementById('intg-gsc-url');
+  if (urlField && !urlField.value) {
+    urlField.value = String(hubConnections.gsc?.siteUrl || firstSite || '').replace('sc-domain:', '');
+  }
+
+  var ga4Field = document.getElementById('intg-ga4-id');
+  if (ga4Field && !ga4Field.value) {
+    ga4Field.value = hubConnections.ga4?.propertyId || firstGA4PropertyId || '';
+  }
+
+  var gadsCidField = document.getElementById('gads-cid');
+  if (gadsCidField && !gadsCidField.value) {
+    gadsCidField.value = formatGoogleAdsCustomerId(hubConnections.googleAds?.customerId || firstGoogleAdsCustomer || '');
+  }
+}
+
+function renderDetectedGoogleServices(snapshot) {
+  var details = document.getElementById('intg-google-details');
+  if (!details) return;
+  clearElement(details);
+
+  if (!snapshot || !snapshot.googleServices) {
+    appendTextLine(details, 'No pude detectar servicios de Google en esta sesión.', 'font-size:11px;color:var(--muted);');
+    return;
+  }
+
+  var services = snapshot.googleServices;
+  var gsc = services.gsc || {};
+  var ga4 = services.ga4 || {};
+  var googleAds = services.googleAds || {};
+
+  var badgesRow = document.createElement('div');
+  badgesRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;';
+
+  [
+    { ok: !!gsc.connected, label: gsc.connected ? ('✓ GSC · ' + (gsc.total || 0) + ' sitio(s)') : 'GSC no detectado' },
+    { ok: !!ga4.connected, label: ga4.connected ? ('✓ GA4 · ' + (ga4.totalProperties || 0) + ' propiedad(es)') : 'GA4 no detectado' },
+    { ok: !!googleAds.connected, label: googleAds.connected ? ('✓ Google Ads · ' + (googleAds.total || 0) + ' cuenta(s)') : 'Google Ads no detectado' }
+  ].forEach(function(item) {
+    var badge = document.createElement('div');
+    badge.textContent = item.label;
+    badge.style.cssText = 'padding:7px 10px;background:' + (item.ok ? 'rgba(94,201,160,0.07)' : 'rgba(107,114,128,0.10)') + ';border:1px solid ' + (item.ok ? 'rgba(94,201,160,0.12)' : 'rgba(107,114,128,0.15)') + ';border-radius:6px;font-size:11px;color:' + (item.ok ? '#5ec9a0' : 'var(--muted)') + ';';
+    badgesRow.appendChild(badge);
+  });
+  details.appendChild(badgesRow);
+
+  appendTextLine(details, 'Usuario: ' + String(snapshot.user?.email || ''), 'font-size:11px;color:var(--muted);margin-bottom:8px;');
+
+  if (gsc.connected && Array.isArray(gsc.sites) && gsc.sites.length) {
+    var gscBlock = document.createElement('div');
+    gscBlock.style.cssText = 'margin-bottom:8px;padding:10px;background:rgba(255,255,255,0.6);border:1px solid rgba(123,167,232,0.12);border-radius:8px;';
+    appendTextLine(gscBlock, 'Sitios detectados en Search Console', 'font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;');
+    gsc.sites.slice(0, 3).forEach(function(site) {
+      var button = document.createElement('button');
+      button.textContent = String(site.url || '');
+      button.style.cssText = 'display:block;width:100%;text-align:left;margin-bottom:6px;padding:7px 10px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:11px;color:var(--accent);cursor:pointer;';
+      button.onclick = function() {
+        var urlField = document.getElementById('intg-gsc-url');
+        if (urlField) urlField.value = String(site.url || '').replace('sc-domain:', '');
+        saveGoogleConnectionSelection({
+          google: {
+            connectedAt: new Date().toISOString(),
+            email: snapshot.user?.email || '',
+            name: snapshot.user?.name || ''
+          },
+          gsc: {
+            siteUrl: String(site.url || ''),
+            permissionLevel: site.permissionLevel || '',
+            selectedAt: new Date().toISOString()
+          }
+        }, ['google', 'gsc'], 'Sitio de Search Console guardado');
+      };
+      gscBlock.appendChild(button);
+    });
+    details.appendChild(gscBlock);
+  }
+
+  if (ga4.connected && Array.isArray(ga4.properties) && ga4.properties.length) {
+    var ga4Block = document.createElement('div');
+    ga4Block.style.cssText = 'margin-bottom:8px;padding:10px;background:rgba(255,255,255,0.6);border:1px solid rgba(123,167,232,0.12);border-radius:8px;';
+    appendTextLine(ga4Block, 'Propiedades GA4 detectadas', 'font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;');
+    ga4.properties.slice(0, 3).forEach(function(property) {
+      var button = document.createElement('button');
+      button.textContent = (property.displayName || 'GA4') + ' · ' + (property.propertyId || '');
+      button.style.cssText = 'display:block;width:100%;text-align:left;margin-bottom:6px;padding:7px 10px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:11px;color:var(--accent);cursor:pointer;';
+      button.onclick = function() {
+        var ga4Field = document.getElementById('intg-ga4-id');
+        if (ga4Field) ga4Field.value = property.propertyId || '';
+        saveGoogleConnectionSelection({
+          google: {
+            connectedAt: new Date().toISOString(),
+            email: snapshot.user?.email || '',
+            name: snapshot.user?.name || ''
+          },
+          ga4: {
+            propertyId: property.propertyId || '',
+            property: property.property || '',
+            displayName: property.displayName || '',
+            account: property.account || '',
+            selectedAt: new Date().toISOString()
+          }
+        }, ['google', 'ga4'], 'Propiedad GA4 guardada');
+      };
+      ga4Block.appendChild(button);
+    });
+    details.appendChild(ga4Block);
+  }
+
+  if (googleAds.connected && Array.isArray(googleAds.customers) && googleAds.customers.length) {
+    var gadsBlock = document.createElement('div');
+    gadsBlock.style.cssText = 'padding:10px;background:rgba(255,255,255,0.6);border:1px solid rgba(123,167,232,0.12);border-radius:8px;';
+    appendTextLine(gadsBlock, 'Cuentas detectadas de Google Ads', 'font-size:11px;font-weight:700;color:var(--text);margin-bottom:6px;');
+    googleAds.customers.slice(0, 3).forEach(function(customer) {
+      var button = document.createElement('button');
+      button.textContent = 'Customer ID · ' + formatGoogleAdsCustomerId(customer.customerId || '');
+      button.style.cssText = 'display:block;width:100%;text-align:left;margin-bottom:6px;padding:7px 10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.18);border-radius:6px;font-size:11px;color:#d4a843;cursor:pointer;';
+      button.onclick = function() {
+        var gadsCidField = document.getElementById('gads-cid');
+        if (gadsCidField) gadsCidField.value = formatGoogleAdsCustomerId(customer.customerId || '');
+        saveGoogleConnectionSelection({
+          googleAds: {
+            customerId: String(customer.customerId || ''),
+            resourceName: customer.resourceName || '',
+            selectedAt: new Date().toISOString()
+          }
+        }, ['googleAds'], 'Cuenta de Google Ads guardada');
+      };
+      gadsBlock.appendChild(button);
+    });
+    details.appendChild(gadsBlock);
+  }
+}
+
 function initIntegrationsPage() {
   setIntegrationFocus(currentIntegrationFocus, true);
   const onboarding = getWorkspaceOnboarding();
@@ -8662,7 +9064,7 @@ function initIntegrationsPage() {
     guide.textContent = labels[onboarding.knowledgeLevel] || guide.textContent;
   }
   // Always check real Google auth status from server
-  fetch('/auth/status').then(r => r.json()).then(data => {
+  fetch('/auth/status').then(r => r.json()).then(async function(data) {
     const googleOk = data.connected;
     const statusEl = document.getElementById('intg-google-status');
     const btnArea = document.getElementById('intg-google-btn-area');
@@ -8683,16 +9085,19 @@ function initIntegrationsPage() {
       clearElement(details);
     }
     if (details && googleOk) {
-      var badgesRow = document.createElement('div');
-      badgesRow.style.cssText = 'display:flex;gap:8px;margin-bottom:4px;';
-      ['✓ GSC Activo', '✓ GA4 Activo'].forEach(function(label) {
-        var item = document.createElement('div');
-        item.textContent = label;
-        item.style.cssText = 'flex:1;padding:7px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.12);border-radius:6px;font-size:11px;color:#5ec9a0;text-align:center;';
-        badgesRow.appendChild(item);
-      });
-      details.appendChild(badgesRow);
-      appendTextLine(details, 'Usuario: ' + String(data.user?.email || ''), 'font-size:11px;color:var(--muted);');
+      appendTextLine(details, 'Detectando servicios de Google...', 'font-size:11px;color:var(--muted);');
+      try {
+        var connectionsRes = await fetch('/api/google/connections');
+        googleServiceSnapshot = await connectionsRes.json();
+        renderDetectedGoogleServices(googleServiceSnapshot);
+        applyDetectedGoogleAssets(googleServiceSnapshot);
+        populateAnalyzeGoogleSelectors(googleServiceSnapshot);
+        renderSavedConnections();
+        updateIntgSummary(googleOk);
+      } catch (error) {
+        clearElement(details);
+        appendTextLine(details, 'No pude consultar Search Console, GA4 y Google Ads en este momento.', 'font-size:11px;color:var(--muted);');
+      }
     }
     if (btnArea) {
       clearElement(btnArea);
@@ -8727,6 +9132,8 @@ function updateIntgSummary(googleOk) {
   if (!summary) return;
   const connected = [
     googleOk && 'Google',
+    intgConnections.gsc && 'GSC',
+    intgConnections.ga4 && 'GA4',
     intgConnections.meta && 'Meta',
     intgConnections.googleAds && 'Google Ads',
     intgConnections.email && 'Email'
@@ -8749,7 +9156,10 @@ function renderSavedConnections() {
   const gadsBadge = document.getElementById('intg-googleads-badge');
   if (intgConnections.googleAds) {
     if (gadsStatus) { gadsStatus.textContent = 'CONECTADO'; gadsStatus.style.background = 'rgba(251,191,36,0.1)'; gadsStatus.style.color = '#fbbf24'; }
-    if (gadsBadge) { gadsBadge.textContent = '✓ Google Ads — Conectado'; gadsBadge.style.background = 'rgba(251,191,36,0.1)'; gadsBadge.style.color = '#fbbf24'; }
+    if (gadsBadge) { gadsBadge.textContent = '✓ Google Ads — ' + formatGoogleAdsCustomerId(intgConnections.googleAds.customerId || 'Conectado'); gadsBadge.style.background = 'rgba(251,191,36,0.1)'; gadsBadge.style.color = '#fbbf24'; }
+  } else if (googleServiceSnapshot?.googleServices?.googleAds?.connected && googleServiceSnapshot.googleServices.googleAds.total) {
+    if (gadsStatus) { gadsStatus.textContent = 'DETECTADO'; gadsStatus.style.background = 'rgba(251,191,36,0.08)'; gadsStatus.style.color = '#d4a843'; }
+    if (gadsBadge) { gadsBadge.textContent = '● Google Ads — Detectado en Google'; gadsBadge.style.background = 'rgba(251,191,36,0.08)'; gadsBadge.style.color = '#d4a843'; }
   }
   // Email
   const emailStatus = document.getElementById('intg-email-status');
@@ -9129,13 +9539,22 @@ async function loadGSCDashboard() {
   topActions.appendChild(createActionButton('🔄 Actualizar', loadGSCWithUrl, 'font-size:11px;padding:4px 10px;background:rgba(94,201,160,0.1);border:1px solid rgba(74,222,128,0.2);border-radius:5px;color:#5ec9a0;cursor:pointer;'));
   top.appendChild(topActions);
   wrap.appendChild(top);
+  var snapshot = await ensureGoogleServiceSnapshot();
+  var services = snapshot?.googleServices || {};
   var formRow = document.createElement('div');
   formRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
+  var defaults = getDefaultGoogleAnalysisSelection();
+  var selectedGscValue = intgConnections.gsc?.siteUrl || '';
+  if (!selectedGscValue && defaults.siteUrl) {
+    selectedGscValue = (services.gsc?.sites || []).find(function(site) {
+      return String(site.url || '').replace('sc-domain:', '') === defaults.siteUrl;
+    })?.url || defaults.siteUrl;
+  }
   var urlField = document.createElement('input');
   urlField.id = 'intg-gsc-url';
   urlField.type = 'url';
   urlField.placeholder = 'https://tu-sitio.com — ingresa para ver datos de GSC';
-  urlField.value = userProfile.url || '';
+  urlField.value = defaults.siteUrl || '';
   urlField.style.cssText = 'flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
   urlField.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
   urlField.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
@@ -9145,6 +9564,7 @@ async function loadGSCDashboard() {
   ga4Field.id = 'intg-ga4-id';
   ga4Field.type = 'text';
   ga4Field.placeholder = 'GA4 Property ID (opcional)';
+  ga4Field.value = defaults.ga4PropertyId || '';
   ga4Field.style.cssText = 'width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
   ga4Field.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
   ga4Field.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
@@ -9154,6 +9574,92 @@ async function loadGSCDashboard() {
   diagnoseBtn.title = 'Ver qué sitios tiene esta cuenta';
   formRow.appendChild(diagnoseBtn);
   wrap.appendChild(formRow);
+  if ((services.gsc?.sites || []).length || (services.ga4?.properties || []).length || (services.googleAds?.customers || []).length) {
+    var selectorsRow = document.createElement('div');
+    selectorsRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;';
+
+    var gscSelect = document.createElement('select');
+    gscSelect.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(123,167,232,0.16);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
+    fillSelectOptions(
+      gscSelect,
+      (services.gsc?.sites || []).map(function(site) {
+        return { value: String(site.url || ''), label: 'GSC · ' + String(site.url || '').replace('sc-domain:', '') };
+      }),
+      'Selecciona un sitio de Search Console',
+      selectedGscValue
+    );
+    gscSelect.onchange = function() {
+      if (urlField) urlField.value = String(gscSelect.value || '').replace('sc-domain:', '');
+      if (!gscSelect.value) return;
+      saveGoogleConnectionSelection({
+        google: appSession?.user ? {
+          connectedAt: new Date().toISOString(),
+          email: appSession.user.email || '',
+          name: appSession.user.name || ''
+        } : intgConnections.google,
+        gsc: {
+          siteUrl: gscSelect.value,
+          selectedAt: new Date().toISOString()
+        }
+      }, ['google', 'gsc'], 'Sitio de Search Console guardado');
+    };
+    selectorsRow.appendChild(gscSelect);
+
+    var ga4Select = document.createElement('select');
+    ga4Select.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(123,167,232,0.16);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
+    fillSelectOptions(
+      ga4Select,
+      (services.ga4?.properties || []).map(function(property) {
+        return { value: String(property.propertyId || ''), label: 'GA4 · ' + (property.displayName || property.propertyId || '') + ' · ' + (property.propertyId || '') };
+      }),
+      'Selecciona una propiedad de GA4',
+      intgConnections.ga4?.propertyId || defaults.ga4PropertyId || ''
+    );
+    ga4Select.onchange = function() {
+      var selectedProperty = (services.ga4?.properties || []).find(function(property) { return String(property.propertyId || '') === ga4Select.value; }) || null;
+      if (ga4Field) ga4Field.value = ga4Select.value || '';
+      if (!ga4Select.value) return;
+      saveGoogleConnectionSelection({
+        google: appSession?.user ? {
+          connectedAt: new Date().toISOString(),
+          email: appSession.user.email || '',
+          name: appSession.user.name || ''
+        } : intgConnections.google,
+        ga4: {
+          propertyId: ga4Select.value,
+          property: selectedProperty?.property || '',
+          displayName: selectedProperty?.displayName || '',
+          account: selectedProperty?.account || '',
+          selectedAt: new Date().toISOString()
+        }
+      }, ['google', 'ga4'], 'Propiedad GA4 guardada');
+    };
+    selectorsRow.appendChild(ga4Select);
+
+    var gadsSelect = document.createElement('select');
+    gadsSelect.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(251,191,36,0.18);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
+    fillSelectOptions(
+      gadsSelect,
+      (services.googleAds?.customers || []).map(function(customer) {
+        return { value: String(customer.customerId || ''), label: 'Google Ads · ' + formatGoogleAdsCustomerId(customer.customerId || '') };
+      }),
+      'Selecciona una cuenta de Google Ads',
+      intgConnections.googleAds?.customerId || ''
+    );
+    gadsSelect.onchange = function() {
+      var selectedCustomer = (services.googleAds?.customers || []).find(function(customer) { return String(customer.customerId || '') === gadsSelect.value; }) || null;
+      if (!gadsSelect.value) return;
+      saveGoogleConnectionSelection({
+        googleAds: {
+          customerId: gadsSelect.value,
+          resourceName: selectedCustomer?.resourceName || '',
+          selectedAt: new Date().toISOString()
+        }
+      }, ['googleAds'], 'Cuenta de Google Ads guardada');
+    };
+    selectorsRow.appendChild(gadsSelect);
+    wrap.appendChild(selectorsRow);
+  }
   var content = document.createElement('div');
   content.id = 'intg-gsc-content';
   appendTextLine(content, 'Ingresa la URL de tu sitio y haz clic en "Ver Datos" para cargar GSC y GA4.', 'text-align:center;padding:30px;color:var(--muted);font-size:12px;');
@@ -9272,6 +9778,22 @@ async function loadGSCWithUrl() {
       return;
     }
     
+    await saveGoogleConnectionSelection({
+      google: appSession?.user ? {
+        connectedAt: new Date().toISOString(),
+        email: appSession.user.email || '',
+        name: appSession.user.name || ''
+      } : intgConnections.google,
+      gsc: {
+        siteUrl: url,
+        selectedAt: new Date().toISOString()
+      },
+      ga4: ga4Input?.value.trim() ? {
+        propertyId: ga4Input.value.trim(),
+        selectedAt: new Date().toISOString()
+      } : intgConnections.ga4
+    }, ['google', 'gsc', ga4Input?.value.trim() ? 'ga4' : null].filter(Boolean));
+
     renderGSCDashboard(content, data, url);
   } catch(e) {
     clearElement(content);
@@ -9286,8 +9808,12 @@ async function loadGSCWithUrl() {
 function renderGSCDashboard(container, data, url) {
   const gsc = data.gscData || data.gsc || {};
   const ga4 = data.ga4Data || data.ga4 || {};
+  const ga4Sessions = ga4.overview?.sessions ?? ga4.sessions;
+  const ga4Users = ga4.overview?.users ?? ga4.users;
+  const ga4BounceRate = ga4.overview?.bounceRate || ga4.bounceRate || '';
+  const ga4Duration = ga4.overview?.avgDuration || ga4.overview?.avgSessionDuration || ga4.avgDuration || ga4.avgSessionDuration || '';
   const hasGSC = gsc.connected !== false && (gsc.totalClicks !== undefined || gsc.topQueries);
-  const hasGA4 = ga4.sessions !== undefined;
+  const hasGA4 = ga4Sessions !== undefined;
 
   // Show real server error if GSC failed
   if (!hasGSC && gsc.error) {
@@ -9361,10 +9887,10 @@ function renderGSCDashboard(container, data, url) {
     + '<div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">GOOGLE ANALYTICS 4</div>';
   if (hasGA4) {
     ga4Html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
-      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#d4a843;">' + (ga4.sessions||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--muted);">Sesiones</div></div>'
-      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--accent2);">' + (ga4.users||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--muted);">Usuarios</div></div>'
-      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#c084fc;">' + (ga4.bounceRate ? (parseFloat(ga4.bounceRate)*100).toFixed(1)+'%' : '—') + '</div><div style="font-size:10px;color:var(--muted);">Rebote</div></div>'
-      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#e07070;">' + (ga4.avgSessionDuration ? Math.round(parseFloat(ga4.avgSessionDuration))+'s' : '—') + '</div><div style="font-size:10px;color:var(--muted);">Duración</div></div>'
+      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#d4a843;">' + Number(ga4Sessions||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--muted);">Sesiones</div></div>'
+      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:var(--accent2);">' + Number(ga4Users||0).toLocaleString() + '</div><div style="font-size:10px;color:var(--muted);">Usuarios</div></div>'
+      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#c084fc;">' + (ga4BounceRate || '—') + '</div><div style="font-size:10px;color:var(--muted);">Rebote</div></div>'
+      + '<div style="padding:10px;background:var(--surface2);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:800;color:#e07070;">' + (ga4Duration || '—') + '</div><div style="font-size:10px;color:var(--muted);">Duración</div></div>'
       + '</div>';
   } else {
     ga4Html += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Sin datos de GA4.<br><span style="font-size:11px;">Ingresa tu GA4 Property ID (solo números)</span></div>';
@@ -11878,7 +12404,7 @@ async function runQACustom() {
       <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;"><span>Análisis</span><span id="plan-usage-analyses" style="color:var(--accent);font-weight:700;">0</span></div>
       <div style="display:flex;justify-content:space-between;font-size:12px;"><span>Entregables</span><span id="plan-usage-deliverables" style="color:var(--accent);font-weight:700;">0</span></div>
     </div>
-    <button id="plan-upgrade-btn" onclick="document.getElementById('plan-modal').style.display='none';showToast('Configuraremos billing real en la siguiente fase')" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">🚀 Mejorar a Agency</button>
+    <button id="plan-upgrade-btn" onclick="document.getElementById('plan-modal').style.display='none';showToast('El upgrade comercial aún se gestiona manualmente durante esta etapa')" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">🚀 Mejorar a Agency</button>
   </div>
 </div>
 
