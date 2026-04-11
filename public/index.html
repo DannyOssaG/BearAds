@@ -8782,6 +8782,10 @@ function populateAnalyzeGoogleSelectors(snapshot) {
   var ga4Properties = Array.isArray(services.ga4?.properties) ? services.ga4.properties : [];
   var gadsCustomers = Array.isArray(services.googleAds?.customers) ? services.googleAds.customers : [];
   var selectedGscValue = intgConnections.gsc?.siteUrl || '';
+  var selectedGa4Value = intgConnections.ga4?.propertyId || defaults.ga4PropertyId || '';
+  var selectedGa4Label = intgConnections.ga4?.displayName
+    ? intgConnections.ga4.displayName + ' · ' + selectedGa4Value
+    : (selectedGa4Value ? 'GA4 guardada · ' + selectedGa4Value : '');
   if (!selectedGscValue && defaults.siteUrl) {
     selectedGscValue = gscSites.find(function(site) {
       return String(site.url || '').replace('sc-domain:', '') === defaults.siteUrl;
@@ -8804,14 +8808,22 @@ function populateAnalyzeGoogleSelectors(snapshot) {
 
   fillSelectOptions(
     ga4Select,
-    ga4Properties.map(function(property) {
-      return {
-        value: String(property.propertyId || ''),
-        label: (property.displayName || 'GA4') + ' · ' + (property.propertyId || '')
-      };
-    }),
-    ga4Properties.length ? 'Selecciona una propiedad de Google Analytics 4' : 'No se detectaron propiedades de Google Analytics 4',
-    intgConnections.ga4?.propertyId || defaults.ga4PropertyId || ''
+    [
+      ...(selectedGa4Value && !ga4Properties.some(function(property) { return String(property.propertyId || '') === selectedGa4Value; }) ? [{
+        value: selectedGa4Value,
+        label: selectedGa4Label
+      }] : []),
+      ...ga4Properties.map(function(property) {
+        return {
+          value: String(property.propertyId || ''),
+          label: (property.displayName || 'GA4') + ' · ' + (property.propertyId || '')
+        };
+      })
+    ],
+    ga4Properties.length
+      ? 'Selecciona una propiedad de Google Analytics 4'
+      : (services.ga4?.error ? 'GA4: ' + services.ga4.error : 'No se detectaron propiedades de Google Analytics 4'),
+    selectedGa4Value
   );
 
   fillSelectOptions(
@@ -8830,6 +8842,8 @@ function populateAnalyzeGoogleSelectors(snapshot) {
   if (hint) {
     if (ga4Properties.length) {
       hint.textContent = ga4Properties.length + ' propiedad(es) GA4 detectadas';
+    } else if (services.ga4?.error) {
+      hint.textContent = 'GA4 con problema de lectura';
     } else if (gscSites.length) {
       hint.textContent = gscSites.length + ' sitio(s) de GSC detectados';
     } else {
@@ -9023,6 +9037,12 @@ function renderDetectedGoogleServices(snapshot) {
       ga4Block.appendChild(button);
     });
     details.appendChild(ga4Block);
+  } else if (ga4.error) {
+    var ga4ErrorBlock = document.createElement('div');
+    ga4ErrorBlock.style.cssText = 'margin-bottom:8px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.18);border-radius:8px;';
+    appendTextLine(ga4ErrorBlock, 'Google Analytics 4 no se pudo listar', 'font-size:11px;font-weight:700;color:#d4a843;margin-bottom:6px;');
+    appendTextLine(ga4ErrorBlock, String(ga4.error || ''), 'font-size:11px;color:var(--text2);line-height:1.6;');
+    details.appendChild(ga4ErrorBlock);
   }
 
   if (googleAds.connected && Array.isArray(googleAds.customers) && googleAds.customers.length) {

@@ -1573,7 +1573,11 @@ async function getGSCData(source, siteUrl) {
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    const [queriesRes, pagesRes] = await Promise.allSettled([
+    const [overviewRes, queriesRes, pagesRes] = await Promise.allSettled([
+      webmasters.searchanalytics.query({
+        siteUrl: matchedUrl,
+        requestBody: { startDate, endDate, rowLimit: 1 }
+      }),
       webmasters.searchanalytics.query({
         siteUrl: matchedUrl,
         requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 25 }
@@ -1602,12 +1606,20 @@ async function getGSCData(source, siteUrl) {
         }))
       : [];
 
-    const totalClicks = queries.reduce((s, q) => s + q.clicks, 0);
-    const totalImpressions = queries.reduce((s, q) => s + q.impressions, 0);
-    const avgCtr = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) + '%' : '0%';
-    const avgPosition = queries.length
-      ? (queries.reduce((s, q) => s + parseFloat(q.position), 0) / queries.length).toFixed(1)
-      : 'N/A';
+    const overviewRow = overviewRes.status === 'fulfilled'
+      ? (overviewRes.value.data.rows || [])[0] || null
+      : null;
+
+    const totalClicks = overviewRow?.clicks ?? queries.reduce((s, q) => s + q.clicks, 0);
+    const totalImpressions = overviewRow?.impressions ?? queries.reduce((s, q) => s + q.impressions, 0);
+    const avgCtr = overviewRow?.ctr !== undefined
+      ? ((overviewRow.ctr || 0) * 100).toFixed(1) + '%'
+      : (totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) + '%' : '0%');
+    const avgPosition = overviewRow?.position !== undefined
+      ? Number(overviewRow.position || 0).toFixed(1)
+      : (queries.length
+        ? (queries.reduce((s, q) => s + parseFloat(q.position), 0) / queries.length).toFixed(1)
+        : 'N/A');
 
     return {
       connected: true,
