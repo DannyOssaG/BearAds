@@ -2,7 +2,7 @@
   "name": "bearads",
   "private": true,
   "engines": {
-    "node": "20.x",
+    "node": "22.x",
     "npm": ">=10"
   },
   "scripts": {
@@ -26,7 +26,7 @@
     "passport-google-oauth20": "^2.0.0"
   },
   "version": "1.0.0",
-  "description": "Plataforma web de marketing con IA para analisis, estrategia, campañas, integraciones y operacion guiada.",
+  "description": "Plataforma web de marketing con IA para análisis, estrategia, campañas, integraciones y operación guiada.",
   "main": "server.js",
   "repository": {
     "type": "git",
