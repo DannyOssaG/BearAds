@@ -28,8 +28,8 @@
   --accent3: #4ade80;
 
   --text: #0d1726;
-  --text2: #31435c;
-  --muted: #64748b;
+  --text2: #24364f;
+  --muted: #52657f;
 
   --danger: #dc2626;
   --danger-dim: #fef2f2;
@@ -1402,7 +1402,7 @@ tr:hover td { background: var(--surface2); }
 /* Topbar */
 .topbar { background: rgba(248,251,255,0.94); border-bottom: 1px solid var(--border); box-shadow: 0 8px 30px rgba(13,23,38,0.05); backdrop-filter: blur(12px); }
 .topbar-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
-.topbar-breadcrumb { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); }
+.topbar-breadcrumb { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text2); }
 
 /* Buttons */
 .btn { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; border-radius: 7px; }
@@ -1516,7 +1516,7 @@ tr:hover td { background: var(--surface2); }
 
 /* Chat */
 .chat-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; color: var(--text); }
-.chat-sub { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); }
+.chat-sub { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text2); }
 .chat-input { font-family: 'Inter', sans-serif; font-size: 13px; background: var(--bg); border-color: var(--border2); color: var(--text); }
 .chat-input:focus { border-color: var(--accent2); }
 .chat-send { background: var(--accent2); color: white; font-family: 'Inter', sans-serif; font-weight: 600; }
@@ -1549,7 +1549,7 @@ tr:hover td { background: var(--surface2); }
 
 /* Page titles */
 .page-title { font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); letter-spacing: -0.5px; }
-.page-sub { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.page-sub { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--text2); line-height: 1.65; }
 .section-title { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
 .section-tag { background: rgba(96,165,250,0.09); color: var(--accent); border-color: rgba(96,165,250,0.2); font-family: 'DM Sans', sans-serif; font-weight: 700; }
 
@@ -1574,14 +1574,14 @@ tr:hover td { background: var(--surface2); }
 
 .finding-item { background: var(--surface2); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text2); }
 .finding-title { font-weight: 600; color: var(--text); }
-.finding-detail { color: var(--muted); }
+.finding-detail { color: var(--text2); }
 
 .action-item { background: rgba(96,165,250,0.04); border-color: rgba(96,165,250,0.12); font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text2); }
 .action-item::before { color: var(--accent); }
 
 .channel-item { background: var(--surface2); border-color: var(--border2); border-radius: 8px; }
 .channel-name { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; color: var(--text); }
-.channel-reason { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); }
+.channel-reason { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--text2); }
 .pot-alto { background: rgba(74,222,128,0.12); color: var(--accent3); }
 .pot-medio { background: rgba(251,191,36,0.1); color: var(--warning); }
 .pot-bajo { background: rgba(107,114,128,0.1); color: var(--muted); }
@@ -1816,14 +1816,14 @@ tr:hover td { background: var(--surface2); }
   <button class="mobile-nav-item" onclick="showPage('analyze');setMobileNav(this)">
     <span class="nav-icon">🔬</span>Analizar
   </button>
-  <button class="mobile-nav-item" onclick="showPage('agents');setMobileNav(this)">
-    <span class="nav-icon">🤖</span>Agentes
-  </button>
-  <button class="mobile-nav-item" onclick="showPage('creatives');setMobileNav(this)">
-    <span class="nav-icon">🎨</span>Creativos
-  </button>
   <button class="mobile-nav-item" onclick="showPage('strategic-plan');setMobileNav(this)">
     <span class="nav-icon">🗺️</span>Plan
+  </button>
+  <button class="mobile-nav-item" onclick="showPage('campaigns');setMobileNav(this)">
+    <span class="nav-icon">📣</span>Campañas
+  </button>
+  <button class="mobile-nav-item" onclick="showPage('integrations');setMobileNav(this)">
+    <span class="nav-icon">⊕</span>Conectar
   </button>
 </nav>
 
@@ -1848,32 +1848,36 @@ tr:hover td { background: var(--surface2); }
   </div>
 
   <div class="nav-section">
-    <div class="nav-label">Plataforma</div>
+    <div class="nav-label">Flujo Principal</div>
     <div class="nav-item active" onclick="showPage('dashboard')">
       <span class="icon">◈</span> Dashboard
-    </div>
-    <div class="nav-item" onclick="showPage('agents')">
-      <span class="icon">◎</span> Agentes <span class="nav-badge">12</span>
-    </div>
-    <div class="nav-item" onclick="showPage('strategy')">
-      <span class="icon">◇</span> Estrategia
-    </div>
-    <div class="nav-item" onclick="showPage('campaigns')">
-      <span class="icon">▷</span> Campañas
     </div>
     <div class="nav-item" onclick="showPage('analyze')"><span class="icon">🔬</span> Analizar Sitio
     </div>
     <div class="nav-item" onclick="showPage('strategic-plan')">
       <span class="icon">🗺️</span> Plan Estratégico
     </div>
-    <div class="nav-item" onclick="showPage('weekly-score')">
-      <span class="icon">📧</span> Score Semanal
+    <div class="nav-item" onclick="showPage('campaigns')">
+      <span class="icon">▷</span> Campañas
     </div>
     <div class="nav-item" onclick="showPage('creatives')">
       <span class="icon">🎨</span> Creativos & Ads
     </div>
     <div class="nav-item" onclick="showPage('integrations')">
       <span class="icon">⊕</span> Integraciones
+    </div>
+  </div>
+
+  <div class="nav-section" style="margin-top:18px;">
+    <div class="nav-label">Soporte y Extras</div>
+    <div class="nav-item" onclick="showPage('agents')">
+      <span class="icon">◎</span> Agentes de apoyo
+    </div>
+    <div class="nav-item" onclick="showPage('strategy')">
+      <span class="icon">◇</span> Estrategia rápida
+    </div>
+    <div class="nav-item" onclick="showPage('weekly-score')">
+      <span class="icon">📧</span> Score Semanal
     </div>
     <div class="nav-item" onclick="showPage('learning')">
       <span class="icon">◉</span> Aprendizaje
@@ -2033,13 +2037,13 @@ tr:hover td { background: var(--surface2); }
       <span style="font-size:20px;">🔍</span>
       <div><div style="font-size:13px;font-weight:700;">Analizar sitio</div><div style="font-size:11px;color:var(--muted);">Nuevo análisis con IA</div></div>
     </div>
-    <div onclick="showPage('agents')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
-      <span style="font-size:20px;">🤖</span>
-      <div><div style="font-size:13px;font-weight:700;">Usar Agentes</div><div style="font-size:11px;color:var(--muted);">12 agentes especializados</div></div>
+    <div onclick="openStrategyFromDashboard()" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:20px;">🗺️</span>
+      <div><div style="font-size:13px;font-weight:700;">Crear plan</div><div style="font-size:11px;color:var(--muted);">Usa tu análisis como base</div></div>
     </div>
-    <div onclick="showPage('strategy')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent3)'" onmouseout="this.style.borderColor='var(--border)'">
-      <span style="font-size:20px;">🧠</span>
-      <div><div style="font-size:13px;font-weight:700;">Generar Estrategia</div><div style="font-size:11px;color:var(--muted);">Plan de marketing con IA</div></div>
+    <div onclick="showPage('campaigns')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent3)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:20px;">📣</span>
+      <div><div style="font-size:13px;font-weight:700;">Activar campaña</div><div style="font-size:11px;color:var(--muted);">Pasa del plan a ejecución</div></div>
     </div>
   </div>
 
@@ -2061,7 +2065,7 @@ tr:hover td { background: var(--surface2); }
       <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">ENTREGABLES RECIENTES</div>
       <div id="dash-deliverables-list">
         <div style="text-align:center;padding:40px 20px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:12px;">
-          Tus entregables aparecerán aquí.<br><span onclick="showPage('agents')" style="color:var(--accent);cursor:pointer;">Abrir un agente →</span>
+          Tus entregables aparecerán aquí.<br><span onclick="showPage('strategic-plan')" style="color:var(--accent);cursor:pointer;">Crear un plan →</span>
         </div>
       </div>
     </div>
@@ -2219,7 +2223,7 @@ tr:hover td { background: var(--surface2); }
         <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">Elige una campaña lista para usar</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.7;">Si no sabes por dónde comenzar, BearAds te deja una base hecha. Luego puedes ajustar objetivo, presupuesto y producto.</div>
       </div>
-      <div id="camp-template-hint" style="min-width:240px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+      <div id="camp-template-hint" style="min-width:240px;flex:1;padding:12px 14px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:12px;font-size:12px;color:#35507f;line-height:1.7;">
         Usa una plantilla y la IA llenará la estructura completa para ti.
       </div>
     </div>
@@ -2357,7 +2361,7 @@ tr:hover td { background: var(--surface2); }
         <div id="intg-guide-copy" style="font-size:13px;color:var(--text2);line-height:1.7;">Empieza por tus conexiones clave. Después podrás crear campañas y automatizaciones sin repetir pasos.</div>
         <div id="intg-primary-cta-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;"></div>
       </div>
-      <div id="intg-next-step" style="min-width:220px;flex:1;padding:12px 14px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+      <div id="intg-next-step" style="min-width:220px;flex:1;padding:12px 14px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:12px;font-size:12px;color:#35507f;line-height:1.7;">
         BearAds te va guiando según lo que ya conectaste.
       </div>
     </div>
@@ -2398,7 +2402,7 @@ tr:hover td { background: var(--surface2); }
     <button id="itab-meta" onclick="switchIntgTab('meta')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">2. 📘 Meta Ads</button>
     <button id="itab-google-ads" onclick="switchIntgTab('google-ads')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">3. 🔵 Google Ads</button>
     <button id="itab-email-mkt" onclick="switchIntgTab('email-mkt')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">4. ✉️ Email</button>
-    <button id="itab-webhooks" onclick="switchIntgTab('webhooks')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">5. ⚙️ Avanzado</button>
+    <button id="itab-webhooks" onclick="switchIntgTab('webhooks')" style="padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;">5. ⚙️ Secundario</button>
   </div>
 
   <!-- TAB: Connections -->
@@ -2648,7 +2652,7 @@ tr:hover td { background: var(--surface2); }
   <!-- TAB: Webhooks -->
   <div id="intg-tab-webhooks" style="display:none;">
     <div class="card" style="max-width:600px;">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">⚙️ WEBHOOKS & AUTOMATIZACIÓN</div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:16px;">⚙️ AUTOMATIZACIONES SECUNDARIAS</div>
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div style="padding:12px;background:var(--surface2);border-radius:8px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🔗 Webhook de entrada</div>
@@ -2660,12 +2664,12 @@ tr:hover td { background: var(--surface2); }
         </div>
         <div style="padding:12px;background:var(--surface2);border-radius:8px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:4px;">📤 Zapier / Make</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Conecta con más de 5000 apps</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Disponible para una fase más avanzada del producto</div>
           <button onclick="showToast('La integración con Zapier aún no está activa en esta etapa')" style="padding:8px 14px;background:rgba(255,100,0,0.1);border:1px solid rgba(255,100,0,0.2);border-radius:6px;font-size:12px;color:#ff6400;cursor:pointer;font-weight:600;">Estado de Zapier</button>
         </div>
         <div style="padding:12px;background:var(--surface2);border-radius:8px;">
           <div style="font-size:12px;font-weight:700;margin-bottom:4px;">🤖 API de BearAds</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Accede a los 12 agentes vía API REST</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Acceso técnico para una etapa posterior del producto</div>
           <button onclick="showToast('API disponible en plan Agency')" style="padding:8px 14px;background:rgba(123,167,232,0.09);border:1px solid rgba(96,165,250,0.2);border-radius:6px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:600;">Ver Documentación API</button>
         </div>
       </div>
@@ -3156,7 +3160,7 @@ tr:hover td { background: var(--surface2); }
 <!-- ══ WEEKLY SCORE PAGE ══ -->
 <div class="page" id="page-weekly-score">
   <div class="page-title">Score Semanal</div>
-  <div class="page-sub">Reporte automático cada lunes · Datos reales GSC + GA4 + IA · En tu email</div>
+  <div class="page-sub">Reporte complementario por email con datos reales e insights IA</div>
 
   <div style="display:grid;grid-template-columns:400px 1fr;gap:20px;margin-top:16px;">
 
@@ -3237,8 +3241,8 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 <div class="page" id="page-agents">
-  <div class="page-title">Agentes Especializados</div>
-  <div class="page-sub">Dinos qué quieres lograr y te mostramos los agentes más útiles</div>
+  <div class="page-title">Agentes de Apoyo</div>
+  <div class="page-sub">Úsalos cuando necesites profundizar una tarea concreta después del análisis o del plan</div>
 
   <!-- CONTEXT BANNER -->
   <div id="agents-context-banner" style="display:none;margin-bottom:20px;padding:12px 16px;background:rgba(96,165,250,0.07);border:1px solid rgba(96,165,250,0.2);border-radius:10px;display:flex;align-items:center;gap:10px;">
@@ -3251,11 +3255,11 @@ tr:hover td { background: var(--surface2); }
     <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
       <div style="max-width:560px;">
         <div style="font-size:11px;font-weight:800;color:#c084fc;letter-spacing:1px;margin-bottom:8px;">ELIGE TU OBJETIVO</div>
-        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">No necesitas revisar 12 agentes al tiempo</div>
-        <div style="font-size:13px;color:var(--text2);line-height:1.7;">Filtra por tu meta de hoy y BearAds te ahorra revisar todo el listado. Si ya sabes cuál buscas, usa el buscador.</div>
+        <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px;">Aquí están los especialistas para ejecutar mejor</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.7;">Tienes 12 agentes disponibles como apoyo especializado. Filtra por tu meta de hoy y usa solo los que realmente necesites.</div>
       </div>
       <input id="agents-search" type="text" placeholder="Buscar por nombre o problema..." oninput="setAgentSearch(this.value)"
-        style="min-width:220px;flex:1;max-width:280px;background:rgba(15,23,42,0.22);border:1px solid rgba(148,163,184,0.18);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;"/>
+        style="min-width:220px;flex:1;max-width:280px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;"/>
     </div>
     <div id="agents-goal-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;"></div>
     <div id="agents-results-meta" style="margin-top:12px;font-size:12px;color:var(--muted);"></div>
@@ -3829,15 +3833,15 @@ function showPage(page, el) {
 
   const titles = {
     dashboard: ['Dashboard', 'Resumen de actividad'],
-    agents: ['Agentes Especializados', '12 agentes de marketing con IA'],
-    strategy: ['Estrategia Inteligente', 'Planificación con IA'],
+    agents: ['Agentes de Apoyo', 'Especialistas IA para profundizar tareas'],
+    strategy: ['Estrategia Rápida', 'Exploración asistida con IA'],
     campaigns: ['Gestor de Campañas', 'Meta Ads · Google Ads · Email'],
     analyze: ['Analizar Sitio Web', 'Auditoría IA completa'],
     'strategic-plan': ['Plan Estratégico', 'Orgánico + Pago · 90 días'],
-    'weekly-score': ['Score Semanal', 'Reporte automático · Email · Datos reales'],
+    'weekly-score': ['Score Semanal', 'Reporte secundario por email'],
     creatives: ['Creativos & Ads', 'Copy + Imagen IA · A/B Testing'],
     integrations: ['Integraciones', 'Conexiones y plataformas'],
-    learning: ['Aprendizaje', 'Guías + Historial']
+    learning: ['Aprendizaje', 'Guías y soporte']
   };
   const t = titles[page] || ['BearAds', ''];
   const tb = document.getElementById('topbar-title');
@@ -4942,6 +4946,38 @@ function getDashboardGuideState() {
   };
 }
 
+function openStrategyFromDashboard() {
+  const analyses = getAnalysisHistory();
+  const latestWithReport = analyses.find(function(item) { return !!item.report; });
+
+  if (currentAnalysis?.url) {
+    saveStrategicPlanDraft({
+      business: userProfile?.biz || currentAnalysis.siteTitle || '',
+      url: currentAnalysis.url
+    });
+    showPage('strategic-plan');
+    return;
+  }
+
+  if (latestWithReport?.report) {
+    currentAnalysis = latestWithReport.report;
+    saveStrategicPlanDraft({
+      business: userProfile?.biz || latestWithReport.siteTitle || '',
+      url: latestWithReport.url
+    });
+    showPage('strategic-plan');
+    showToast('Usando el ultimo analisis para crear tu plan');
+    return;
+  }
+
+  showPage('analyze');
+  if (analyses.length) {
+    showToast('Ese analisis es antiguo. Ejecuta uno nuevo para generar estrategia con contexto completo');
+  } else {
+    showToast('Haz tu primer analisis para desbloquear la estrategia');
+  }
+}
+
 function renderDashboardGuide() {
   const badge = document.getElementById('dash-guide-badge');
   const title = document.getElementById('dash-guide-title');
@@ -4964,12 +5000,12 @@ function renderDashboardGuide() {
 
   badge.textContent = completedCount === 3 ? 'LISTO PARA CRECER' : knowledgeLabel.toUpperCase();
   title.textContent = completedCount === 3
-    ? 'Tu cuenta ya está lista para avanzar'
+    ? 'Tu cuenta ya está lista para pasar a estrategia'
     : state.onboarding?.knowledgeLevel
       ? 'Tu plan guiado ya está adaptado a tu nivel'
       : 'Haz estas 3 cosas y BearAds empezará a ayudarte mejor';
   copy.textContent = completedCount === 3
-    ? 'Ya tienes la base hecha. Ahora usa campañas, agentes y automatizaciones con más contexto.'
+    ? 'Ya tienes la base hecha. El siguiente paso natural es convertir ese contexto en un plan claro de accion.'
     : state.onboarding?.knowledgeLevel
       ? 'BearAds te va guiando según lo que dijiste que sabes y las plataformas que usas.'
       : 'No necesitas entender toda la plataforma. Solo completa estos pasos en orden.';
@@ -4992,9 +5028,9 @@ function renderDashboardGuide() {
     {
       done: state.hasAnalysis,
       title: '2. Analiza tu sitio',
-      copy: state.hasAnalysis ? 'Ya hiciste al menos un análisis.' : 'BearAds necesita un primer diagnóstico para darte recomendaciones más precisas.',
-      button: state.hasAnalysis ? 'Ver último análisis' : 'Hacer análisis',
-      action: state.hasAnalysis ? "showPage('analyze')" : "showPage('analyze')",
+      copy: state.hasAnalysis ? 'Ya tienes un diagnostico. Ahora puedes convertirlo en una estrategia guiada con contexto real.' : 'BearAds necesita un primer diagnóstico para darte recomendaciones más precisas.',
+      button: state.hasAnalysis ? 'Crear estrategia' : 'Hacer análisis',
+      action: state.hasAnalysis ? "openStrategyFromDashboard()" : "showPage('analyze')",
       accent: '#5ec9a0'
     },
     {
@@ -6276,6 +6312,46 @@ function renderTags(containerId, items, color) {
   });
 }
 
+function renderAnalysisNextStep(data) {
+  const mount = document.getElementById('badges-end-placeholder');
+  if (!mount) return;
+
+  const analysisUrl = data?.url || currentAnalysis?.url || '';
+  const score = Number(data?.globalScore || 0);
+  const primaryCopy = score >= 70
+    ? 'Tu sitio ya tiene una base decente. Ahora conviene convertir este diagnostico en un plan accionable.'
+    : 'El analisis ya detecto suficiente contexto para priorizar que corregir primero en una estrategia guiada.';
+
+  clearElement(mount);
+  mount.style.display = 'block';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'margin-bottom:16px;padding:14px 16px;background:linear-gradient(135deg,rgba(251,191,36,0.1),rgba(96,165,250,0.08));border:1px solid rgba(251,191,36,0.18);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;';
+
+  const copy = document.createElement('div');
+  copy.style.cssText = 'flex:1;min-width:240px;';
+  appendTextLine(copy, 'Siguiente paso recomendado', 'font-size:11px;font-weight:800;letter-spacing:1px;color:#d4a843;margin-bottom:6px;');
+  appendTextLine(copy, primaryCopy, 'font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.6;');
+  appendTextLine(copy, analysisUrl ? 'Se usara el analisis de ' + analysisUrl + ' como contexto del plan.' : 'BearAds llevara este contexto directamente al plan estrategico.', 'font-size:11px;color:var(--text2);line-height:1.7;');
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+  actions.appendChild(createActionButton('🗺️ Crear plan estratégico', function() {
+    saveStrategicPlanDraft({
+      business: userProfile?.biz || data?.siteTitle || '',
+      url: analysisUrl
+    });
+    showPage('strategic-plan');
+  }, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('📊 Ir al dashboard', function() {
+    showPage('dashboard');
+  }, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+
+  box.appendChild(copy);
+  box.appendChild(actions);
+  mount.appendChild(box);
+}
+
 
 function renderResults(data) {
   // ── Activate GSC / GA4 panels if data exists ──
@@ -6386,6 +6462,8 @@ function renderResults(data) {
       }));
     }
   }
+
+  renderAnalysisNextStep(data);
 
   // Score cards
   const agents = ['seo','sem','contenido','cro','trafico'];
@@ -10743,6 +10821,73 @@ var spGoal = 'Aumentar ventas online';
 var spGadsData = null;
 var spMetaData = null;
 
+function getStrategicPlanDraft() {
+  return DB.get('strategic_plan_draft', {});
+}
+
+function saveStrategicPlanDraft(payload) {
+  var nextDraft = Object.assign({}, getStrategicPlanDraft(), payload || {}, {
+    savedAt: new Date().toISOString()
+  });
+  DB.set('strategic_plan_draft', nextDraft);
+  return nextDraft;
+}
+
+function deriveStrategicPlanContext() {
+  var draft = getStrategicPlanDraft();
+  var onboarding = getWorkspaceOnboarding();
+  var workspace = appSession?.workspace || {};
+  var profile = workspace.profile || {};
+  var hub = getWorkspaceIntegrationHub();
+  var connections = hub?.connections || {};
+  var analysis = currentAnalysis || null;
+  var traffic = analysis?.trafficData || {};
+  var gscData = analysis?.gscData || traffic.gsc || null;
+  var ga4Data = analysis?.ga4Data || traffic.ga4 || null;
+  var dataSources = [];
+
+  if (gscData || connections.gsc?.siteUrl) dataSources.push('Search Console');
+  if (ga4Data || connections.ga4?.propertyId) dataSources.push('GA4');
+  if (spGadsData?.campaigns?.length || connections.googleAds?.customerId) dataSources.push('Google Ads');
+  if (spMetaData?.campaigns?.length || connections.meta?.connected) dataSources.push('Meta Ads');
+
+  var analysisSummary = analysis ? {
+    globalScore: analysis.globalScore || 0,
+    seoScore: analysis.seo?.score || 0,
+    seoSummary: analysis.seo?.resumen || '',
+    semScore: analysis.sem?.score || 0,
+    semSummary: analysis.sem?.resumen || '',
+    contentScore: analysis.contenido?.score || 0,
+    contentSummary: analysis.contenido?.resumen || '',
+    croScore: analysis.cro?.score || 0,
+    croSummary: analysis.cro?.resumen || '',
+    trafficScore: analysis.trafico?.score || 0,
+    trafficSummary: analysis.trafico?.resumen || '',
+    seoFindings: Array.isArray(analysis.seo?.hallazgos) ? analysis.seo.hallazgos.slice(0, 4) : [],
+    croFrictions: Array.isArray(analysis.cro?.fricciones) ? analysis.cro.fricciones.slice(0, 4) : [],
+    recommendedChannels: Array.isArray(analysis.trafico?.canales_recomendados)
+      ? analysis.trafico.canales_recomendados.slice(0, 4).map(function(channel) {
+          if (typeof channel === 'string') return channel;
+          return channel?.canal || channel?.channel || channel?.name || '';
+        }).filter(Boolean)
+      : []
+  } : null;
+
+  return {
+    business: draft.business || userProfile?.biz || profile.businessName || workspace.name || '',
+    product: draft.product || profile.offer || onboarding?.businessModel || '',
+    audience: draft.audience || profile.targetAudience || '',
+    budget: draft.budget || null,
+    duration: draft.duration || null,
+    goal: draft.goal || '',
+    url: draft.url || analysis?.url || userProfile?.url || profile.website || '',
+    dataSources: Array.from(new Set(dataSources)),
+    analysisSummary: analysisSummary,
+    gscData: gscData,
+    ga4Data: ga4Data
+  };
+}
+
 function selectSPGoal(btn, goal) {
   spGoal = goal;
   document.querySelectorAll('.sp-goal-btn').forEach(b => {
@@ -10756,20 +10901,105 @@ function selectSPGoal(btn, goal) {
 }
 
 function initStrategicPlanPage() {
-  // Pre-fill from profile
-  var p = userProfile || {};
-  if (p.biz && document.getElementById('sp-business')) document.getElementById('sp-business').value = p.biz;
-  if (p.url && document.getElementById('sp-url')) document.getElementById('sp-url').value = p.url;
+  var ctx = deriveStrategicPlanContext();
+  var onboarding = getWorkspaceOnboarding();
+  var businessEl = document.getElementById('sp-business');
+  var productEl = document.getElementById('sp-product');
+  var audienceEl = document.getElementById('sp-audience');
+  var budgetEl = document.getElementById('sp-budget');
+  var durationEl = document.getElementById('sp-duration');
+  var urlEl = document.getElementById('sp-url');
+  var banner = document.getElementById('sp-data-banner');
+  var source = document.getElementById('sp-data-source');
 
-  // Show data banner if analysis exists
-  if (currentAnalysis) {
-    var banner = document.getElementById('sp-data-banner');
-    var source = document.getElementById('sp-data-source');
-    if (banner) banner.style.display = 'block';
-    if (source) source.textContent = currentAnalysis.url;
-    var urlInput = document.getElementById('sp-url');
-    if (urlInput && !urlInput.value) urlInput.value = currentAnalysis.url;
+  if (businessEl && !businessEl.value.trim() && ctx.business) businessEl.value = ctx.business;
+  if (productEl && !productEl.value.trim() && ctx.product) productEl.value = ctx.product;
+  if (audienceEl && !audienceEl.value.trim()) {
+    audienceEl.value = ctx.audience || onboarding?.mainGoal || '';
   }
+  if (budgetEl && ctx.budget) budgetEl.value = ctx.budget;
+  if (durationEl && ctx.duration) durationEl.value = ctx.duration;
+  if (urlEl && !urlEl.value.trim() && ctx.url) urlEl.value = ctx.url;
+
+  if (banner && source) {
+    if (ctx.dataSources.length || ctx.url) {
+      banner.style.display = 'block';
+      source.textContent = ctx.dataSources.length
+        ? ctx.dataSources.join(' + ') + (ctx.url ? ' · ' + ctx.url : '')
+        : ctx.url;
+    } else {
+      banner.style.display = 'none';
+      source.textContent = '';
+    }
+  }
+}
+
+function getStrategicPlanActivationRecommendation(goal, onboarding) {
+  var normalizedGoal = String(goal || '').toLowerCase();
+  var mainGoal = String(onboarding?.mainGoal || '').toLowerCase();
+
+  if (normalizedGoal.includes('lead') || mainGoal.includes('lead')) {
+    return {
+      title: 'Activa captacion de leads',
+      copy: 'Tu siguiente paso natural es convertir este plan en una campaña guiada y un entregable de apoyo para captar interesados.',
+      primaryLabel: '📣 Crear campaña',
+      primaryAction: function() { showPage('campaigns'); },
+      secondaryLabel: '🤖 Abrir agentes',
+      secondaryAction: function() { showPage('agents'); }
+    };
+  }
+
+  if (normalizedGoal.includes('google') || normalizedGoal.includes('traf') || mainGoal.includes('google')) {
+    return {
+      title: 'Activa visibilidad y trafico',
+      copy: 'Conviene pasar del plan a una ejecucion concreta: anuncios, creativos o una tarea especializada para SEO y trafico.',
+      primaryLabel: '🎨 Ir a creativos',
+      primaryAction: function() { showPage('creatives'); },
+      secondaryLabel: '🤖 Abrir agentes',
+      secondaryAction: function() { showPage('agents'); }
+    };
+  }
+
+  return {
+    title: 'Activa tu ejecucion comercial',
+    copy: 'Ya tienes un plan base. Ahora conviertelo en una campaña o en tareas accionables para no dejarlo solo como documento.',
+    primaryLabel: '📣 Crear campaña',
+    primaryAction: function() { showPage('campaigns'); },
+    secondaryLabel: '🎨 Ir a creativos',
+    secondaryAction: function() { showPage('creatives'); }
+  };
+}
+
+function renderStrategicPlanNextStep(resultEl, options) {
+  if (!resultEl) return;
+  var onboarding = getWorkspaceOnboarding();
+  var recommendation = getStrategicPlanActivationRecommendation(options?.goal, onboarding);
+  var draft = getStrategicPlanDraft();
+
+  var section = document.createElement('div');
+  section.style.cssText = 'margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(94,201,160,0.1),rgba(123,167,232,0.08));border:1px solid rgba(94,201,160,0.18);border-radius:14px;';
+
+  appendTextLine(section, 'Siguiente paso recomendado', 'font-size:11px;font-weight:800;letter-spacing:1px;color:#0f9f6e;margin-bottom:6px;');
+  appendTextLine(section, recommendation.title, 'font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;');
+  appendTextLine(section, recommendation.copy, 'font-size:12px;color:var(--text2);line-height:1.7;');
+
+  if (draft?.product || draft?.audience) {
+    var context = document.createElement('div');
+    context.style.cssText = 'margin-top:10px;padding:10px 12px;background:rgba(255,255,255,0.68);border:1px solid rgba(123,167,232,0.12);border-radius:10px;font-size:11px;color:var(--text2);line-height:1.7;';
+    context.textContent = 'Contexto listo para ejecutar: '
+      + (draft.product || 'producto sin definir')
+      + (draft.audience ? ' · Audiencia: ' + draft.audience : '');
+    section.appendChild(context);
+  }
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;';
+  actions.appendChild(createActionButton(recommendation.primaryLabel, recommendation.primaryAction, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton(recommendation.secondaryLabel, recommendation.secondaryAction, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('📊 Volver al dashboard', function() { showPage('dashboard'); }, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+  section.appendChild(actions);
+
+  resultEl.appendChild(section);
 }
 
 async function loadGAdsForPlan() {
@@ -10829,6 +11059,7 @@ async function generateStrategicPlan() {
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando plan...'; }
 
   try {
+    var strategicContext = deriveStrategicPlanContext();
     var body = {
       business: business || product,
       product: product,
@@ -10837,10 +11068,11 @@ async function generateStrategicPlan() {
       goal: spGoal,
       duration: duration,
       url: url,
-      gscData: currentAnalysis?.gscData || null,
-      ga4Data: currentAnalysis?.ga4Data || null,
+      gscData: strategicContext.gscData,
+      ga4Data: strategicContext.ga4Data,
       gadsData: spGadsData,
-      metaData: spMetaData
+      metaData: spMetaData,
+      analysisContext: strategicContext.analysisSummary
     };
 
     var res = await fetch('/api/strategic-plan', {
@@ -10876,6 +11108,18 @@ async function generateStrategicPlan() {
         header: header,
         contentStyle: 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
         content: data.plan
+      });
+      saveStrategicPlanDraft({
+        business: body.business,
+        product: body.product,
+        audience: body.audience,
+        budget: body.budget,
+        duration: body.duration,
+        goal: body.goal,
+        url: body.url
+      });
+      renderStrategicPlanNextStep(resultEl, {
+        goal: body.goal
       });
       saveDeliverable('Director Estratégico', '🗺️', 'Plan Estratégico '+duration+'d', data.plan);
     }
@@ -12012,7 +12256,7 @@ var _origShowPage = showPage;
 showPage = function(page) {
   _origShowPage(page);
   // Update mobile nav
-  var navMap = { dashboard: 0, analyze: 1, agents: 2, creatives: 3, 'strategic-plan': 4 };
+  var navMap = { dashboard: 0, analyze: 1, 'strategic-plan': 2, campaigns: 3, integrations: 4 };
   var items = document.querySelectorAll('.mobile-nav-item');
   items.forEach(function(b) { b.classList.remove('active'); });
   if (navMap[page] !== undefined && items[navMap[page]]) {

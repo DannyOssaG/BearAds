@@ -219,6 +219,34 @@ Toda nueva tarea debe responder una de estas preguntas:
 
 Si no responde a una de esas cuatro, no entra al core actual.
 
+## Tesis competitiva del producto
+
+BearAds no debe competir solo como:
+
+- otra app de reportes,
+- otro generador de contenido con IA,
+- o otro dashboard de marketing.
+
+BearAds debe competir como:
+
+- plataforma que conecta datos reales,
+- los convierte en decisiones,
+- y permite ejecutar campañas y escalar operacion desde el mismo workspace.
+
+La propuesta competitiva correcta hoy es:
+
+- diagnostico con datos reales de Google,
+- plan estrategico accionable,
+- activacion con campañas y creativos,
+- y una capa de 12 agentes especializados que acelera la ejecucion.
+
+Lo que nos puede volver realmente competitivos:
+
+- que el contexto del negocio viva en el workspace y se reutilice en todos los modulos,
+- que las conexiones no solo muestren datos sino que habiliten ejecucion real,
+- que pasar de analisis a campaña requiera el menor numero de pasos posible,
+- y que BearAds se sienta como sistema operativo de crecimiento, no como coleccion de herramientas sueltas.
+
 ## Regla de actualizacion al cerrar conversacion
 
 Cada vez que cerremos una conversacion de trabajo, este archivo debe actualizarse para dejar trazado:
@@ -266,15 +294,37 @@ Avances realizados en esta conversacion:
   - googleapis -> 144.0.0
   - gaxios -> 6.0.3
 - El servidor de pruebas ya logra arrancar correctamente despues de esos ajustes.
+- Se termino de validar el flujo de Google dentro del analisis:
+  - GA4 ya detecta propiedades y muestra metricas reales.
+  - Search Console ya quedo validado como parte del flujo de datos reales.
+- El backend del Plan Estrategico ya puede recibir resumen estructurado del analisis para enriquecer el plan.
+- El frontend del Plan Estrategico ahora:
+  - reutiliza negocio, URL y contexto guardado,
+  - muestra mejor las fuentes conectadas,
+  - y envia el resumen del analisis al endpoint del plan.
+- El flujo principal dentro de la app ya quedo mas conectado:
+  - dashboard -> estrategia usa el ultimo analisis valido,
+  - analisis -> estrategia muestra un CTA directo al terminar,
+  - estrategia -> activacion ahora sugiere el siguiente modulo segun el objetivo.
+- Se hizo una simplificacion visible del producto para bajar ruido no core:
+  - la navegacion principal ahora prioriza dashboard, analisis, plan, campañas, creativos e integraciones,
+  - agentes, score semanal y aprendizaje quedaron como soporte y extras,
+  - el dashboard ya empuja mas fuerte a plan y campañas en vez de dispersar hacia modulos secundarios.
+- Se ajusto la narrativa para mantener visible que BearAds tiene 12 agentes, pero como capacidad de apoyo y no como promesa principal.
+- Se mejoro el contraste visual en bloques con fondos oscuros o muy cargados para que los textos se lean mejor.
+- Se reforzo la jerarquia visual base de la app:
+  - textos secundarios y muted con mejor contraste,
+  - breadcrumbs, subtitulos y detalles del analisis mas legibles,
+  - la UI se siente menos lavada en paneles secundarios.
 
 Pendientes inmediatos:
 
-- usar de forma mas automatica la seleccion guardada para disminuir pasos manuales,
-- revisar el flujo completo URL + Google -> analisis -> dashboard -> estrategia,
-- terminar de validar Search Console para que muestre datos reales de clicks, impresiones, CTR y keywords en el analisis,
-- validar visualmente que GA4 renderice sus metricas dentro del reporte final cuando la propiedad seleccionada devuelve datos,
-- seguir reduciendo ruido de modulos no core.
+- validar visualmente el flujo completo URL + Google -> analisis -> dashboard -> estrategia -> activacion,
+- validar visualmente en preproduccion que el Plan Estrategico ya salga enriquecido con el contexto del analisis,
+- revisar si conviene prellenar tambien objetivo y audiencia con logica mas fina segun onboarding y perfil,
+- seguir reduciendo ruido de modulos no core dentro de landing, agentes y aprendizaje sin perder claridad comercial,
+- revisar contraste y legibilidad en mobile para confirmar que la mejora visual tambien se mantiene ahi.
 
 Siguiente paso recomendado:
 
-cerrar el flujo principal dentro de la app para que, despues del login con Google, el usuario llegue a un analisis con contexto precargado y una ruta obvia hacia estrategia.
+validar en preproduccion el recorrido completo del usuario y, si responde bien, hacer la siguiente simplificacion grande en la landing y en los mensajes heredados sobre "12 agentes".
