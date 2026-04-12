@@ -23,6 +23,7 @@ const APP_USERS_FILE = path.join(DATA_DIR, 'app-users.json');
 const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
 const MEMBERSHIPS_FILE = path.join(DATA_DIR, 'memberships.json');
 const INVITES_FILE = path.join(DATA_DIR, 'user-invites.json');
+const TRACKING_EVENTS_FILE = path.join(DATA_DIR, 'tracking-events.json');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -94,6 +95,7 @@ const appUsers = readJsonFile(APP_USERS_FILE, {});
 const workspaces = readJsonFile(WORKSPACES_FILE, {});
 const memberships = readJsonFile(MEMBERSHIPS_FILE, {});
 const userInvites = readJsonFile(INVITES_FILE, {});
+const trackingEvents = Array.isArray(readJsonFile(TRACKING_EVENTS_FILE, [])) ? readJsonFile(TRACKING_EVENTS_FILE, []) : [];
 const TRIAL_DAYS = Math.max(1, parseInt(process.env.TRIAL_DAYS || '15', 10));
 const PLATFORM_OWNER_EMAILS = (process.env.OWNER_EMAILS || process.env.BEARADS_OWNER_EMAILS || '')
   .split(',')
@@ -127,6 +129,20 @@ function saveMemberships() {
 
 function saveInvites() {
   writeJsonFile(INVITES_FILE, userInvites);
+}
+
+function saveTrackingEvents() {
+  writeJsonFile(TRACKING_EVENTS_FILE, trackingEvents);
+}
+
+function clampString(value, max = 120) {
+  return String(value || '').trim().slice(0, max);
+}
+
+function normalizeTrackingEventType(value) {
+  const allowed = ['pageview', 'cta_click', 'form_submit', 'custom'];
+  const normalized = clampString(value, 40).toLowerCase();
+  return allowed.includes(normalized) ? normalized : 'custom';
 }
 
 function normalizeOwnerEmail(email) {
@@ -245,6 +261,11 @@ function defaultOnboardingState() {
     knowledgeLevel: '',
     businessModel: '',
     mainGoal: '',
+    targetCountry: '',
+    targetRegion: '',
+    primaryLanguage: 'es',
+    growthScope: '',
+    budgetRange: '',
     platforms: [],
     recommendedIntegrations: [],
     createdAt: null,
@@ -693,6 +714,67 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/bearads-tracker.js', (req, res) => {
+  res.type('application/javascript');
+  res.send(`(function(){
+  var script = document.currentScript;
+  if (!script) return;
+  var endpoint = script.getAttribute('data-endpoint') || (location.origin + '/api/track');
+  var workspaceId = script.getAttribute('data-workspace') || '';
+  var siteUrl = script.getAttribute('data-site') || location.origin;
+
+  function send(type, meta) {
+    try {
+      var payload = JSON.stringify({
+        workspaceId: workspaceId,
+        siteUrl: siteUrl,
+        eventType: type,
+        path: location.pathname + location.search,
+        referrer: document.referrer || '',
+        title: document.title || '',
+        meta: meta || {}
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }));
+        return;
+      }
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: payload
+      }).catch(function(){});
+    } catch (error) {}
+  }
+
+  send('pageview');
+
+  document.addEventListener('click', function(event) {
+    var target = event.target && event.target.closest ? event.target.closest('a,button,[data-bearads-track]') : null;
+    if (!target) return;
+    var text = ((target.innerText || target.textContent || '').trim()).slice(0, 120);
+    var href = target.getAttribute && target.getAttribute('href');
+    if (target.hasAttribute('data-bearads-track') || target.tagName === 'BUTTON' || href) {
+      send('cta_click', {
+        text: text,
+        href: href || '',
+        tag: (target.tagName || '').toLowerCase()
+      });
+    }
+  }, true);
+
+  document.addEventListener('submit', function(event) {
+    var form = event.target;
+    if (!form) return;
+    send('form_submit', {
+      id: form.id || '',
+      action: form.getAttribute('action') || '',
+      method: form.getAttribute('method') || 'get'
+    });
+  }, true);
+})();`);
+});
+
 // ── PING (diagnostico) ──
 app.get('/api/ping', (req, res) => res.json({ pong: true, version: 'v2', time: new Date().toISOString() }));
 
@@ -847,11 +929,19 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
   const integrationHub = req.body.integrationHub || {};
   const allowedPlatforms = ['google', 'meta', 'googleAds', 'email', 'ecom', 'ga4', 'gsc', 'tiktok'];
   const allowedKnowledge = ['principiante', 'intermedio', 'avanzado', 'agencia'];
+  const allowedLanguages = ['es', 'en', 'pt'];
+  const allowedScopes = ['local', 'nacional', 'regional', 'global'];
+  const allowedBudgetRanges = ['sin-presupuesto', 'bajo', 'medio', 'alto'];
 
   if (Object.keys(onboarding).length) {
     const nextKnowledge = String(onboarding.knowledgeLevel || '').trim().toLowerCase();
     const nextBusinessModel = String(onboarding.businessModel || '').trim().slice(0, 120);
     const nextMainGoal = String(onboarding.mainGoal || '').trim().slice(0, 160);
+    const nextTargetCountry = String(onboarding.targetCountry || '').trim().slice(0, 120);
+    const nextTargetRegion = String(onboarding.targetRegion || '').trim().slice(0, 120);
+    const nextPrimaryLanguage = String(onboarding.primaryLanguage || '').trim().toLowerCase();
+    const nextGrowthScope = String(onboarding.growthScope || '').trim().toLowerCase();
+    const nextBudgetRange = String(onboarding.budgetRange || '').trim().toLowerCase();
     const nextPlatforms = Array.isArray(onboarding.platforms)
       ? onboarding.platforms.map(value => String(value || '').trim()).filter(value => allowedPlatforms.includes(value)).slice(0, 8)
       : workspace.onboarding.platforms;
@@ -862,6 +952,11 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
       knowledgeLevel: allowedKnowledge.includes(nextKnowledge) ? nextKnowledge : workspace.onboarding.knowledgeLevel,
       businessModel: nextBusinessModel || workspace.onboarding.businessModel,
       mainGoal: nextMainGoal || workspace.onboarding.mainGoal,
+      targetCountry: nextTargetCountry || workspace.onboarding.targetCountry,
+      targetRegion: nextTargetRegion || workspace.onboarding.targetRegion,
+      primaryLanguage: allowedLanguages.includes(nextPrimaryLanguage) ? nextPrimaryLanguage : (workspace.onboarding.primaryLanguage || 'es'),
+      growthScope: allowedScopes.includes(nextGrowthScope) ? nextGrowthScope : workspace.onboarding.growthScope,
+      budgetRange: allowedBudgetRanges.includes(nextBudgetRange) ? nextBudgetRange : workspace.onboarding.budgetRange,
       platforms: nextPlatforms || [],
       recommendedIntegrations: Array.from(new Set((nextPlatforms || []).filter(Boolean))).slice(0, 8),
       completed: Boolean(onboarding.completed ?? workspace.onboarding.completed),
@@ -898,6 +993,80 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
   res.json({
     success: true,
     workspace: sanitizeWorkspace(workspace)
+  });
+});
+
+app.post('/api/track', (req, res) => {
+  const workspaceId = clampString(req.body.workspaceId, 80);
+  const siteUrl = clampString(req.body.siteUrl, 200);
+  if (!workspaceId || !siteUrl) {
+    return res.status(400).json({ error: 'workspaceId y siteUrl son requeridos' });
+  }
+
+  trackingEvents.push({
+    id: crypto.randomUUID(),
+    workspaceId,
+    siteUrl,
+    eventType: normalizeTrackingEventType(req.body.eventType),
+    path: clampString(req.body.path, 240) || '/',
+    referrer: clampString(req.body.referrer, 240),
+    title: clampString(req.body.title, 160),
+    meta: typeof req.body.meta === 'object' && req.body.meta ? req.body.meta : {},
+    createdAt: nowIso()
+  });
+
+  while (trackingEvents.length > 5000) trackingEvents.shift();
+  saveTrackingEvents();
+  res.json({ success: true });
+});
+
+app.get('/api/tracking/summary', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspaceId = currentUser.membership?.workspaceId;
+  if (!workspaceId) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const cutoff = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  const items = trackingEvents.filter(event =>
+    event.workspaceId === workspaceId &&
+    new Date(event.createdAt).getTime() >= cutoff
+  );
+
+  const byType = items.reduce((acc, event) => {
+    acc[event.eventType] = (acc[event.eventType] || 0) + 1;
+    return acc;
+  }, {});
+
+  const byPath = items.reduce((acc, event) => {
+    if (!event.path) return acc;
+    acc[event.path] = (acc[event.path] || 0) + 1;
+    return acc;
+  }, {});
+
+  const topPages = Object.entries(byPath)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([pathName, views]) => ({ path: pathName, views }));
+
+  const topSources = items.reduce((acc, event) => {
+    const source = clampString(event.referrer, 120) || 'directo';
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {});
+
+  res.json({
+    success: true,
+    summary: {
+      installed: items.length > 0,
+      pageviews: byType.pageview || 0,
+      ctaClicks: byType.cta_click || 0,
+      formSubmits: byType.form_submit || 0,
+      events: items.length,
+      topPages,
+      topSources: Object.entries(topSources)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([source, visits]) => ({ source, visits }))
+    }
   });
 });
 
@@ -2291,9 +2460,46 @@ app.post('/api/generate-image', async (req, res) => {
 // ══════════════════════════════════════════
 
 app.post('/api/strategic-plan', async (req, res) => {
-  const { business, product, audience, budget, goal, url, duration, gscData, ga4Data, gadsData, metaData, analysisContext } = req.body;
+  const {
+    business,
+    product,
+    audience,
+    budget,
+    goal,
+    url,
+    duration,
+    gscData,
+    ga4Data,
+    gadsData,
+    metaData,
+    analysisContext,
+    targetCountry,
+    targetRegion,
+    primaryLanguage,
+    growthScope,
+    budgetRange,
+    businessContext,
+    industryContext,
+    experienceLevel,
+    routeMode,
+    routeBadge,
+    routeTitle,
+    routeCopy
+  } = req.body;
 
   let realDataContext = '';
+  const normalizedRoute = routeMode || 'arranque';
+  const routeContext = `Ruta detectada por BearAds: ${routeBadge || 'BASE DE CRECIMIENTO'}
+Nombre de la ruta: ${routeTitle || 'Primero mide y ordena tu base'}
+Motivo de la ruta: ${routeCopy || 'No definido'}`;
+  const marketContext = `Pais prioritario: ${targetCountry || 'no definido'}
+Region o ciudad clave: ${targetRegion || 'no definida'}
+Idioma principal: ${primaryLanguage || 'es'}
+Alcance de crecimiento: ${growthScope || 'no definido'}
+Nivel de presupuesto actual: ${budgetRange || 'no definido'}`;
+  const businessLayerContext = `Industria o nicho: ${industryContext || 'no definido'}
+Nivel de experiencia del usuario: ${experienceLevel || 'no definido'}
+Descripcion del negocio y cliente ideal: ${businessContext || 'no definida'}`;
   if (gscData) realDataContext += `\nGSC: ${gscData.totalClicks} clicks, pos. media ${gscData.avgPosition}, top keywords: ${(gscData.topQueries||[]).slice(0,5).map(q=>q.query).join(', ')}`;
   if (ga4Data) realDataContext += `\nGA4: ${ga4Data.sessions} sesiones, ${ga4Data.users} usuarios, rebote ${ga4Data.bounceRate}`;
   if (gadsData?.campaigns) realDataContext += `\nGoogle Ads activo: ${gadsData.campaigns.length} campañas, gasto total $${gadsData.campaigns.reduce((s,c)=>s+parseFloat(c.spend||0),0).toFixed(0)}/mes`;
@@ -2310,6 +2516,29 @@ Fricciones CRO: ${(analysisContext.croFrictions || []).join(', ')}
 Canales sugeridos: ${(analysisContext.recommendedChannels || []).join(', ')}`;
   }
 
+  const routeInstructions = {
+    arranque: `La prioridad es construir base.
+- Abre con una seccion llamada "RUTA RECOMENDADA" explicando por que primero toca medir, definir mercado y corregir lo basico.
+- Incluye una fase 0 de instalacion minima: GA4, Search Console o BearAds Tracking.
+- El plan pago debe aparecer solo como hoja de ruta futura, no como prioridad inmediata.
+- Incluye una seccion "QUE NO HACER TODAVIA" con advertencias concretas para no quemar presupuesto o tiempo.`,
+    organico: `La prioridad es crecer de forma organica mientras se prepara la cuenta para ads.
+- Abre con una seccion llamada "RUTA RECOMENDADA" explicando por que conviene fortalecer SEO, contenido, CRO y oferta antes de escalar.
+- El plan organico debe ser el bloque mas profundo y detallado.
+- El plan pago debe existir, pero como preparacion y criteria de readiness.
+- Incluye una seccion "SENALES PARA EMPEZAR ADS" con thresholds concretos.`,
+    ads: `La prioridad es escalar con ads sin abandonar la base organica.
+- Abre con una seccion llamada "RUTA RECOMENDADA" explicando por que el negocio ya puede acelerar con Google Ads o Meta Ads.
+- Debe haber un mix claro entre base organica, conversion y medios pagos.
+- El plan pago debe ser detallado por canal, con presupuesto, prioridad y objetivo.
+- Incluye una seccion "RIESGOS SI ESCALAS MAL" con errores comunes y controles.`,
+    agencia: `La prioridad es operar varios proyectos con repetibilidad.
+- Abre con una seccion llamada "RUTA RECOMENDADA" explicando que la estrategia debe facilitar estandarizacion, reutilizacion y velocidad operativa.
+- Estructura el plan como si fuera aplicable a una cartera de clientes o proyectos.
+- Incluye una seccion "PLAYBOOK REUTILIZABLE" y otra "TABLERO DE CONTROL DE CUENTAS".
+- El plan debe hablar de procesos, plantillas, handoff y control por cliente.`
+  };
+
   const prompt = `Crea un plan de marketing digital COMPLETO para ${duration || 90} días:
 
 NEGOCIO: ${business || product}
@@ -2318,9 +2547,23 @@ AUDIENCIA: ${audience}
 PRESUPUESTO MENSUAL: $${budget} USD
 OBJETIVO PRINCIPAL: ${goal}
 SITIO WEB: ${url || 'no especificado'}
+MERCADO OBJETIVO:
+${marketContext}
+CONTEXTO DEL NEGOCIO:
+${businessLayerContext}
+CONTEXTO DE RUTA:
+${routeContext}
 ${realDataContext ? '\nDATOS REALES:\n' + realDataContext : ''}
 
+INSTRUCCIONES CLAVE SEGUN RUTA:
+${routeInstructions[normalizedRoute] || routeInstructions.arranque}
+
 ESTRUCTURA DEL PLAN:
+
+## 0. RUTA RECOMENDADA
+- Explica por que esta es la mejor ruta ahora mismo
+- Que debe pasar primero
+- Que no deberia priorizar todavia
 
 ## 1. DIAGNÓSTICO ACTUAL
 - Estado actual del negocio digitalmente
@@ -2332,6 +2575,7 @@ ESTRUCTURA DEL PLAN:
 - Palabras clave prioritarias (5-8 con volumen estimado)
 - Páginas a optimizar o crear
 - Estrategia de link building
+- Ajustes por pais, region o expansion internacional segun el mercado objetivo
 
 **Contenido:**
 - Calendario editorial semana a semana (mes 1 detallado)
@@ -2346,6 +2590,9 @@ ESTRUCTURA DEL PLAN:
 ## 3. PLAN PAGO (con presupuesto $${budget}/mes)
 **Distribución de presupuesto:**
 - % y $ por canal con justificación
+
+Si el nivel de presupuesto actual es "sin presupuesto", prioriza fuerte el plan organico y deja el plan pago solo como hoja de ruta futura.
+Si no hay datos reales conectados, empieza el plan con una fase de instalacion minima: GA4, Search Console o BearAds Tracking.
 
 **Google Ads ($X/mes):**
 - Tipo de campaña recomendado
@@ -2372,6 +2619,11 @@ Semana a semana: qué lanzar, cuándo y con qué presupuesto
 - Cómo saber si la estrategia orgánica está funcionando (criterios concretos)
 - Cómo saber si los ads son rentables (thresholds específicos)
 - Qué cambiar si no funciona
+
+## 7. SIGUIENTE DECISION
+- Cual seria el siguiente paso recomendado en BearAds
+- Si conviene ir a estrategia organica, creativos, campañas o integraciones
+- Que evidencia deberia revisar antes de avanzar
 
 Sé muy específico con números reales para LATAM. En español.`;
 

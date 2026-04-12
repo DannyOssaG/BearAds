@@ -2013,11 +2013,11 @@ tr:hover td { background: var(--surface2); }
 
   <!-- KPI Cards -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;">
-    <div class="card" style="text-align:center;">
+    <div class="card" onclick="openAnalysesHistory()" style="text-align:center;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">ANÁLISIS REALIZADOS</div>
       <div id="dash-kpi-analyses" style="font-size:28px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:var(--accent);">0</div>
     </div>
-    <div class="card" style="text-align:center;">
+    <div class="card" onclick="openDeliverablesHistory()" style="text-align:center;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">ENTREGABLES GENERADOS</div>
       <div id="dash-kpi-deliverables" style="font-size:28px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:var(--accent2);">0</div>
     </div>
@@ -2424,6 +2424,31 @@ tr:hover td { background: var(--surface2); }
         <div id="intg-google-btn-area"></div>
       </div>
 
+      <!-- BearAds Tracking -->
+      <div class="card" id="intg-tracking-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:42px;height:42px;border-radius:10px;background:rgba(123,167,232,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;">📡</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">BearAds Tracking</div>
+            <div style="font-size:11px;color:var(--muted);">Pageviews · CTAs · Formularios</div>
+          </div>
+          <div id="intg-tracking-status" style="font-size:10px;padding:3px 8px;border-radius:5px;font-weight:700;background:rgba(107,114,128,0.15);color:var(--muted);">LISTO PARA INSTALAR</div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">Si el cliente aun no tiene GA4 bien configurado, instala esta capa minima para empezar a medir trafico y acciones clave desde el dia 1.</div>
+        <div id="intg-tracking-summary" style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.6);border:1px solid rgba(123,167,232,0.12);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.7;">Instalalo en tu sitio para empezar a ver pageviews, clicks y formularios.</div>
+        <div style="margin-bottom:12px;padding:10px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.06);border-radius:8px;font-size:11px;color:var(--text2);line-height:1.7;">
+          <strong style="display:block;color:var(--text);margin-bottom:6px;">Instalacion sugerida</strong>
+          1. Copia el snippet.<br/>
+          2. Pegalo antes de <code>&lt;/body&gt;</code> en tu sitio o en tu gestor.<br/>
+          3. Recarga una pagina real y vuelve a esta tarjeta para actualizar el estado.
+        </div>
+        <textarea id="intg-tracking-code" readonly style="width:100%;min-height:92px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text);outline:none;resize:none;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button onclick="copyTrackingSnippet()" style="flex:1;padding:9px;background:rgba(123,167,232,0.09);border:1px solid rgba(123,167,232,0.18);border-radius:8px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:700;">📋 Copiar snippet</button>
+          <button onclick="refreshTrackingCard()" style="flex:1;padding:9px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;font-weight:700;">↻ Actualizar</button>
+        </div>
+      </div>
+
       <!-- Meta Business -->
       <div class="card" id="intg-meta-card">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -2682,49 +2707,6 @@ tr:hover td { background: var(--surface2); }
   <div class="page-title">Aprendizaje</div>
   <div class="page-sub">Guías personalizadas para tu negocio e historial de todo lo generado</div>
 
-  <!-- Business Context Banner -->
-  <div id="learn-context-bar" style="margin:14px 0;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">CONTEXTO DE TU NEGOCIO <span style="color:var(--accent);font-size:10px;">(mejora las guías)</span></div>
-      <button onclick="toggleLearnContext()" id="learn-ctx-toggle" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">✏ Editar</button>
-    </div>
-    <div id="learn-ctx-summary" style="margin-top:8px;font-size:12px;color:var(--text2);">Sin contexto definido — las guías serán genéricas.</div>
-    <div id="learn-ctx-form" style="display:none;margin-top:12px;display:none;">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div>
-          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">PAÍS / REGIÓN</label>
-          <input id="lctx-country" type="text" placeholder="Ej: Colombia, México, España..."
-            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;"
-            onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
-        </div>
-        <div>
-          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">INDUSTRIA / NICHO</label>
-          <input id="lctx-industry" type="text" placeholder="Ej: E-commerce, SaaS, Restaurante..."
-            style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;"
-            onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
-        </div>
-        <div>
-          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">NIVEL DE EXPERIENCIA</label>
-          <select id="lctx-level" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;">
-            <option value="principiante">Principiante</option>
-            <option value="intermedio" selected>Intermedio</option>
-            <option value="avanzado">Avanzado</option>
-          </select>
-        </div>
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">¿QUÉ VENDES Y A QUIÉN?</label>
-        <input id="lctx-business" type="text" placeholder="Ej: Ropa deportiva para mujeres 25-40 en Bogotá..."
-          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;"
-          onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="saveLearnContext()" class="btn btn-primary" style="font-size:12px;padding:8px 18px;">Guardar contexto</button>
-        <button onclick="toggleLearnContext()" style="font-size:12px;padding:8px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Tabs -->
   <div style="display:flex;gap:2px;border-bottom:1px solid var(--border);margin:16px 0 20px;">
     <button class="learn-tab-btn active" id="ltab-tutorials" onclick="switchLearnTab('tutorials')" style="padding:9px 18px;font-size:12px;font-weight:600;background:none;border:none;cursor:pointer;border-bottom:2px solid var(--accent);color:var(--text);">📚 Guías y Tutoriales</button>
@@ -2890,6 +2872,66 @@ tr:hover td { background: var(--surface2); }
   <div class="page-title">Plan Estratégico</div>
   <div class="page-sub">Plan completo orgánico + pago con IA — basado en datos reales de tu negocio</div>
 
+  <div id="sp-context-bar" style="margin:14px 0;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">CONTEXTO DEL NEGOCIO <span style="color:var(--accent);font-size:10px;">(mejora el plan)</span></div>
+      <button onclick="toggleStrategicContext()" id="sp-ctx-toggle" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:600;">✏ Editar</button>
+    </div>
+    <div id="sp-ctx-summary" style="margin-top:8px;font-size:12px;color:var(--text2);">Sin contexto definido — el plan será más genérico.</div>
+    <div id="sp-ctx-form" style="display:none;margin-top:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">PAÍS / REGIÓN</label>
+          <input id="spctx-country" type="text" placeholder="Ej: Colombia, México, España" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;" onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">CIUDAD / REGIÓN CLAVE</label>
+          <input id="spctx-region" type="text" placeholder="Ej: Bogotá, CDMX, LATAM" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;" onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">INDUSTRIA / NICHO</label>
+          <input id="spctx-industry" type="text" placeholder="Ej: E-commerce, SaaS, Restaurante" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;" onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">IDIOMA</label>
+          <select id="spctx-language" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;">
+            <option value="es">Español</option>
+            <option value="en">Inglés</option>
+            <option value="pt">Portugués</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">ALCANCE</label>
+          <select id="spctx-scope" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;">
+            <option value="">Selecciona...</option>
+            <option value="local">Local</option>
+            <option value="nacional">Nacional</option>
+            <option value="regional">Regional / LATAM</option>
+            <option value="global">Global</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">NIVEL DE EXPERIENCIA</label>
+          <select id="spctx-level" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;">
+            <option value="principiante">Principiante</option>
+            <option value="intermedio" selected>Intermedio</option>
+            <option value="avanzado">Avanzado</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">¿QUÉ VENDES Y A QUIÉN?</label>
+        <input id="spctx-business" type="text" placeholder="Ej: Ropa deportiva para mujeres 25-40 en Bogotá" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--text);outline:none;font-family:'Inter',sans-serif;" onfocus="this.style.borderColor='var(--accent2)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveStrategicContext()" class="btn btn-primary" style="font-size:12px;padding:8px 18px;">Guardar contexto</button>
+        <button onclick="toggleStrategicContext()" style="font-size:12px;padding:8px 14px;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
   <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;margin-top:16px;">
     <!-- Config Panel -->
     <div>
@@ -2912,7 +2954,7 @@ tr:hover td { background: var(--surface2); }
             <div>
               <label style="font-size:10px;color:var(--muted);font-weight:700;display:block;margin-bottom:4px;">PRESUPUESTO/MES (USD)</label>
               <select id="sp-budget" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;">
-                <option value="100">$100</option><option value="300">$300</option><option value="500" selected>$500</option>
+                <option value="0" selected>$0</option><option value="100">$100</option><option value="300">$300</option><option value="500">$500</option>
                 <option value="1000">$1,000</option><option value="2000">$2,000</option><option value="5000">$5,000+</option>
               </select>
             </div>
@@ -2942,6 +2984,7 @@ tr:hover td { background: var(--surface2); }
         <div id="sp-data-banner" style="margin-top:12px;padding:10px 12px;background:rgba(94,201,160,0.07);border:1px solid rgba(94,201,160,0.15);border-radius:8px;font-size:11px;color:var(--accent2);display:none;">
           ✓ Se usarán datos reales de <span id="sp-data-source"></span>
         </div>
+        <div id="sp-market-banner" style="margin-top:10px;padding:10px 12px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.16);border-radius:8px;font-size:11px;color:var(--text2);display:none;"></div>
 
         <button onclick="generateStrategicPlan()" id="sp-btn" style="width:100%;margin-top:14px;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:800;cursor:pointer;">
           🗺️ Generar Plan Completo
@@ -4978,6 +5021,39 @@ function openStrategyFromDashboard() {
   }
 }
 
+function openDeliverablesHistory() {
+  showPage('learning');
+  setTimeout(function() {
+    switchLearnTab('history');
+    document.getElementById('history-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function openAnalysesHistory() {
+  showPage('dashboard');
+  setTimeout(function() {
+    document.getElementById('dash-analyses-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function openHistoryItem(i) {
+  var item = (window._historyItems || [])[i];
+  if (!item) return;
+  var modal = document.getElementById('history-item-modal');
+  if (!modal) return;
+  var title = document.getElementById('history-item-title');
+  var meta = document.getElementById('history-item-meta');
+  var body = document.getElementById('history-item-body');
+  var copyBtn = document.getElementById('history-item-copy');
+  var downloadBtn = document.getElementById('history-item-download');
+  if (title) title.textContent = (item.agent || 'Entrega') + ' — ' + (item.type || 'General');
+  if (meta) meta.textContent = item.ts || '';
+  if (body) body.textContent = item.content || '';
+  if (copyBtn) copyBtn.onclick = function() { copyHistoryItem(copyBtn, i); };
+  if (downloadBtn) downloadBtn.onclick = function() { downloadHistoryItem(i); };
+  openModal('history-item-modal');
+}
+
 function renderDashboardGuide() {
   const badge = document.getElementById('dash-guide-badge');
   const title = document.getElementById('dash-guide-title');
@@ -4997,20 +5073,32 @@ function renderDashboardGuide() {
     avanzado: 'Nivel avanzado',
     agencia: 'Modo agencia'
   }[state.onboarding?.knowledgeLevel] || 'Modo guiado';
+  const startupMode = isStartupMode(state.onboarding, state.workspace?.integrationHub || getWorkspaceIntegrationHub());
+  const route = getGrowthRouteRecommendation({
+    onboarding: state.onboarding,
+    analysis: currentAnalysis || getAnalysisHistory()?.[0]?.report || null,
+    hub: state.hub
+  });
 
-  badge.textContent = completedCount === 3 ? 'LISTO PARA CRECER' : knowledgeLabel.toUpperCase();
-  title.textContent = completedCount === 3
+  badge.textContent = startupMode ? 'MODO ARRANQUE' : (completedCount === 3 ? 'LISTO PARA CRECER' : knowledgeLabel.toUpperCase());
+  title.textContent = startupMode
+    ? 'Empezamos por medir, ordenar y crecer sin depender de ads'
+    : completedCount === 3
     ? 'Tu cuenta ya está lista para pasar a estrategia'
     : state.onboarding?.knowledgeLevel
       ? 'Tu plan guiado ya está adaptado a tu nivel'
       : 'Haz estas 3 cosas y BearAds empezará a ayudarte mejor';
-  copy.textContent = completedCount === 3
+  copy.textContent = startupMode
+    ? 'Si llegas sin datos o sin presupuesto, BearAds te guia primero con instalacion minima, tracking base y crecimiento organico.'
+    : completedCount === 3
     ? 'Ya tienes la base hecha. El siguiente paso natural es convertir ese contexto en un plan claro de accion.'
     : state.onboarding?.knowledgeLevel
       ? 'BearAds te va guiando según lo que dijiste que sabes y las plataformas que usas.'
       : 'No necesitas entender toda la plataforma. Solo completa estos pasos en orden.';
   plan.textContent = isTrial ? 'TRIAL' : formatPlanLabel(workspace).toUpperCase();
-  planCopy.textContent = state.onboarding?.knowledgeLevel
+  planCopy.textContent = startupMode
+    ? 'Ruta recomendada: medicion minima -> analisis -> estrategia organica -> escalamiento.'
+    : state.onboarding?.knowledgeLevel
     ? knowledgeLabel + ' · ' + state.connectedIntegrations + '/' + state.recommendedIntegrations.length + ' integraciones sugeridas listas.'
     : (isTrial
       ? 'Te quedan ' + state.remainingTrialDays + ' días para probar BearAds con todo el contexto de tu negocio.'
@@ -5046,6 +5134,34 @@ function renderDashboardGuide() {
   ];
 
   clearElement(actions);
+  var routeBlock = document.createElement('div');
+  routeBlock.style.cssText = 'grid-column:1 / -1;padding:16px;background:linear-gradient(135deg,rgba(15,23,42,0.03),rgba(123,167,232,0.08));border:1px solid rgba(123,167,232,0.16);border-radius:14px;';
+  appendTextLine(routeBlock, route.badge, 'font-size:10px;font-weight:800;letter-spacing:1px;color:#35507f;margin-bottom:6px;');
+  appendTextLine(routeBlock, route.title, 'font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;');
+  appendTextLine(routeBlock, route.copy, 'font-size:12px;color:var(--text2);line-height:1.7;');
+  var routeActions = document.createElement('div');
+  routeActions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;';
+  routeActions.appendChild(createActionButton(route.primaryLabel, route.primaryAction, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
+  routeActions.appendChild(createActionButton(route.secondaryLabel, route.secondaryAction, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+  routeBlock.appendChild(routeActions);
+  actions.appendChild(routeBlock);
+  if (startupMode) {
+    var startupBlock = document.createElement('div');
+    startupBlock.style.cssText = 'grid-column:1 / -1;padding:14px;background:rgba(255,255,255,0.82);border:1px solid rgba(94,201,160,0.2);border-radius:14px;';
+    appendTextLine(startupBlock, 'Checklist recomendado para negocios que llegan sin datos', 'font-size:12px;font-weight:800;color:#0f172a;margin-bottom:10px;');
+    var startupGrid = document.createElement('div');
+    startupGrid.style.cssText = 'display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;';
+    getStartupChecklist(state.onboarding).forEach(function(step) {
+      var stepCard = document.createElement('div');
+      stepCard.style.cssText = 'padding:12px;background:rgba(15,23,42,0.03);border:1px solid rgba(15,23,42,0.06);border-radius:12px;';
+      appendTextLine(stepCard, step.title, 'font-size:12px;font-weight:800;color:#0f172a;');
+      appendTextLine(stepCard, step.copy, 'margin-top:8px;font-size:11px;color:#51627f;line-height:1.7;min-height:72px;');
+      stepCard.appendChild(createActionButton(step.button, function() { new Function(step.action)(); }, 'width:100%;margin-top:10px;padding:9px 12px;background:#5ec9a0;border:none;border-radius:10px;color:#0f172a;font-size:11px;font-weight:800;cursor:pointer;'));
+      startupGrid.appendChild(stepCard);
+    });
+    startupBlock.appendChild(startupGrid);
+    actions.appendChild(startupBlock);
+  }
   items.forEach(function(item) {
     var card = document.createElement('div');
     card.style.cssText = 'background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.12);border-radius:14px;padding:14px;';
@@ -5114,7 +5230,10 @@ function refreshDashboard() {
     clearElement(delivList);
     deliverables.slice(0,5).forEach(function(d) {
       var row = document.createElement('div');
-      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;';
+      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:all 0.15s;';
+      row.addEventListener('click', function() { openDeliverablesHistory(); });
+      row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent2)'; });
+      row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
       var icon = document.createElement('span');
       icon.style.cssText = 'font-size:16px;flex-shrink:0;';
       icon.textContent = d.icon || '📄';
@@ -5844,56 +5963,67 @@ function initLearningPage() {
     );
   }
   // Restore saved context form
-  if (learnContextData.country && document.getElementById('lctx-country')) {
-    document.getElementById('lctx-country').value = learnContextData.country||'';
-    document.getElementById('lctx-industry').value = learnContextData.industry||'';
-    document.getElementById('lctx-business').value = learnContextData.business||'';
-    if(document.getElementById('lctx-level'))document.getElementById('lctx-level').value = learnContextData.level||'intermedio';
-    updateLearnContextSummary();
+  if (learnContextData.country && document.getElementById('spctx-country')) {
+    document.getElementById('spctx-country').value = learnContextData.country||'';
+    if (document.getElementById('spctx-region')) document.getElementById('spctx-region').value = learnContextData.region||'';
+    document.getElementById('spctx-industry').value = learnContextData.industry||'';
+    if (document.getElementById('spctx-language')) document.getElementById('spctx-language').value = learnContextData.language||'es';
+    if (document.getElementById('spctx-scope')) document.getElementById('spctx-scope').value = learnContextData.scope||'';
+    document.getElementById('spctx-business').value = learnContextData.business||'';
+    if(document.getElementById('spctx-level'))document.getElementById('spctx-level').value = learnContextData.level||'intermedio';
+    updateStrategicContextSummary();
   }
 }
 
-function toggleLearnContext() {
-  const form = document.getElementById('learn-ctx-form');
+function toggleStrategicContext() {
+  const form = document.getElementById('sp-ctx-form');
   if (!form) return;
   const vis = form.style.display === 'none' || form.style.display === '';
   form.style.display = vis ? 'block' : 'none';
-  const btn = document.getElementById('learn-ctx-toggle');
+  const btn = document.getElementById('sp-ctx-toggle');
   if (btn) btn.textContent = vis ? '✕ Cerrar' : '✏ Editar';
 }
 
-function saveLearnContext() {
+function saveStrategicContext() {
   learnContextData = {
-    country: document.getElementById('lctx-country')?.value.trim()||'',
-    industry: document.getElementById('lctx-industry')?.value.trim()||'',
-    level: document.getElementById('lctx-level')?.value||'intermedio',
-    business: document.getElementById('lctx-business')?.value.trim()||''
+    country: document.getElementById('spctx-country')?.value.trim()||'',
+    region: document.getElementById('spctx-region')?.value.trim()||'',
+    industry: document.getElementById('spctx-industry')?.value.trim()||'',
+    language: document.getElementById('spctx-language')?.value||'es',
+    scope: document.getElementById('spctx-scope')?.value||'',
+    level: document.getElementById('spctx-level')?.value||'intermedio',
+    business: document.getElementById('spctx-business')?.value.trim()||''
   };
   DB.set('learn_context', learnContextData);
-  updateLearnContextSummary();
-  const form = document.getElementById('learn-ctx-form');
+  updateStrategicContextSummary();
+  const form = document.getElementById('sp-ctx-form');
   if(form)form.style.display='none';
-  const btn=document.getElementById('learn-ctx-toggle');
+  const btn=document.getElementById('sp-ctx-toggle');
   if(btn)btn.textContent='✏ Editar';
-  showToast('Contexto guardado — las guías usarán esta información');
+  showToast('Contexto guardado — el plan usará esta información');
 }
 
-function updateLearnContextSummary() {
-  const summary = document.getElementById('learn-ctx-summary');
+function updateStrategicContextSummary() {
+  const summary = document.getElementById('sp-ctx-summary');
   if (!summary) return;
   const parts = [];
   if (learnContextData.country) parts.push('📍 '+learnContextData.country);
+  if (learnContextData.region) parts.push('🗺️ '+learnContextData.region);
   if (learnContextData.industry) parts.push('🏭 '+learnContextData.industry);
+  if (learnContextData.scope) parts.push('🌍 '+learnContextData.scope);
   if (learnContextData.level) parts.push('📊 '+learnContextData.level);
   if (learnContextData.business) parts.push('💼 '+learnContextData.business.substring(0,40));
-  summary.textContent = parts.length ? parts.join('  ·  ') : 'Sin contexto definido.';
+  summary.textContent = parts.length ? parts.join('  ·  ') : 'Sin contexto definido — el plan será más genérico.';
   summary.style.color = parts.length ? 'var(--text2)' : 'var(--muted)';
 }
 
 function getLearnContext() {
   const parts = [];
   if (learnContextData.country) parts.push('País: '+learnContextData.country);
+  if (learnContextData.region) parts.push('Region: '+learnContextData.region);
   if (learnContextData.industry) parts.push('Industria: '+learnContextData.industry);
+  if (learnContextData.language) parts.push('Idioma: '+learnContextData.language);
+  if (learnContextData.scope) parts.push('Alcance: '+learnContextData.scope);
   if (learnContextData.level) parts.push('Nivel: '+learnContextData.level);
   if (learnContextData.business) parts.push('Negocio: '+learnContextData.business);
   if (currentAnalysis) parts.push('Sitio: '+currentAnalysis.url+' (Score: '+currentAnalysis.globalScore+'/100)');
@@ -6052,13 +6182,14 @@ function downloadGuide(text) {
 }
 
 function switchLearnTab(tab) {
-  ['tutorials','history'].forEach(t=>{
+  ['tutorials','platform-guides','history'].forEach(t=>{
     const el=document.getElementById('learn-tab-'+t);
     const btn=document.getElementById('ltab-'+t);
     if(el)el.style.display=t===tab?'block':'none';
     if(btn){btn.style.borderBottomColor=t===tab?'var(--accent)':'transparent';btn.style.color=t===tab?'var(--text)':'var(--muted)';}
   });
   if(tab==='history')renderHistory();
+  if(tab==='platform-guides')initPlatformGuidesTab();
 }
 
 function renderHistory() {
@@ -6072,6 +6203,11 @@ function renderHistory() {
   clearElement(list);
   deliverables.slice(0,30).forEach(function(d, i) {
     var card = createInfoCard({ style: 'padding:14px;' });
+    card.style.cursor = 'pointer';
+    card.style.transition = 'all 0.15s';
+    card.addEventListener('click', function() { openHistoryItem(i); });
+    card.addEventListener('mouseover', function() { card.style.borderColor = 'var(--accent2)'; });
+    card.addEventListener('mouseout', function() { card.style.borderColor = 'var(--border)'; });
     var header = document.createElement('div');
     header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
     var left = document.createElement('div');
@@ -6093,8 +6229,8 @@ function renderHistory() {
     var ts = document.createElement('span');
     ts.style.cssText = 'font-size:10px;color:var(--muted);';
     ts.textContent = d.ts || '';
-    var copyBtn = createUtilityButton('📋', function() { copyHistoryItem(copyBtn, i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
-    var downloadBtn = createUtilityButton('⬇', function() { downloadHistoryItem(i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
+    var copyBtn = createUtilityButton('📋', function(e) { if (e?.stopPropagation) e.stopPropagation(); copyHistoryItem(copyBtn, i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
+    var downloadBtn = createUtilityButton('⬇', function(e) { if (e?.stopPropagation) e.stopPropagation(); downloadHistoryItem(i); }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;');
     right.append(ts, copyBtn, downloadBtn);
     header.append(left, right);
     var body = document.createElement('div');
@@ -7270,7 +7406,7 @@ function closeModal(id) {
   if (el) el.style.display = 'none';
 }
 document.addEventListener('click', e => {
-  ['onboarding-modal','profile-modal','plan-modal','director-chat-modal','superadmin-modal'].forEach(id => {
+  ['onboarding-modal','profile-modal','plan-modal','director-chat-modal','superadmin-modal','history-item-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el && e.target === el) closeModal(id);
   });
@@ -7395,6 +7531,11 @@ function getWorkspaceOnboarding(session = appSession) {
     knowledgeLevel: '',
     businessModel: '',
     mainGoal: '',
+    targetCountry: '',
+    targetRegion: '',
+    primaryLanguage: 'es',
+    growthScope: '',
+    budgetRange: '',
     platforms: [],
     recommendedIntegrations: []
   };
@@ -7440,6 +7581,125 @@ function getNextIntegrationFocus(onboarding = getWorkspaceOnboarding()) {
     return !connections[platform];
   });
   return focusMap[nextPlatform] || 'connections';
+}
+
+function isStartupMode(onboarding = getWorkspaceOnboarding(), hub = getWorkspaceIntegrationHub()) {
+  const connections = hub?.connections || {};
+  const hasGoogleData = Boolean(appSession?.user?.googleId || connections.gsc || connections.ga4);
+  const hasPaidPlatform = Boolean(connections.meta || connections.googleAds);
+  const hasBudget = onboarding?.budgetRange && onboarding.budgetRange !== 'sin-presupuesto';
+  return !hasGoogleData && (!hasPaidPlatform || !hasBudget);
+}
+
+function getStartupChecklist(onboarding = getWorkspaceOnboarding()) {
+  const country = onboarding?.targetCountry || 'tu mercado principal';
+  const region = onboarding?.targetRegion || country;
+  return [
+    {
+      title: 'Instala medicion minima',
+      copy: 'Conecta GA4, Search Console o instala BearAds Tracking para no trabajar a ciegas desde el dia 1.',
+      action: "showPage('integrations');setTimeout(function(){setIntegrationFocus('connections')},120)",
+      button: 'Conectar o medir'
+    },
+    {
+      title: 'Define tu mercado real',
+      copy: 'BearAds necesita saber si quieres crecer en ' + region + ' o escalar a otro pais para ajustar keywords, contenido y campañas.',
+      action: "showPage('strategic-plan')",
+      button: 'Revisar enfoque'
+    },
+    {
+      title: onboarding?.budgetRange === 'sin-presupuesto' ? 'Empieza por organico' : 'Prepara base organica',
+      copy: onboarding?.budgetRange === 'sin-presupuesto'
+        ? 'Sin presupuesto tambien podemos crecer: SEO tecnico, contenido con intencion, CRO y distribucion organica.'
+        : 'Aunque luego uses pago, primero deja lista la base organica para no desperdiciar trafico.',
+      action: "showPage('analyze')",
+      button: 'Analizar sitio'
+    }
+  ];
+}
+
+function getTrackingSnippet() {
+  const workspaceId = appSession?.workspace?.id || '';
+  const siteUrl = userProfile?.url || appSession?.workspace?.profile?.website || '';
+  return '<script defer src="' + window.location.origin + '/bearads-tracker.js" data-workspace="' + workspaceId + '" data-site="' + esc(siteUrl || window.location.origin) + '"><\\/script>';
+}
+
+async function loadTrackingSummary() {
+  try {
+    const res = await fetch('/api/tracking/summary', { credentials: 'same-origin' });
+    const data = await parseApiResponse(res);
+    return data?.summary || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function getGrowthRouteRecommendation(options) {
+  const onboarding = options?.onboarding || getWorkspaceOnboarding();
+  const analysis = options?.analysis || currentAnalysis || null;
+  const tracking = options?.tracking || null;
+  const hub = options?.hub || getWorkspaceIntegrationHub();
+  const hasGoogleData = Boolean(appSession?.user?.googleId || hub?.connections?.gsc || hub?.connections?.ga4);
+  const hasPaidPlatform = Boolean(hub?.connections?.meta || hub?.connections?.googleAds);
+  const budgetRange = onboarding?.budgetRange || '';
+  const hasBudget = budgetRange && budgetRange !== 'sin-presupuesto';
+  const hasMarket = Boolean(onboarding?.targetCountry && onboarding?.growthScope);
+  const hasAnalysis = Boolean(analysis?.globalScore);
+  const hasBaseSignals = Boolean(
+    hasAnalysis &&
+    hasMarket &&
+    (analysis?.globalScore >= 55 || (tracking?.pageviews || 0) >= 100 || hasGoogleData)
+  );
+
+  if (onboarding?.knowledgeLevel === 'agencia') {
+    return {
+      mode: 'agencia',
+      badge: 'MODO AGENCIA',
+      title: 'Organiza, replica y escala varios proyectos',
+      copy: 'BearAds debe ayudarte a ordenar cuentas, conectar fuentes una sola vez por cliente y reutilizar estrategia, campañas y activacion con mas velocidad.',
+      primaryLabel: 'Abrir integraciones',
+      primaryAction: function() { showPage('integrations'); setTimeout(function() { setIntegrationFocus('connections'); }, 120); },
+      secondaryLabel: 'Crear estrategia',
+      secondaryAction: function() { openStrategyFromDashboard(); }
+    };
+  }
+
+  if (!hasMarket || !hasAnalysis || (!hasGoogleData && !tracking?.installed)) {
+    return {
+      mode: 'arranque',
+      badge: 'BASE DE CRECIMIENTO',
+      title: 'Primero mide y ordena tu base',
+      copy: 'Antes de escalar, BearAds recomienda instalar medicion minima, validar mercado y construir un primer diagnostico util.',
+      primaryLabel: 'Ir a Integraciones',
+      primaryAction: function() { showPage('integrations'); setTimeout(function() { setIntegrationFocus('connections'); }, 120); },
+      secondaryLabel: 'Analizar sitio',
+      secondaryAction: function() { showPage('analyze'); }
+    };
+  }
+
+  if (!hasBudget || !hasBaseSignals || !hasPaidPlatform) {
+    return {
+      mode: 'organico',
+      badge: 'ORGANICO AHORA',
+      title: 'Fortalece organico y preparate para ads',
+      copy: 'BearAds recomienda trabajar SEO, contenido, CRO y claridad de oferta para crecer ahora y llegar mejor preparado a la inversion paga.',
+      primaryLabel: 'Crear estrategia',
+      primaryAction: function() { openStrategyFromDashboard(); },
+      secondaryLabel: 'Revisar creativos',
+      secondaryAction: function() { showPage('creatives'); }
+    };
+  }
+
+  return {
+    mode: 'ads',
+    badge: 'ESCALAR CON ADS',
+    title: 'Ya puedes acelerar con inversion paga',
+    copy: 'Tu negocio ya tiene suficiente base para empujar Google Ads o Meta Ads con mas criterio, mejor medicion y menos improvisacion.',
+    primaryLabel: 'Crear campaña',
+    primaryAction: function() { showPage('campaigns'); },
+    secondaryLabel: 'Abrir integraciones',
+    secondaryAction: function() { showPage('integrations'); setTimeout(function() { setIntegrationFocus('connections'); }, 120); }
+  };
 }
 
 function getOnboardingGoalCategory(onboarding = getWorkspaceOnboarding()) {
@@ -7760,13 +8020,23 @@ function maybeOpenOnboarding() {
 
 async function completeOnboarding() {
   const knowledgeLevel = document.getElementById('ob-knowledge-level')?.value || '';
+  const isAgencyMode = knowledgeLevel === 'agencia';
   const businessModel = document.getElementById('ob-business-model')?.value.trim() || '';
-  const mainGoal = document.getElementById('ob-main-goal')?.value.trim() || '';
+  const mainGoalInput = document.getElementById('ob-main-goal')?.value.trim() || '';
+  const targetCountryInput = document.getElementById('ob-target-country')?.value.trim() || '';
+  const targetRegion = document.getElementById('ob-target-region')?.value.trim() || '';
+  const primaryLanguage = document.getElementById('ob-primary-language')?.value || 'es';
+  const growthScopeInput = document.getElementById('ob-growth-scope')?.value || '';
+  const budgetRange = document.getElementById('ob-budget-range')?.value || '';
   const platforms = Array.from(document.querySelectorAll('input[name="ob-platforms"]:checked')).map(function(input) {
     return input.value;
   });
-  if (!knowledgeLevel || !businessModel || !mainGoal) {
-    showToast('Completa las preguntas principales para continuar');
+  const mainGoal = mainGoalInput || (isAgencyMode ? 'escalar operacion de varios clientes' : '');
+  const targetCountry = targetCountryInput || (isAgencyMode ? 'Multi-mercado' : '');
+  const growthScope = growthScopeInput || (isAgencyMode ? 'regional' : '');
+
+  if (!knowledgeLevel || !businessModel || (!isAgencyMode && (!mainGoal || !targetCountry || !growthScope))) {
+    showToast(isAgencyMode ? 'Completa al menos nivel y modelo para activar modo agencia' : 'Completa las preguntas principales para continuar');
     return;
   }
   try {
@@ -7776,11 +8046,16 @@ async function completeOnboarding() {
         knowledgeLevel,
         businessModel,
         mainGoal,
+        targetCountry,
+        targetRegion,
+        primaryLanguage,
+        growthScope,
+        budgetRange,
         platforms
       },
       integrationHub: {
         platforms,
-        notes: `Guiado para ${knowledgeLevel} enfocado en ${mainGoal}`
+        notes: `Guiado para ${knowledgeLevel} enfocado en ${mainGoal} en ${targetCountry}`
       }
     });
     await refreshAppSession();
@@ -7806,10 +8081,15 @@ function changeOnboardingScreen(direction) {
     knowledgeLevel: document.getElementById('ob-knowledge-level')?.value || getOnboardingState().knowledgeLevel || '',
     businessModel: document.getElementById('ob-business-model')?.value.trim() || getOnboardingState().businessModel || '',
     mainGoal: document.getElementById('ob-main-goal')?.value.trim() || getOnboardingState().mainGoal || '',
+    targetCountry: document.getElementById('ob-target-country')?.value.trim() || getOnboardingState().targetCountry || '',
+    targetRegion: document.getElementById('ob-target-region')?.value.trim() || getOnboardingState().targetRegion || '',
+    primaryLanguage: document.getElementById('ob-primary-language')?.value || getOnboardingState().primaryLanguage || 'es',
+    growthScope: document.getElementById('ob-growth-scope')?.value || getOnboardingState().growthScope || '',
+    budgetRange: document.getElementById('ob-budget-range')?.value || getOnboardingState().budgetRange || '',
     platforms: Array.from(document.querySelectorAll('input[name="ob-platforms"]:checked')).map(function(input) { return input.value; })
   });
   const next = onboardingScreen + direction;
-  onboardingScreen = Math.max(0, Math.min(1, next));
+  onboardingScreen = Math.max(0, Math.min(2, next));
   renderOnboardingModal();
 }
 
@@ -7823,15 +8103,17 @@ function renderOnboardingModal() {
   const checkedPlatforms = Array.isArray(onboarding.platforms) ? onboarding.platforms : [];
   if (helper) {
     helper.textContent = onboardingScreen === 0
-      ? 'Pantalla 1 de 2: entendamos tu nivel y tu meta.'
-      : 'Pantalla 2 de 2: conecta lo que ya usas para no repetir integraciones.';
+      ? 'Pantalla 1 de 3: entendamos tu negocio y tu meta.'
+      : onboardingScreen === 1
+        ? 'Pantalla 2 de 3: definamos tu mercado, idioma y alcance.'
+        : 'Pantalla 3 de 3: conecta lo que ya usas para no repetir integraciones.';
   }
   if (secondary) {
     secondary.style.display = onboardingScreen === 0 ? 'none' : 'inline-flex';
   }
   if (primary) {
-    primary.textContent = onboardingScreen === 0 ? 'Siguiente' : 'Guardar y continuar';
-    primary.onclick = onboardingScreen === 0 ? function() { changeOnboardingScreen(1); } : completeOnboarding;
+    primary.textContent = onboardingScreen < 2 ? 'Siguiente' : 'Guardar y continuar';
+    primary.onclick = onboardingScreen < 2 ? function() { changeOnboardingScreen(1); } : completeOnboarding;
   }
   root.style.gridTemplateColumns = '1fr';
   if (onboardingScreen === 0) {
@@ -7840,21 +8122,32 @@ function renderOnboardingModal() {
       + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">1. Cuéntame quién va a usar BearAds</div>'
       + '<div style="display:grid;gap:12px;">'
       + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Nivel de conocimiento</label><select id="ob-knowledge-level" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;"><option value=\"\">Selecciona...</option><option value=\"principiante\"' + (onboarding.knowledgeLevel === 'principiante' ? ' selected' : '') + '>Principiante</option><option value=\"intermedio\"' + (onboarding.knowledgeLevel === 'intermedio' ? ' selected' : '') + '>Intermedio</option><option value=\"avanzado\"' + (onboarding.knowledgeLevel === 'avanzado' ? ' selected' : '') + '>Avanzado</option><option value=\"agencia\"' + (onboarding.knowledgeLevel === 'agencia' ? ' selected' : '') + '>Agencia / equipo experto</option></select></div>'
-      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Tipo de negocio</label><input id="ob-business-model" type="text" value="' + esc(onboarding.businessModel || '') + '" placeholder="Ej: e-commerce, servicios, clínica, academia" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
-      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Meta principal</label><input id="ob-main-goal" type="text" value="' + esc(onboarding.mainGoal || '') + '" placeholder="Ej: conseguir leads, vender más, automatizar" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
+      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Tipo de negocio</label><input id="ob-business-model" type="text" autocomplete="off" value="' + esc(onboarding.businessModel || '') + '" placeholder="Ej: e-commerce, servicios, clínica, academia" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
+      + '<div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Meta principal</label><input id="ob-main-goal" type="text" autocomplete="off" value="' + esc(onboarding.mainGoal || '') + '" placeholder="Ej: conseguir leads, vender más, automatizar" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div>'
       + '</div>'
       + '<div style="margin-top:14px;font-size:12px;color:#51627f;line-height:1.7;">BearAds usará estas respuestas para simplificar módulos, priorizar agentes y recomendar integraciones sin enredarte.</div>'
+      + '</div>';
+  } else if (onboardingScreen === 1) {
+    root.innerHTML = ''
+      + '<div style="padding:16px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">2. Define dónde quieres crecer</div>'
+      + '<div style="display:grid;gap:12px;">'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">País prioritario</label><input id="ob-target-country" type="text" autocomplete="off" value="' + esc(onboarding.targetCountry || '') + '" placeholder="Ej: Colombia, México, España" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div><div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Región o ciudad clave</label><input id="ob-target-region" type="text" autocomplete="off" value="' + esc(onboarding.targetRegion || '') + '" placeholder="Ej: Bogotá, CDMX, LATAM" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;box-sizing:border-box;"/></div></div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;"><div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Idioma principal</label><select id="ob-primary-language" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;"><option value="es"' + (onboarding.primaryLanguage === 'es' ? ' selected' : '') + '>Español</option><option value="en"' + (onboarding.primaryLanguage === 'en' ? ' selected' : '') + '>Inglés</option><option value="pt"' + (onboarding.primaryLanguage === 'pt' ? ' selected' : '') + '>Portugués</option></select></div><div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Alcance de crecimiento</label><select id="ob-growth-scope" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;"><option value="">Selecciona...</option><option value="local"' + (onboarding.growthScope === 'local' ? ' selected' : '') + '>Local</option><option value="nacional"' + (onboarding.growthScope === 'nacional' ? ' selected' : '') + '>Nacional</option><option value="regional"' + (onboarding.growthScope === 'regional' ? ' selected' : '') + '>Regional / LATAM</option><option value="global"' + (onboarding.growthScope === 'global' ? ' selected' : '') + '>Global</option></select></div><div><label style="font-size:11px;color:#51627f;font-weight:700;display:block;margin-bottom:5px;">Presupuesto actual</label><select id="ob-budget-range" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(123,167,232,0.18);background:#fff;color:#0f172a;"><option value="">Selecciona...</option><option value="sin-presupuesto"' + (onboarding.budgetRange === 'sin-presupuesto' ? ' selected' : '') + '>Sin presupuesto</option><option value="bajo"' + (onboarding.budgetRange === 'bajo' ? ' selected' : '') + '>Bajo</option><option value="medio"' + (onboarding.budgetRange === 'medio' ? ' selected' : '') + '>Medio</option><option value="alto"' + (onboarding.budgetRange === 'alto' ? ' selected' : '') + '>Alto</option></select></div></div>'
+      + '</div>'
+      + '<div style="margin-top:14px;padding:12px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.06);border-radius:12px;font-size:12px;color:#51627f;line-height:1.7;">Esto cambia por completo las keywords, el contenido, el SEO local y las campañas. BearAds usará este dato para no proponerte una estrategia genérica.</div>'
       + '</div>';
   } else {
     root.innerHTML = ''
       + '<div style="padding:16px;background:rgba(255,255,255,0.82);border:1px solid rgba(123,167,232,0.14);border-radius:14px;">'
-      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">2. Elige las plataformas que ya usas</div>'
+      + '<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;">3. Elige las plataformas que ya usas</div>'
       + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">'
       + ['google','meta','googleAds','email','ecom','tiktok'].map(function(platform) {
           var labels = { google:'Google Analytics / Search Console', meta:'Meta Business', googleAds:'Google Ads', email:'Email Marketing', ecom:'E-commerce', tiktok:'TikTok Ads' };
           return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border:1px solid rgba(123,167,232,0.16);border-radius:10px;font-size:12px;color:#0f172a;"><input type="checkbox" name="ob-platforms" value="' + platform + '"' + (checkedPlatforms.includes(platform) ? ' checked' : '') + '/> ' + labels[platform] + '</label>';
         }).join('')
       + '</div>'
+      + '<div style="margin-top:14px;padding:12px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.18);border-radius:12px;font-size:12px;color:#35507f;line-height:1.7;"><strong style="display:block;color:#0f172a;margin-bottom:6px;">Modo Arranque</strong>Si todavía no tienes datos o no tienes presupuesto, BearAds igual te va a guiar con un checklist de instalación mínima, tracking base y crecimiento orgánico.</div>'
       + '<div style="margin-top:14px;padding:12px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.06);border-radius:12px;font-size:12px;color:#51627f;line-height:1.7;">'
       + '<strong style="color:#0f172a;display:block;margin-bottom:6px;">Registro con correo</strong>'
       + 'Esta opción queda visible, pero está desactivada temporalmente mientras BearAds sigue en pruebas internas y el acceso general aún no se abre.'
@@ -8677,6 +8970,7 @@ const INTEGRATION_GUIDES = {
 function getIntegrationGuidanceState(googleOk) {
   const onboarding = getWorkspaceOnboarding();
   const connections = getWorkspaceIntegrationHub().connections || {};
+  const startupMode = isStartupMode(onboarding, getWorkspaceIntegrationHub());
   const connected = {
     google: !!googleOk,
     meta: !!connections.meta,
@@ -8694,6 +8988,16 @@ function getIntegrationGuidanceState(googleOk) {
     email: 'connections',
     ecom: 'connections'
   };
+  if (startupMode) {
+    return {
+      title: 'Modo Arranque: conecta o instala medicion minima',
+      copy: 'Si el cliente llega sin datos, empieza por GA4, Search Console o BearAds Tracking. Luego pasamos a analisis y crecimiento organico.',
+      nextStep: 'Primero mide. Despues define mercado, contenido y conversion antes de escalar con pago.',
+      ctaLabel: 'Instalar tracking o conectar Google',
+      ctaFocus: 'connections',
+      summary: 'BearAds puede empezar incluso si todavia no tienes datos ni presupuesto.'
+    };
+  }
   if (nextRecommended) {
     return {
       title: 'Conecta ' + ({ google: 'Google', meta: 'Meta', googleAds: 'Google Ads', email: 'Email', ecom: 'tu e-commerce' }[nextRecommended] || nextRecommended),
@@ -8746,6 +9050,51 @@ function renderIntegrationsHero(googleOk) {
   }
 }
 
+function renderTrackingCard(summary) {
+  const status = document.getElementById('intg-tracking-status');
+  const summaryEl = document.getElementById('intg-tracking-summary');
+  const code = document.getElementById('intg-tracking-code');
+  if (code) code.value = getTrackingSnippet();
+  if (!status || !summaryEl) return;
+
+  if (summary?.installed) {
+    status.textContent = 'MIDIENDO';
+    status.style.background = 'rgba(94,201,160,0.1)';
+    status.style.color = '#0f9f6e';
+    summaryEl.innerHTML = ''
+      + '<strong style="display:block;color:var(--text);margin-bottom:6px;">Resumen de 30 dias</strong>'
+      + 'Pageviews: <strong>' + (summary.pageviews || 0) + '</strong> · '
+      + 'CTAs: <strong>' + (summary.ctaClicks || 0) + '</strong> · '
+      + 'Formularios: <strong>' + (summary.formSubmits || 0) + '</strong>'
+      + (summary.topPages?.length
+        ? '<div style="margin-top:8px;color:var(--text2);">Top paginas: ' + summary.topPages.slice(0, 3).map(function(page) { return page.path + ' (' + page.views + ')'; }).join(' · ') + '</div>'
+        : '');
+    return;
+  }
+
+  status.textContent = 'LISTO PARA INSTALAR';
+  status.style.background = 'rgba(107,114,128,0.15)';
+  status.style.color = 'var(--muted)';
+  summaryEl.innerHTML = ''
+    + '<strong style="display:block;color:var(--text);margin-bottom:6px;">Usalo como capa minima de medicion</strong>'
+    + 'Sirve para negocios que aun no tienen GA4 o Meta Pixel bien configurados. Instala el snippet y BearAds empezara a medir pageviews, clicks y formularios. Es la base para luego optimizar SEO, CRO y activacion.';
+}
+
+async function refreshTrackingCard() {
+  const summary = await loadTrackingSummary();
+  renderTrackingCard(summary);
+}
+
+function copyTrackingSnippet() {
+  const code = document.getElementById('intg-tracking-code');
+  if (!code?.value) return;
+  navigator.clipboard.writeText(code.value).then(function() {
+    showToast('Snippet de BearAds Tracking copiado');
+  }).catch(function() {
+    showToast('No pude copiar el snippet');
+  });
+}
+
 async function persistIntegrationHub(extra) {
   try {
     const currentHub = getWorkspaceIntegrationHub();
@@ -8789,6 +9138,16 @@ function renderIntegrationRecommendations() {
     tiktok: 'TikTok Ads'
   };
   clearElement(list);
+  if (isStartupMode(onboarding, getWorkspaceIntegrationHub())) {
+    var startupCard = document.createElement('div');
+    startupCard.style.cssText = 'padding:14px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.2);border-radius:12px;';
+    appendTextLine(startupCard, 'Modo Arranque activo', 'font-size:12px;font-weight:800;color:#0f172a;');
+    appendTextLine(startupCard, 'Ruta recomendada: 1) instala medicion minima, 2) analiza tu sitio, 3) arma estrategia organica para tu mercado, 4) escala luego con pago.', 'margin-top:8px;font-size:11px;color:var(--text2);line-height:1.6;');
+    startupCard.appendChild(createActionButton('Ir a BearAds Tracking', function() {
+      document.getElementById('intg-tracking-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 'margin-top:10px;padding:9px 12px;background:var(--accent2);border:none;border-radius:10px;color:#0f172a;font-size:11px;font-weight:800;cursor:pointer;'));
+    list.appendChild(startupCard);
+  }
   recommended.forEach(function(platform) {
     const connected = platform === 'google' ? Boolean(appSession?.user?.googleId) : Boolean(connections[platform]);
     var card = document.createElement('div');
@@ -9150,6 +9509,7 @@ function renderDetectedGoogleServices(snapshot) {
 
 function initIntegrationsPage() {
   setIntegrationFocus(currentIntegrationFocus, true);
+  refreshTrackingCard();
   const onboarding = getWorkspaceOnboarding();
   const guide = document.getElementById('intg-guide-copy');
   if (guide && onboarding?.knowledgeLevel) {
@@ -10845,11 +11205,23 @@ function deriveStrategicPlanContext() {
   var gscData = analysis?.gscData || traffic.gsc || null;
   var ga4Data = analysis?.ga4Data || traffic.ga4 || null;
   var dataSources = [];
+  var budgetMap = {
+    'sin-presupuesto': '0',
+    'bajo': '100',
+    'medio': '500',
+    'alto': '2000'
+  };
 
   if (gscData || connections.gsc?.siteUrl) dataSources.push('Search Console');
   if (ga4Data || connections.ga4?.propertyId) dataSources.push('GA4');
   if (spGadsData?.campaigns?.length || connections.googleAds?.customerId) dataSources.push('Google Ads');
   if (spMetaData?.campaigns?.length || connections.meta?.connected) dataSources.push('Meta Ads');
+
+  var route = getGrowthRouteRecommendation({
+    onboarding: onboarding,
+    analysis: analysis,
+    hub: hub
+  });
 
   var analysisSummary = analysis ? {
     globalScore: analysis.globalScore || 0,
@@ -10875,16 +11247,28 @@ function deriveStrategicPlanContext() {
 
   return {
     business: draft.business || userProfile?.biz || profile.businessName || workspace.name || '',
-    product: draft.product || profile.offer || onboarding?.businessModel || '',
-    audience: draft.audience || profile.targetAudience || '',
-    budget: draft.budget || null,
+    product: draft.product || learnContextData.business || profile.offer || onboarding?.businessModel || '',
+    audience: draft.audience || profile.targetAudience || learnContextData.business || '',
+    budget: draft.budget || budgetMap[onboarding?.budgetRange] || '0',
     duration: draft.duration || null,
     goal: draft.goal || '',
     url: draft.url || analysis?.url || userProfile?.url || profile.website || '',
+    targetCountry: learnContextData.country || onboarding?.targetCountry || '',
+    targetRegion: learnContextData.region || onboarding?.targetRegion || '',
+    primaryLanguage: learnContextData.language || onboarding?.primaryLanguage || 'es',
+    growthScope: learnContextData.scope || onboarding?.growthScope || '',
+    budgetRange: onboarding?.budgetRange || '',
+    businessContext: learnContextData.business || '',
+    industryContext: learnContextData.industry || profile.industry || '',
+    experienceLevel: learnContextData.level || onboarding?.knowledgeLevel || '',
     dataSources: Array.from(new Set(dataSources)),
     analysisSummary: analysisSummary,
     gscData: gscData,
-    ga4Data: ga4Data
+    ga4Data: ga4Data,
+    routeMode: route?.mode || 'arranque',
+    routeBadge: route?.badge || 'BASE DE CRECIMIENTO',
+    routeTitle: route?.title || 'Primero mide y ordena tu base',
+    routeCopy: route?.copy || ''
   };
 }
 
@@ -10911,15 +11295,31 @@ function initStrategicPlanPage() {
   var urlEl = document.getElementById('sp-url');
   var banner = document.getElementById('sp-data-banner');
   var source = document.getElementById('sp-data-source');
+  var marketBanner = document.getElementById('sp-market-banner');
+  var strategicCountry = document.getElementById('spctx-country');
+  var strategicRegion = document.getElementById('spctx-region');
+  var strategicIndustry = document.getElementById('spctx-industry');
+  var strategicLanguage = document.getElementById('spctx-language');
+  var strategicScope = document.getElementById('spctx-scope');
+  var strategicLevel = document.getElementById('spctx-level');
+  var strategicBusiness = document.getElementById('spctx-business');
 
   if (businessEl && !businessEl.value.trim() && ctx.business) businessEl.value = ctx.business;
   if (productEl && !productEl.value.trim() && ctx.product) productEl.value = ctx.product;
   if (audienceEl && !audienceEl.value.trim()) {
-    audienceEl.value = ctx.audience || onboarding?.mainGoal || '';
+    audienceEl.value = ctx.audience || learnContextData.business || onboarding?.mainGoal || '';
   }
   if (budgetEl && ctx.budget) budgetEl.value = ctx.budget;
   if (durationEl && ctx.duration) durationEl.value = ctx.duration;
   if (urlEl && !urlEl.value.trim() && ctx.url) urlEl.value = ctx.url;
+  if (strategicCountry && !strategicCountry.value) strategicCountry.value = learnContextData.country || onboarding?.targetCountry || '';
+  if (strategicRegion && !strategicRegion.value) strategicRegion.value = learnContextData.region || onboarding?.targetRegion || '';
+  if (strategicIndustry && !strategicIndustry.value) strategicIndustry.value = learnContextData.industry || userProfile?.industry || '';
+  if (strategicLanguage && !strategicLanguage.value) strategicLanguage.value = learnContextData.language || onboarding?.primaryLanguage || 'es';
+  if (strategicScope && !strategicScope.value) strategicScope.value = learnContextData.scope || onboarding?.growthScope || '';
+  if (strategicLevel && !strategicLevel.value) strategicLevel.value = learnContextData.level || onboarding?.knowledgeLevel || 'intermedio';
+  if (strategicBusiness && !strategicBusiness.value) strategicBusiness.value = learnContextData.business || ctx.product || '';
+  updateStrategicContextSummary();
 
   if (banner && source) {
     if (ctx.dataSources.length || ctx.url) {
@@ -10930,6 +11330,23 @@ function initStrategicPlanPage() {
     } else {
       banner.style.display = 'none';
       source.textContent = '';
+    }
+  }
+
+  if (marketBanner) {
+    if (ctx.targetCountry || ctx.growthScope || ctx.primaryLanguage || ctx.targetRegion) {
+      marketBanner.style.display = 'block';
+      marketBanner.innerHTML = ''
+        + '<strong style="display:block;color:var(--text);margin-bottom:6px;">Contexto de mercado activo</strong>'
+        + 'Pais: <strong>' + esc(ctx.targetCountry || 'Sin definir') + '</strong>'
+        + (ctx.targetRegion ? ' · Region: <strong>' + esc(ctx.targetRegion) + '</strong>' : '')
+        + ' · Alcance: <strong>' + esc(ctx.growthScope || 'Sin definir') + '</strong>'
+        + ' · Idioma: <strong>' + esc(ctx.primaryLanguage || 'es') + '</strong>'
+        + ' <button type="button" onclick="toggleStrategicContext()" style="margin-left:8px;padding:4px 8px;background:rgba(255,255,255,0.72);border:1px solid rgba(123,167,232,0.16);border-radius:6px;color:var(--accent);font-size:10px;font-weight:800;cursor:pointer;">Editar</button>'
+        + (ctx.budgetRange ? ' · Presupuesto actual: <strong>' + esc(ctx.budgetRange) + '</strong>' : '');
+    } else {
+      marketBanner.style.display = 'none';
+      marketBanner.innerHTML = '';
     }
   }
 }
@@ -10975,9 +11392,19 @@ function renderStrategicPlanNextStep(resultEl, options) {
   var onboarding = getWorkspaceOnboarding();
   var recommendation = getStrategicPlanActivationRecommendation(options?.goal, onboarding);
   var draft = getStrategicPlanDraft();
+  var route = getGrowthRouteRecommendation({
+    onboarding: onboarding,
+    analysis: currentAnalysis,
+    hub: getWorkspaceIntegrationHub()
+  });
 
   var section = document.createElement('div');
   section.style.cssText = 'margin-top:16px;padding:16px;background:linear-gradient(135deg,rgba(94,201,160,0.1),rgba(123,167,232,0.08));border:1px solid rgba(94,201,160,0.18);border-radius:14px;';
+
+  var routeMeta = document.createElement('div');
+  routeMeta.style.cssText = 'margin-bottom:10px;padding:10px 12px;background:rgba(255,255,255,0.72);border:1px solid rgba(123,167,232,0.12);border-radius:10px;font-size:11px;color:var(--text2);line-height:1.7;';
+  routeMeta.innerHTML = '<strong style="display:block;color:var(--text);margin-bottom:6px;">Base de Crecimiento</strong><span style="font-weight:800;color:#35507f;">' + esc(route.badge) + '</span> · ' + esc(route.copy);
+  section.appendChild(routeMeta);
 
   appendTextLine(section, 'Siguiente paso recomendado', 'font-size:11px;font-weight:800;letter-spacing:1px;color:#0f9f6e;margin-bottom:6px;');
   appendTextLine(section, recommendation.title, 'font-size:15px;font-weight:800;color:var(--text);margin-bottom:6px;');
@@ -10992,12 +11419,64 @@ function renderStrategicPlanNextStep(resultEl, options) {
     section.appendChild(context);
   }
 
+  if (onboarding?.targetCountry || onboarding?.growthScope) {
+    var market = document.createElement('div');
+    market.style.cssText = 'margin-top:10px;padding:10px 12px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.16);border-radius:10px;font-size:11px;color:var(--text2);line-height:1.7;';
+    market.innerHTML = 'Mercado priorizado: <strong>' + esc(onboarding.targetCountry || 'Sin definir') + '</strong>'
+      + (onboarding.targetRegion ? ' · Region: <strong>' + esc(onboarding.targetRegion) + '</strong>' : '')
+      + ' · Alcance: <strong>' + esc(onboarding.growthScope || 'Sin definir') + '</strong>';
+    section.appendChild(market);
+  }
+
   var actions = document.createElement('div');
   actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;';
   actions.appendChild(createActionButton(recommendation.primaryLabel, recommendation.primaryAction, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
   actions.appendChild(createActionButton(recommendation.secondaryLabel, recommendation.secondaryAction, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
   actions.appendChild(createActionButton('📊 Volver al dashboard', function() { showPage('dashboard'); }, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
   section.appendChild(actions);
+
+  resultEl.appendChild(section);
+}
+
+function renderStrategicPlanRouteCard(resultEl, strategicContext) {
+  if (!resultEl || !strategicContext) return;
+
+  var section = document.createElement('div');
+  section.style.cssText = 'margin-bottom:16px;padding:16px;background:linear-gradient(135deg,rgba(123,167,232,0.12),rgba(94,201,160,0.08));border:1px solid rgba(123,167,232,0.18);border-radius:14px;';
+
+  appendTextLine(section, 'Ruta detectada', 'font-size:11px;font-weight:800;letter-spacing:1px;color:#35507f;margin-bottom:6px;');
+  appendTextLine(section, strategicContext.routeBadge || 'BASE DE CRECIMIENTO', 'display:inline-flex;padding:4px 10px;background:rgba(255,255,255,0.78);border:1px solid rgba(123,167,232,0.16);border-radius:999px;font-size:10px;font-weight:800;color:#35507f;margin-bottom:10px;');
+  appendTextLine(section, strategicContext.routeTitle || 'Primero mide y ordena tu base', 'font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;');
+  appendTextLine(section, strategicContext.routeCopy || '', 'font-size:12px;color:var(--text2);line-height:1.7;');
+
+  var grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px;';
+
+  [
+    {
+      title: 'Mercado activo',
+      copy: (strategicContext.targetCountry || 'Sin definir')
+        + (strategicContext.targetRegion ? ' · ' + strategicContext.targetRegion : '')
+        + ' · ' + (strategicContext.growthScope || 'Alcance sin definir')
+    },
+    {
+      title: 'Base de datos',
+      copy: strategicContext.dataSources?.length
+        ? strategicContext.dataSources.join(' + ')
+        : 'Sin fuentes conectadas todavia'
+    },
+    {
+      title: 'Presupuesto actual',
+      copy: '$' + (strategicContext.budget || '0') + '/mes · ' + (strategicContext.primaryLanguage || 'es')
+    }
+  ].forEach(function(item) {
+    var card = document.createElement('div');
+    card.style.cssText = 'padding:12px;background:rgba(255,255,255,0.74);border:1px solid rgba(123,167,232,0.12);border-radius:10px;';
+    appendTextLine(card, item.title, 'font-size:10px;font-weight:800;letter-spacing:0.7px;color:var(--muted);margin-bottom:4px;');
+    appendTextLine(card, item.copy, 'font-size:12px;color:var(--text2);line-height:1.7;');
+    grid.appendChild(card);
+  });
+  section.appendChild(grid);
 
   resultEl.appendChild(section);
 }
@@ -11072,7 +11551,19 @@ async function generateStrategicPlan() {
       ga4Data: strategicContext.ga4Data,
       gadsData: spGadsData,
       metaData: spMetaData,
-      analysisContext: strategicContext.analysisSummary
+      analysisContext: strategicContext.analysisSummary,
+      targetCountry: strategicContext.targetCountry,
+      targetRegion: strategicContext.targetRegion,
+      primaryLanguage: strategicContext.primaryLanguage,
+      growthScope: strategicContext.growthScope,
+      budgetRange: strategicContext.budgetRange,
+      businessContext: strategicContext.businessContext,
+      industryContext: strategicContext.industryContext,
+      experienceLevel: strategicContext.experienceLevel,
+      routeMode: strategicContext.routeMode,
+      routeBadge: strategicContext.routeBadge,
+      routeTitle: strategicContext.routeTitle,
+      routeCopy: strategicContext.routeCopy
     };
 
     var res = await fetch('/api/strategic-plan', {
@@ -11087,6 +11578,8 @@ async function generateStrategicPlan() {
       resultEl.style.display = 'block';
       _lastReply = data.plan;
       window._lastStrategicPlan = data.plan;
+      clearElement(resultEl);
+      renderStrategicPlanRouteCard(resultEl, strategicContext);
       var header = document.createElement('div');
       header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;';
       appendTextLine(header, '🗺️ Plan Estratégico — ' + duration + ' días', 'font-size:15px;font-weight:800;');
@@ -12694,6 +13187,23 @@ async function runQACustom() {
         <input id="director-modal-input" type="text" placeholder="Pregunta al Director..." onkeydown="if(event.key==='Enter')sendDirectorMessage()" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
         <button onclick="sendDirectorMessage()" style="padding:9px 14px;background:var(--accent);border:none;border-radius:8px;color:#ffffff;cursor:pointer;font-size:14px;font-weight:700;">→</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="history-item-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;padding:20px;">
+  <div style="width:min(920px,100%);max-height:88vh;background:var(--surface);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+      <div>
+        <div id="history-item-title" style="font-size:15px;font-weight:800;color:var(--text);">Entregable</div>
+        <div id="history-item-meta" style="font-size:11px;color:var(--muted);margin-top:4px;"></div>
+      </div>
+      <button onclick="closeModal('history-item-modal')" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div id="history-item-body" style="padding:18px;overflow:auto;font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;"></div>
+    <div style="padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;background:var(--surface2);">
+      <button id="history-item-copy" style="padding:9px 12px;background:rgba(123,167,232,0.09);border:1px solid rgba(123,167,232,0.18);border-radius:8px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:700;">📋 Copiar</button>
+      <button id="history-item-download" style="padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);cursor:pointer;font-weight:700;">⬇ Descargar</button>
     </div>
   </div>
 </div>
