@@ -683,3 +683,404 @@ BearAds construye la base de crecimiento del negocio y activa ads cuando el nego
   - país prioritario: `Multi-mercado`,
   - alcance: `regional`.
 - Esto facilita probar y usar la ruta `MODO AGENCIA` sin obligar a llenar un formulario que no siempre aplica a una agencia multi-proyecto.
+
+## 2026-04-12 — Fix guardado final del onboarding
+
+- Se corrigió un bug en `completeOnboarding()`:
+  - al guardar desde la última pantalla del modal, la función intentaba leer campos que ya no estaban montados en el DOM,
+  - eso provocaba el toast `Completa las preguntas principales para continuar` aunque el usuario sí hubiera llenado los pasos previos.
+- Ahora el guardado toma como fallback el estado persistido del onboarding (`getOnboardingState()`), así que:
+  - el modal ya no falla por cambiar de pantalla,
+  - el guardado final usa correctamente `knowledgeLevel`, `businessModel`, `mainGoal`, `mercado`, `alcance` y `platforms`,
+  - y la ventana se cierra bien cuando la configuración se guarda.
+
+## 2026-04-12 — Fix doble click handler en onboarding modal
+
+- El botón principal del modal de onboarding tenía dos fuentes de acción:
+  - `onclick` inline en el HTML,
+  - y `primary.onclick` asignado dinámicamente en `renderOnboardingModal()`.
+- Eso podía disparar validaciones o acciones duplicadas y dejar toasts engañosos como `Completa las preguntas principales para continuar`.
+- Se eliminaron los `onclick` inline de los botones primario/secundario y quedaron como `type="button"` para que solo manden la acción definida por el render actual de la pantalla.
+
+## 2026-04-12 — Onboarding validado por pantalla y login separado
+
+- El modal de onboarding ahora valida por pantalla antes de avanzar:
+  - pantalla 1: nivel, tipo de negocio y meta principal,
+  - pantalla 2: país prioritario y alcance,
+  - `Modo Agencia` mantiene una validación más ligera.
+- Si falta algo, el sistema:
+  - marca visualmente el campo,
+  - muestra un toast específico,
+  - y enfoca el primer campo pendiente.
+- También se retiró del onboarding el bloque `Registro con correo`, porque ese mensaje pertenece al momento de autenticación/login, no al setup inicial del workspace.
+
+## 2026-04-12 — Fix raíz del draft de onboarding
+
+- Se identificó la causa principal del bucle del modal:
+  - `getOnboardingState()` mezclaba estado local + remoto,
+  - pero el estado remoto devolvía campos vacíos por defecto,
+  - y esos vacíos terminaban pisando el draft local mientras el usuario avanzaba entre pantallas.
+- Se corrigió la mezcla para que:
+  - los valores locales sobrevivan cuando el remoto venga vacío,
+  - `platforms` también conserve el draft local si el backend aún no tiene datos.
+- Esto estabiliza el flujo de retroceder/avanzar y evita falsos `Completa las preguntas principales para continuar` al guardar.
+
+## 2026-04-12 — Arquitectura comercial propuesta: Negocio, Expansión y Agency
+
+### Tesis de pricing
+
+BearAds no debería obligar a un negocio a “volverse agencia” solo porque quiere crecer.
+
+La estructura comercial recomendada es:
+- `Negocio`: una marca principal, un equipo pequeño, una operación central.
+- `Expansión`: el mismo negocio, pero con más mercados, idiomas, regiones o una línea relacionada.
+- `Agency`: operación multi-cliente o multi-marca para terceros.
+- `Enterprise`: capas avanzadas de operación, seguridad y servicio.
+
+La lógica comercial debe diferenciar:
+- crecimiento del mismo negocio,
+- vs operación para múltiples clientes.
+
+### Nombres finales de planes
+
+#### 1. BearAds Start
+
+Para un negocio que quiere ordenar su base, medir y ejecutar lo esencial.
+
+#### 2. BearAds Growth
+
+Para un negocio que ya tiene base y quiere crecer en más canales, mercados o campañas.
+
+#### 3. BearAds Expansion Add-on
+
+Add-on del plan negocio. No es un plan separado: sirve para cubrir expansión por mercado, idioma, región o segunda línea de negocio relacionada.
+
+#### 4. BearAds Agency
+
+Para agencias o equipos que gestionan varios clientes, marcas o workspaces.
+
+#### 5. BearAds Enterprise
+
+Para operaciones más grandes con necesidades de control, soporte y escalamiento custom.
+
+### Estructura recomendada de planes
+
+| Plan | Quién es | Workspaces | Usuarios incluidos | Cliente / marca | Uso principal |
+|---|---|---:|---:|---|---|
+| Start | PyME o marca única | 1 | 1 | 1 marca principal | Diagnóstico, estrategia y activación base |
+| Growth | Negocio en crecimiento | 1 | 3 | 1 marca principal | Más campañas, más automatización, más ejecución |
+| Expansion Add-on | Negocio que entra a nuevos mercados | +0 | +0 o +1 opcional | misma empresa | Países, regiones, idiomas o segunda línea |
+| Agency | Agencia o multi-cliente | 5 incluidos | 5 | múltiples clientes / marcas | Operación repetible y escalable |
+| Enterprise | Equipos grandes | custom | custom | custom | seguridad, procesos, soporte y límites altos |
+
+### Tabla de features recomendada
+
+| Feature | Start | Growth | Expansion Add-on | Agency | Enterprise |
+|---|---|---|---|---|---|
+| 1 workspace | Sí | Sí | Mantiene el mismo | Sí, múltiples | Sí |
+| Diagnóstico del sitio | Sí | Sí | Sí | Sí | Sí |
+| Plan estratégico | Sí | Sí | Sí, ajustado por mercado | Sí | Sí |
+| Integraciones Google | Sí | Sí | Sí | Sí | Sí |
+| Campañas básicas | Sí | Sí | Sí | Sí | Sí |
+| Creativos y copy | Sí | Sí | Sí | Sí | Sí |
+| Tracking BearAds | Sí | Sí | Sí | Sí | Sí |
+| Mercados / idiomas adicionales | No | Parcial | Sí | Sí | Sí |
+| Usuarios extra | No | Sí | opcional | Sí | Sí |
+| Workspaces / clientes múltiples | No | No | No | Sí | Sí |
+| Roles y permisos | básico | medio | igual al plan base | avanzado | avanzado |
+| Plantillas reutilizables | No | parcial | No | Sí | Sí |
+| Dashboard por cartera | No | No | No | Sí | Sí |
+| Soporte / onboarding premium | No | No | No | parcial | Sí |
+
+### Regla de clasificación del cliente
+
+BearAds no debe depender de una sola pregunta del onboarding. Debe combinar:
+- `tipo declarado`,
+- `estructura de la cuenta`,
+- `uso real`.
+
+#### Señales de `Negocio`
+- 1 workspace
+- 1 dominio principal
+- 1 cuenta principal de ads
+- 1-3 usuarios
+- una sola marca
+
+#### Señales de `Expansión`
+- sigue siendo una sola empresa
+- quiere crecer en otro país, región o idioma
+- necesita contenido / campañas / SEO diferenciados por mercado
+- puede tener una segunda línea relacionada, pero no opera clientes externos
+
+#### Señales de `Agency`
+- gestiona marcas de terceros o varios clientes
+- múltiples dominios independientes
+- múltiples cuentas de ads o assets por cliente
+- varios usuarios internos
+- necesidad de templates, handoff, permisos y repetición operativa
+
+### Triggers de upgrade recomendados
+
+#### Start → Growth
+- más de 1 usuario activo en operación recurrente
+- más campañas o creativos de los límites base
+- uso recurrente de Google Ads / Meta / automatizaciones
+- ya no solo diagnostica: también ejecuta semanalmente
+
+#### Growth → Expansion Add-on
+- el cliente mantiene la misma empresa, pero:
+  - abre otro país o región,
+  - cambia idioma,
+  - necesita un plan diferenciado por mercado,
+  - quiere separar reporting por geografía o línea.
+
+#### Growth / Expansion → Agency
+- más de 1 marca independiente o clientes de terceros
+- más de 1 workspace real
+- necesidad de permisos por equipo
+- necesidad de reutilizar procesos en varias cuentas
+- múltiples dominios o activos separados por cliente
+
+#### Agency → Enterprise
+- 10+ usuarios
+- necesidades de seguridad, soporte o control avanzados
+- operaciones complejas de múltiples equipos o unidades
+
+### Reglas de producto para mantener el engagement
+
+#### 1. No castigar el crecimiento
+
+Un negocio que crece a otro país no debe sentir que “ya no cabe”.
+Por eso `Expansion` debe ser add-on, no una migración traumática a otro tipo de plan.
+
+#### 2. Cobrar por complejidad real
+
+La complejidad real en BearAds viene de:
+- más usuarios,
+- más workspaces/clientes,
+- más mercados,
+- más ejecución y automatización.
+
+No solo del número de features activadas.
+
+#### 3. Mantener continuidad
+
+El usuario debe sentir:
+- `empecé con un plan pequeño`,
+- `crecí sin salir de BearAds`,
+- `cuando necesité más operación, simplemente amplié`.
+
+### Copy listo para landing
+
+#### Sección de pricing — intro
+
+`BearAds crece contigo. Empieza con un solo negocio, añade expansión cuando abras nuevos mercados y pasa a Agency solo cuando realmente operes varios clientes.`
+
+#### Plan Start
+
+`Para una marca que necesita orden, datos y una ruta clara para crecer.`
+
+#### Plan Growth
+
+`Para negocios que ya no solo analizan: ahora ejecutan campañas, contenidos y optimizaciones de forma constante.`
+
+#### Expansion Add-on
+
+`Abre nuevos mercados sin cambiar de plataforma. Añade países, idiomas o regiones manteniendo la misma operación central.`
+
+#### Plan Agency
+
+`Para equipos que gestionan varios clientes y necesitan repetir procesos, ordenar workspaces y escalar con más velocidad.`
+
+#### Enterprise
+
+`Para operaciones más complejas que necesitan soporte, control y escalamiento a medida.`
+
+### Copy listo para billing / upgrade prompts
+
+#### Upgrade Start → Growth
+
+`Ya estás usando BearAds para ejecutar, no solo para diagnosticar. Growth te da más capacidad para campañas, usuarios y activación continua.`
+
+#### Upgrade Growth → Expansion
+
+`Tu negocio ya está creciendo a nuevos mercados. Añade Expansion para separar estrategia, campañas y contexto por país, región o idioma sin salir de tu operación actual.`
+
+#### Upgrade a Agency
+
+`Ya no operas una sola marca. Agency te ayuda a gestionar varios clientes, workspaces y equipos sin improvisar procesos.`
+
+#### Upgrade a Enterprise
+
+`Tu operación ya necesita más control, soporte y escalabilidad. Enterprise adapta BearAds a tu estructura real.`
+
+### Recomendación de empaque comercial
+
+- `Start` y `Growth` deben estar visibles en la landing.
+- `Expansion Add-on` debe mostrarse dentro del plan negocio como una ampliación natural.
+- `Agency` debe tener CTA separado: `Hablar con ventas` o `Activar Agency`.
+- `Enterprise` debe ser principalmente comercial / consultivo.
+
+### Recomendación UX dentro de BearAds
+
+En el producto, el usuario debería ver uno de estos estados:
+- `Plan actual: Start`
+- `Plan actual: Growth`
+- `Add-on activo: Expansion`
+- `Modo Agency`
+
+Y el sistema debería disparar recomendaciones como:
+- `Tu negocio ya está listo para Growth`
+- `Parece que estás abriendo nuevos mercados`
+- `Tu operación ya se comporta como una agencia`
+
+## 2026-04-12 — Pricing visible en landing + billing modal v1
+
+- Se actualizó la sección de precios de la landing para reflejar la nueva arquitectura comercial:
+  - `BearAds Start`
+  - `BearAds Growth`
+  - `BearAds Agency`
+  - bloque explícito para `Expansion Add-on`
+- La landing ya comunica que:
+  - un negocio puede crecer sin saltar a Agency,
+  - `Expansion` cubre países, idiomas y regiones,
+  - `Agency` se reserva para operación multi-cliente real.
+
+- También se creó una primera versión del `billing modal` dentro de la app:
+  - muestra recomendación actual de plan,
+  - muestra cards resumidas de `Start`, `Growth` y `Agency`,
+  - revela el bloque `Expansion Add-on` cuando detecta expansión geográfica,
+  - y lista `triggers de upgrade` según el uso real del workspace.
+
+- La lógica del modal de plan ahora cruza:
+  - onboarding,
+  - ruta detectada,
+  - uso de análisis,
+  - tipo de operación (`negocio`, `expansión`, `agencia`).
+
+- Esto baja la estrategia comercial a interfaz real y prepara el siguiente paso:
+  - conectar el modal con billing/checkout real,
+  - disparar recomendaciones automáticas más precisas dentro del producto.
+
+## 2026-04-12 — Acciones reales en billing modal v1
+
+- El modal de plan ya no se queda solo en sugerencias visuales.
+- Se agregó una capa persistente `commercial` al workspace para guardar intención comercial del usuario:
+  - `targetPlan`
+  - `addOns`
+  - `agencyLead`
+  - `contactRequested`
+  - `lastIntentAt`
+  - `lastIntentSource`
+
+- Ahora el botón principal del modal ejecuta acciones reales:
+  - `Growth`: guarda intención de upgrade a growth,
+  - `Expansion`: guarda `growth + expansion`,
+  - `Agency`: marca interés comercial y lead de agency.
+- Además, en esta etapa interna, el botón también puede dejar el plan activo de forma inmediata dentro del workspace para evaluación de producto, sin depender todavía de la pasarela de pagos.
+
+## 2026-04-12 — Billing modal v2: selección real y cancelación
+
+- El modal de plan ya funciona como selector explícito:
+  - `Start`
+  - `Growth`
+  - `Agency`
+- Cada card es clickeable y el CTA principal cambia según el plan elegido.
+- Se añadió un comparativo visible entre:
+  - plan actual,
+  - plan seleccionado,
+  - y el efecto esperado del cambio.
+- El sistema ahora valida si el usuario ya está en el plan seleccionado y desactiva el CTA para evitar upgrades redundantes.
+- Se retiró el botón `Reset`.
+- Se añadió `Cancelar plan actual`, que por ahora devuelve la cuenta a `BearAds Start` para pruebas internas.
+- Para pruebas más finas, el superadmin sigue pudiendo cambiar el plan desde billing sin depender del modal del usuario final.
+
+- Esto permite que BearAds recuerde el siguiente paso comercial del usuario incluso antes de tener checkout real integrado.
+
+## 2026-04-17 — Planes alineados a Trial / Starter / Pro / Agency
+
+- Se unificó la nomenclatura comercial en producto y landing:
+  - `Trial`
+  - `Starter`
+  - `Pro`
+  - `Agency`
+- El modal de planes ya no usa `Start / Growth`; ahora refleja mejor la realidad comercial del producto.
+- `Cancelar plan actual` quedó visible y coherente:
+  - si la cuenta ya está en `Trial`, el botón aparece deshabilitado con mensaje claro;
+  - si la cuenta está en `Starter`, `Pro` o `Agency`, permite volver a `Trial` para evaluación interna.
+- Se agregó una matriz base de funciones por plan en frontend para evaluación de producto:
+  - `Trial`: sin campañas, imágenes ni PDF
+  - `Starter`: diagnóstico, agentes y estrategia, pero sin Ads ni creativos avanzados
+  - `Pro`: campañas, Ads, creativos, imágenes y PDF
+  - `Agency`: todo Pro + operación multi-cliente
+- Las funciones bloqueadas ahora cambian su CTA a `Actualizar plan` y abren el modal comercial:
+  - campañas
+  - Meta Ads
+  - Google Ads
+  - creativos con IA
+  - generación de imágenes
+  - descarga de PDF
+- Además, se añadió una primera capa de enforcement en backend para rutas de mayor costo o riesgo:
+  - `generate-creative`
+  - `generate-image`
+  - endpoints reales de `Google Ads`
+  - acceso real a `Meta Ads`
+- El límite de `4 análisis por día` para `Trial / free` ya quedó también en backend:
+  - se guarda por workspace en un contador diario propio,
+  - se valida dentro de `/api/analyze`,
+  - y devuelve `429` + `daily_analysis_limit` cuando se llega al tope,
+  - evitando que el límite se pueda saltar solo limpiando el navegador o pegándole directo al endpoint.
+- El superadmin en `Billing` ya tiene una acción visible para `Reabrir onboarding desde cero`, limpiando:
+  - estado remoto del workspace
+  - estado local del navegador
+- El cambio manual de plan desde superadmin ahora también sincroniza el estado comercial del workspace, para que el modal y las recomendaciones no queden desfasadas.
+- La landing de precios se actualizó para mostrar:
+  - `Trial`
+  - `Starter`
+  - `Pro`
+  - `Agency`
+  - más explicación del `Expansion Add-on` sobre `Pro`
+- En `Trial / free` se fijó un límite operativo de `4 análisis por día` usando el historial diario del usuario dentro de la app, con CTA a upgrade cuando llega al tope.
+- Los `12 agentes` ya quedaron como función paga:
+  - en `Trial` el usuario puede analizar, pero no abrir agentes,
+  - desde `Starter` en adelante se habilita el acceso completo,
+  - el sidebar, la página de agentes y la apertura real del workspace ya respetan esta regla.
+- El producto ahora deja mucho más claro qué significa cada etapa del plan:
+  - en `Trial` se bloquean visualmente `Campañas` y `Creativos` desde la navegación y el dashboard,
+  - `Integraciones` sigue accesible para conectar la base, pero sus tabs avanzadas (`Meta Ads`, `Google Ads`, `Email`, `Webhooks`) ya empujan a upgrade,
+  - el dashboard muestra explícitamente la progresión: `En Trial analizas. En Starter activas agentes. En Pro ejecutas campañas.`
+- Se reforzó la lectura comercial directamente en UI:
+  - el sidebar ahora muestra chips contextuales como `STARTER` o `PRO` cuando un módulo requiere upgrade,
+  - los headers de `Agentes`, `Campañas`, `Creativos` e `Integraciones` muestran chips de disponibilidad (`Desde Starter`, `Desde Pro`, `Base en Trial`, etc.),
+  - así el usuario entiende el alcance del plan antes de hacer clic.
+- El sidebar se simplificó para no duplicar el módulo de agentes:
+  - se eliminó la lista larga de agentes individuales del lateral,
+  - queda una sola entrada `Agentes de apoyo`, más limpia y coherente con la navegación principal.
+- El `Plan Modal` y el footer del sidebar ahora hablan más en lenguaje de producto:
+  - muestran qué puedes hacer hoy con tu plan actual,
+  - y presentan los planes por capacidad (`diagnóstico`, `agentes`, `campañas`, `multi-cliente`) en vez de verse como estado técnico.
+- Se hizo una pasada de consistencia final de copy entre:
+  - `landing`,
+  - `dashboard`,
+  - `plan modal`,
+  - `billing/superadmin`.
+- La narrativa ya quedó unificada así:
+  - `Trial`: diagnostica y conecta la base,
+  - `Starter`: activa agentes y estrategia,
+  - `Pro`: ejecuta campañas, creativos e informes,
+  - `Agency`: escala cartera, usuarios y operación multi-cliente.
+- También se hizo una pasada final de microcopy en botones, comparativos y toasts:
+  - se priorizó `ver planes`, `elegir`, `pasar a` y `etapa actual`,
+  - y se redujo la mezcla previa con `actualizar`, `subir`, `mejorar` y `plan actual`.
+- La campana del topbar ahora sí funciona como preferencia real de notificaciones del navegador:
+  - el usuario puede activarlas o desactivarlas con el botón `🔔`,
+  - BearAds avisa cuando termina una tarea larga si la pestaña quedó en segundo plano,
+  - se cubrieron al menos `análisis`, `plan estratégico`, `campañas`, `creativos` e `imagen`.
+- Se hizo una pasada visual final sobre estados vacíos, banners y helpers:
+  - `dashboard`, `estrategia`, `campañas`, `integraciones`, `creativos`, `score semanal`, `agentes` y `análisis` ahora usan un lenguaje más orientado a producto,
+  - el tono dejó de sonar como mensajes aislados y ahora refuerza la ruta `base -> estrategia -> ejecución -> escalamiento`,
+  - los estados vacíos explican mejor qué desbloquea cada siguiente paso dentro de BearAds.
+- Se reforzó una segunda capa de jerarquía visual en `dashboard` y `plan estratégico`:
+  - los vacíos ahora usan CTAs reales en botón y no solo links de texto,
+  - el banner guiado del dashboard quedó menos denso y con un bloque más fuerte de `haz esto ahora`,
+  - la salida del plan resalta mejor el siguiente paso recomendado con cards de acción más visibles.

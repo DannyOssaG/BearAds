@@ -227,7 +227,7 @@ section{padding:100px 24px;position:relative;}
 .step-connector{width:100%;height:1px;background:linear-gradient(to right,transparent,var(--border),transparent);margin-top:-26px;}
 
 /* ── PRICING ── */
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:56px;}
 .price-card{
   background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:32px;
   position:relative;transition:all 0.2s;
@@ -603,50 +603,67 @@ footer{
 <section id="precios">
   <div class="container" style="text-align:center;">
     <div class="section-badge">Precios</div>
-    <h2 class="section-title">Sin sorpresas.<br>Sin contratos.</h2>
-    <p class="section-sub" style="margin:0 auto 0;">Cancela cuando quieras. Los planes pagos incluyen acceso a los 12 agentes como capa de apoyo y ejecución.</p>
+    <h2 class="section-title">Planes claros.<br>Escala cuando haga sentido.</h2>
+    <p class="section-sub" style="margin:0 auto 0;">Empieza con Trial para diagnosticar, pasa a Starter para activar agentes, pasa a Pro cuando ya necesites ejecutar campañas y usa Agency solo cuando operes varios clientes.</p>
     <div class="pricing-grid reveal">
       <div class="price-card">
-        <div class="price-plan">Starter</div>
+        <div class="price-plan">BearAds Trial</div>
         <div class="price-amount"><sup>$</sup>0<sub>/mes</sub></div>
-        <div class="price-desc">Para explorar la plataforma y entender el potencial de tus agentes IA.</div>
+        <div class="price-desc">15 días para diagnosticar tu sitio, conectar la base y validar si BearAds te acompaña bien desde el arranque.</div>
         <div class="price-features">
-          <div class="price-feat"><span class="price-feat-check">✓</span>3 análisis de sitio por mes</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>5 agentes activos</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Reporte PDF básico</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Conexión Google (GSC + GA4)</div>
-          <div class="price-feat" style="color:var(--mu)"><span>—</span> Sin agentes especializados</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>1 workspace · 1 usuario</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Análisis del sitio y ruta recomendada</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Modo arranque y tracking base</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Conexión de Google y base orgánica</div>
+          <div class="price-feat"><span class="price-feat-check">✦</span>Sin agentes, campañas, imágenes ni PDFs</div>
         </div>
-        <a href="/auth/google" class="price-btn price-btn-ghost">Comenzar gratis</a>
+        <a href="/auth/google" class="price-btn price-btn-ghost">Probar Trial</a>
       </div>
       <div class="price-card featured">
         <div class="price-featured-badge">Más popular</div>
-        <div class="price-plan">Pro</div>
+        <div class="price-plan">BearAds Starter</div>
         <div class="price-amount"><sup>$</sup>49<sub>/mes</sub></div>
-        <div class="price-desc">Para negocios que quieren resultados reales con marketing IA completo. Empiezas con 15 días gratis.</div>
+        <div class="price-desc">$39/mes anual. Para una marca que ya quiere pasar del diagnóstico a la estrategia operativa con agentes, sin abrir todavía la capa de Ads.</div>
         <div class="price-features">
-          <div class="price-feat"><span class="price-feat-check">✓</span>Análisis ilimitados</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>12 agentes especializados de apoyo</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Reporte PDF completo</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Chat ilimitado con agentes</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Generación de copies y emails</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Historial de análisis</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>1 workspace · 2 usuarios</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Análisis full + 12 agentes IA</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>GSC + GA4 + plan estratégico 30-90d</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Ideal para base orgánica y decisiones con contexto</div>
+          <div class="price-feat"><span class="price-feat-check">✦</span>Sin campañas, Ads API, creativos AI ni PDFs</div>
         </div>
         <a href="/auth/google" class="price-btn price-btn-primary">Iniciar trial de 15 días →</a>
       </div>
       <div class="price-card">
-        <div class="price-plan">Agencia</div>
-        <div class="price-amount"><sup>$</sup>149<sub>/mes</sub></div>
-        <div class="price-desc">Para agencias y consultores que manejan múltiples clientes simultáneamente.</div>
+        <div class="price-plan">BearAds Pro</div>
+        <div class="price-amount"><sup>$</sup>99<sub>/mes</sub></div>
+        <div class="price-desc">$79/mes anual. Para negocios que ya necesitan ejecutar campañas, creativos y reportes dentro del mismo sistema.</div>
         <div class="price-features">
-          <div class="price-feat"><span class="price-feat-check">✓</span>Todo lo de Pro</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>Hasta 20 sitios simultáneos</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>PDF con logo personalizado</div>
-          <div class="price-feat"><span class="price-feat-check">✓</span>API de acceso</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>3 workspaces · 5 usuarios</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Todo Starter + Google Ads y Meta Ads</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Generación de campañas y creativos AI</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>DALL-E, PDFs y ejecución continua</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Expansion add-on cuando abras nuevos mercados</div>
+        </div>
+        <a href="/auth/google" class="price-btn price-btn-ghost">Elegir Pro</a>
+      </div>
+      <div class="price-card">
+        <div class="price-plan">BearAds Agency</div>
+        <div class="price-amount"><sup>$</sup>249<sub>/mes</sub></div>
+        <div class="price-desc">$199/mes anual. Para equipos que gestionan varios clientes y necesitan operación por cartera, permisos y escalado multi-cliente.</div>
+        <div class="price-features">
+          <div class="price-feat"><span class="price-feat-check">✓</span>15 workspaces · usuarios ilimitados</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Todo Pro + white-label y API</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Dashboard multi-cliente y billing central</div>
+          <div class="price-feat"><span class="price-feat-check">✓</span>Reportes con logo del cliente</div>
           <div class="price-feat"><span class="price-feat-check">✓</span>Soporte prioritario</div>
         </div>
         <a href="/auth/google" class="price-btn price-btn-ghost">Contactar ventas</a>
       </div>
+    </div>
+    <div style="margin-top:18px;padding:16px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.14);border-radius:16px;text-align:left;max-width:920px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--ac);margin-bottom:6px;">ADD-ON DE EXPANSIÓN</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:var(--wh);margin-bottom:6px;">Abre nuevos mercados sin cambiar de plan.</div>
+      <div style="font-size:14px;color:var(--t2);line-height:1.7;">Si sigues siendo la misma empresa pero quieres entrar a otro país, idioma o región, activa <strong style="color:var(--wh);">BearAds Expansion</strong> como add-on de tu plan negocio. No te obliga a saltar a Agency.</div>
     </div>
   </div>
 </section>

@@ -290,6 +290,50 @@ function defaultIntegrationHub() {
   };
 }
 
+function defaultCommercialState() {
+  return {
+    targetPlan: '',
+    addOns: [],
+    agencyLead: false,
+    contactRequested: false,
+    lastIntentAt: null,
+    lastIntentSource: ''
+  };
+}
+
+function defaultUsageState() {
+  return {
+    dailyAnalyses: {}
+  };
+}
+
+function getUsageDayKey(dateLike = new Date()) {
+  const date = new Date(dateLike);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function pruneDailyUsageMap(map, keepDays = 14) {
+  const source = typeof map === 'object' && map ? map : {};
+  const entries = Object.entries(source)
+    .filter(([key]) => /^\d{4}-\d{2}-\d{2}$/.test(key))
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, keepDays);
+  return Object.fromEntries(entries);
+}
+
+function getDailyAnalysisLimitForWorkspace(workspace) {
+  const plan = resolveWorkspacePlanCode(workspace);
+  return plan === 'trial' ? 4 : Infinity;
+}
+
+function getTodayAnalysisUsage(workspace) {
+  const daily = workspace?.usage?.dailyAnalyses || {};
+  return Number(daily[getUsageDayKey()] || 0);
+}
+
 function ensureWorkspaceState(workspace) {
   if (!workspace) return null;
   workspace.profile = workspace.profile || {};
@@ -308,6 +352,15 @@ function ensureWorkspaceState(workspace) {
       ...defaultIntegrationHub().connections,
       ...((workspace.integrationHub && workspace.integrationHub.connections) || {})
     }
+  };
+  workspace.commercial = {
+    ...defaultCommercialState(),
+    ...(workspace.commercial || {})
+  };
+  workspace.usage = {
+    ...defaultUsageState(),
+    ...(workspace.usage || {}),
+    dailyAnalyses: pruneDailyUsageMap((workspace.usage && workspace.usage.dailyAnalyses) || {})
   };
   return workspace;
 }
@@ -441,11 +494,68 @@ function sanitizeWorkspace(workspace) {
     profile: workspace.profile || {},
     onboarding: workspace.onboarding || defaultOnboardingState(),
     integrationHub: workspace.integrationHub || defaultIntegrationHub(),
+    commercial: workspace.commercial || defaultCommercialState(),
+    usage: workspace.usage || defaultUsageState(),
     subscription: {
       ...subscription,
       remainingTrialDays
     },
     settings: workspace.settings || {}
+  };
+}
+
+const PLAN_FEATURES = {
+  trial: {
+    strategicPlan: true,
+    creativeGen: false,
+    imageGen: false,
+    googleAds: false,
+    metaAds: false
+  },
+  starter: {
+    strategicPlan: true,
+    creativeGen: false,
+    imageGen: false,
+    googleAds: false,
+    metaAds: false
+  },
+  pro: {
+    strategicPlan: true,
+    creativeGen: true,
+    imageGen: true,
+    googleAds: true,
+    metaAds: true
+  },
+  agency: {
+    strategicPlan: true,
+    creativeGen: true,
+    imageGen: true,
+    googleAds: true,
+    metaAds: true
+  }
+};
+
+function resolveWorkspacePlanCode(workspace) {
+  const sub = workspace?.subscription || {};
+  if (sub.status === 'trialing' || sub.plan === 'trial') return 'trial';
+  if (sub.plan === 'starter') return 'starter';
+  if (sub.plan === 'pro') return 'pro';
+  if (sub.plan === 'agency') return 'agency';
+  return 'trial';
+}
+
+function requirePlanFeature(feature) {
+  return (req, res, next) => {
+    const currentUser = rehydrateRequestUser(req) || req.user;
+    const workspace = currentUser?.workspace || null;
+    const plan = resolveWorkspacePlanCode(workspace);
+    if (PLAN_FEATURES[plan]?.[feature]) return next();
+    return res.status(403).json({
+      error: 'plan_limit',
+      message: `Tu plan ${plan} no incluye esta función.`,
+      upgrade: true,
+      requiredPlan: feature === 'strategicPlan' ? 'starter' : 'pro'
+    });
   };
 }
 
@@ -927,11 +1037,14 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
 
   const onboarding = req.body.onboarding || {};
   const integrationHub = req.body.integrationHub || {};
+  const commercial = req.body.commercial || {};
   const allowedPlatforms = ['google', 'meta', 'googleAds', 'email', 'ecom', 'ga4', 'gsc', 'tiktok'];
   const allowedKnowledge = ['principiante', 'intermedio', 'avanzado', 'agencia'];
   const allowedLanguages = ['es', 'en', 'pt'];
   const allowedScopes = ['local', 'nacional', 'regional', 'global'];
   const allowedBudgetRanges = ['sin-presupuesto', 'bajo', 'medio', 'alto'];
+  const allowedPlans = ['trial', 'starter', 'pro', 'agency'];
+  const allowedAddOns = ['expansion'];
 
   if (Object.keys(onboarding).length) {
     const nextKnowledge = String(onboarding.knowledgeLevel || '').trim().toLowerCase();
@@ -985,6 +1098,53 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
         ...nextConnections
       }
     };
+  }
+
+  if (Object.keys(commercial).length) {
+    const nextTargetPlan = String(commercial.targetPlan || '').trim().toLowerCase();
+    const nextAddOns = Array.isArray(commercial.addOns)
+      ? commercial.addOns.map(value => String(value || '').trim().toLowerCase()).filter(value => allowedAddOns.includes(value)).slice(0, 4)
+      : workspace.commercial.addOns;
+    const shouldActivatePlan = Boolean(commercial.activatePlan);
+    const shouldResetCommercial = Boolean(commercial.reset);
+
+    if (shouldResetCommercial) {
+      workspace.commercial = {
+        ...defaultCommercialState(),
+        lastIntentAt: nowIso(),
+        lastIntentSource: String(commercial.lastIntentSource || 'workspace-plan-modal-reset').slice(0, 80)
+      };
+      workspace.subscription = {
+        ...(workspace.subscription || {}),
+        plan: 'trial',
+        status: 'trialing',
+        source: 'workspace-plan-reset'
+      };
+    } else {
+      workspace.commercial = {
+        ...defaultCommercialState(),
+        ...workspace.commercial,
+        targetPlan: allowedPlans.includes(nextTargetPlan) ? nextTargetPlan : workspace.commercial.targetPlan,
+        addOns: nextAddOns || [],
+        agencyLead: Boolean(commercial.agencyLead ?? workspace.commercial.agencyLead),
+        contactRequested: Boolean(commercial.contactRequested ?? workspace.commercial.contactRequested),
+        lastIntentAt: commercial.lastIntentAt || workspace.commercial.lastIntentAt || nowIso(),
+        lastIntentSource: String(commercial.lastIntentSource || workspace.commercial.lastIntentSource || 'workspace-plan-modal').slice(0, 80)
+      };
+
+      if (shouldActivatePlan) {
+        const mappedPlan = workspace.commercial.targetPlan;
+        if (mappedPlan) {
+          workspace.subscription = {
+            ...(workspace.subscription || {}),
+            plan: mappedPlan,
+            status: mappedPlan === 'trial' ? 'trialing' : 'active',
+            activatedAt: workspace.subscription?.activatedAt || nowIso(),
+            source: 'workspace-plan-modal'
+          };
+        }
+      }
+    }
   }
 
   workspace.updatedAt = nowIso();
@@ -1438,8 +1598,22 @@ app.patch('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
     status: nextStatus || workspace.subscription?.status || 'trialing'
   };
 
+  workspace.commercial = {
+    ...defaultCommercialState(),
+    ...(workspace.commercial || {}),
+    targetPlan: workspace.subscription.plan || 'trial',
+    addOns: workspace.subscription.plan === 'pro'
+      ? ((workspace.commercial?.addOns || []).filter(addOn => addOn === 'expansion'))
+      : [],
+    agencyLead: workspace.subscription.plan === 'agency',
+    contactRequested: workspace.subscription.plan === 'agency',
+    lastIntentAt: nowIso(),
+    lastIntentSource: 'superadmin-billing'
+  };
+
   if (workspace.subscription.status === 'active' && workspace.subscription.plan === 'trial') {
     workspace.subscription.plan = 'starter';
+    workspace.commercial.targetPlan = 'starter';
   }
 
   if (workspace.subscription.status !== 'trialing') {
@@ -1953,6 +2127,26 @@ app.post('/api/analyze', async (req, res) => {
   let cleanUrl = url.trim();
   if (!cleanUrl.startsWith('http')) cleanUrl = 'https://' + cleanUrl;
 
+  let workspace = null;
+  if (req.isAuthenticated()) {
+    const currentUser = rehydrateRequestUser(req) || req.user;
+    workspace = ensureWorkspaceState(currentUser?.workspace || null);
+    if (workspace) {
+      const dailyLimit = getDailyAnalysisLimitForWorkspace(workspace);
+      const usedToday = getTodayAnalysisUsage(workspace);
+      if (usedToday >= dailyLimit) {
+        return res.status(429).json({
+          error: 'Tu plan free llegó al máximo de 4 análisis hoy.',
+          code: 'daily_analysis_limit',
+          upgrade: true,
+          currentPlan: resolveWorkspacePlanCode(workspace),
+          usedToday,
+          dailyLimit
+        });
+      }
+    }
+  }
+
   console.log(`\n🔍 Analizando: ${cleanUrl}`);
 
   try {
@@ -2069,6 +2263,25 @@ Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`
     results.globalScore = Math.round(
       (results.seo.score + results.sem.score + results.contenido.score + results.cro.score + results.trafico.score) / 5
     );
+
+    if (workspace) {
+      const todayKey = getUsageDayKey();
+      const nextCount = getTodayAnalysisUsage(workspace) + 1;
+      workspace.usage = {
+        ...defaultUsageState(),
+        ...(workspace.usage || {}),
+        dailyAnalyses: {
+          ...pruneDailyUsageMap((workspace.usage && workspace.usage.dailyAnalyses) || {}),
+          [todayKey]: nextCount
+        }
+      };
+      workspace.updatedAt = nowIso();
+      saveWorkspaces();
+      results.usage = {
+        usedToday: nextCount,
+        dailyLimit: getDailyAnalysisLimitForWorkspace(workspace)
+      };
+    }
 
     console.log(`  ✅ Score: ${results.globalScore}/100 | Google: ${results.googleConnected}`);
     res.json(results);
@@ -2360,7 +2573,7 @@ app.post('/api/meta/verify', async (req, res) => {
   }
 });
 
-app.post('/api/meta/campaigns', async (req, res) => {
+app.post('/api/meta/campaigns', requireAuth, requirePlanFeature('metaAds'), async (req, res) => {
   const { accessToken, accountId } = req.body;
   if (!accessToken || !accountId) return res.json({ error: 'Credenciales requeridas' });
 
@@ -2415,7 +2628,7 @@ app.post('/api/meta/optimize', async (req, res) => {
 // DALL-E 3 — Generación de imágenes
 // ══════════════════════════════════════════
 
-app.post('/api/generate-image', async (req, res) => {
+app.post('/api/generate-image', requireAuth, requirePlanFeature('imageGen'), async (req, res) => {
   const { prompt, size, style, purpose } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt requerido' });
   if (!process.env.OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY no configurada. Agrégala en tu .env' });
@@ -2642,7 +2855,7 @@ Sé muy específico con números reales para LATAM. En español.`;
 // CREATIVE GENERATION — Copy + Image
 // ══════════════════════════════════════════
 
-app.post('/api/generate-creative', async (req, res) => {
+app.post('/api/generate-creative', requireAuth, requirePlanFeature('creativeGen'), async (req, res) => {
   const { product, audience, platform, objective, budget, tone, includeImage } = req.body;
 
   const platformSpecs = {
@@ -2748,7 +2961,7 @@ async function getWorkingVersion(req, customerId) {
 }
 
 // Create Campaign
-app.post('/api/gads/create-campaign', async (req, res) => {
+app.post('/api/gads/create-campaign', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     if (!req.isAuthenticated()) return res.json({ error: 'No autenticado' });
     const { customerId, name, dailyBudgetMicros, channelType, biddingStrategy } = req.body;
@@ -2800,7 +3013,7 @@ app.post('/api/gads/create-campaign', async (req, res) => {
 });
 
 // Create Ad Group
-app.post('/api/gads/create-adgroup', async (req, res) => {
+app.post('/api/gads/create-adgroup', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     if (!req.isAuthenticated()) return res.json({ error: 'No autenticado' });
     const { customerId, campaignResourceName, name, cpcBidMicros } = req.body;
@@ -2825,7 +3038,7 @@ app.post('/api/gads/create-adgroup', async (req, res) => {
 });
 
 // Create Responsive Search Ad
-app.post('/api/gads/create-ad', async (req, res) => {
+app.post('/api/gads/create-ad', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     if (!req.isAuthenticated()) return res.json({ error: 'No autenticado' });
     const { customerId, adGroupResourceName, headlines, descriptions, finalUrl } = req.body;
@@ -2859,7 +3072,7 @@ app.post('/api/gads/create-ad', async (req, res) => {
 });
 
 // Add Keywords to Ad Group
-app.post('/api/gads/create-keywords', async (req, res) => {
+app.post('/api/gads/create-keywords', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     if (!req.isAuthenticated()) return res.json({ error: 'No autenticado' });
     const { customerId, adGroupResourceName, keywords } = req.body;
