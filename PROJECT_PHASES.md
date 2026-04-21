@@ -158,7 +158,14 @@ Criterio de cierre:
 - Salud tecnica minima validada.
 
 Estado:
-no iniciada formalmente.
+iniciada.
+
+Bloque activo:
+
+- validación por escenarios `Trial / Starter / Pro / Agency`,
+- coherencia entre gating visible y gating real,
+- mensajes de upgrade alineados con el plan correcto,
+- y revisión de recorridos completos sin contradicciones entre módulos.
 
 ### Fase 7 - Escalabilidad y siguiente version
 
@@ -183,7 +190,9 @@ BearAds hoy esta entre Fase 2 y Fase 4:
 - Fase 2: avanzada pero no cerrada.
 - Fase 3: implementada a nivel funcional, no cerrada.
 - Fase 4: implementada de forma parcial.
-- Fase 5 en adelante: abiertas.
+- Fase 5: muy avanzada.
+- Fase 6: iniciada.
+- Fase 7: futura.
 
 La conclusion practica es:
 
@@ -198,7 +207,50 @@ URL + Google -> analisis -> estrategia -> campanas.
 2. Cerrar Fase 3.
 3. Cerrar Fase 4.
 4. Cerrar Fase 5.
-5. Hacer pulido comercial de Fase 6.
+5. Ejecutar y cerrar Fase 6.
+
+## Matriz activa de Fase 6
+
+Escenarios que se están validando ahora:
+
+1. `Trial`
+- puede analizar,
+- no puede abrir agentes,
+- no puede ejecutar campañas ni creativos,
+- ve CTA claros para pasar a Starter o Pro,
+- y no cae por error en tabs o módulos que no le corresponden.
+
+2. `Starter`
+- puede usar agentes y estrategia,
+- no puede ejecutar campañas ni creativos,
+- ve bloqueos coherentes hacia Pro,
+- y no encuentra navegación que prometa ejecución antes de tiempo.
+
+3. `Pro`
+- puede usar agentes, campañas, creativos, imágenes y reportes,
+- puede entrar a integraciones avanzadas,
+- y no encuentra bloqueos visibles que contradigan su plan.
+
+4. `Agency`
+- mantiene todo lo de Pro,
+- puede entrar a capacidades avanzadas de operación,
+- y el producto le habla como operación multi-cliente, no como negocio único.
+
+5. `Superadmin`
+- puede reiniciar onboarding,
+- cambiar etapa comercial,
+- revisar billing,
+- y usar ese entorno para pruebas manuales sin romper el flujo del usuario final.
+
+Avance reciente de esta fase:
+
+- el backend ya alinea Google Ads y Meta Ads con el plan real del workspace;
+- `gads/test`, `gads/campaigns`, `gads/keywords`, `gads/optimize`, `meta/verify` y `meta/optimize` ahora exigen autenticación y plan correcto;
+- cuando una llamada del frontend cae por `plan_limit`, la app abre el modal de planes y propone la etapa correcta en vez de quedarse en error técnico;
+- los flujos de Google Ads y Meta dentro de la app ya consumen esa capa común, así que `Trial` y `Starter` reciben upgrade claro también si el bloqueo viene del servidor.
+- `Score Semanal` quedó alineado con `Pro`: navegación, chips, preview, envío y suscripción ya no quedan abiertos para `Trial` o `Starter`;
+- los endpoints de email (`subscribe`, `preview`, `send-now`) ahora exigen autenticación y el feature de reportes.
+- también quedó protegido `email/subscriptions`, para que el módulo de reportes no tenga una ruta lateral abierta fuera de `Pro`.
 
 ## Primera lista de trabajo para cerrar Fase 2
 
@@ -1084,3 +1136,297 @@ Y el sistema debería disparar recomendaciones como:
   - los vacíos ahora usan CTAs reales en botón y no solo links de texto,
   - el banner guiado del dashboard quedó menos denso y con un bloque más fuerte de `haz esto ahora`,
   - la salida del plan resalta mejor el siguiente paso recomendado con cards de acción más visibles.
+- Se hizo una lectura formal del frente móvil para preparar la app:
+  - la versión actual responsive/PWA sí sirve como referencia funcional,
+  - pero no conviene usarla como base final de app porque sigue siendo una web grande comprimida en móvil,
+  - se propuso una ruta `React Native + Expo` reutilizando backend, auth, planes y lógica del producto.
+
+## Cierre Web Antes de Móvil
+
+Antes de abrir la fase móvil, BearAds debe cerrar su base web en este orden:
+
+1. Estabilidad funcional
+   - revisar flujos completos de análisis, estrategia, campañas, creativos, entregables, integraciones, billing y onboarding,
+   - corregir errores de navegación, modales, loaders, estados vacíos y edge cases.
+
+2. Gating real por plan
+   - asegurar enforcement consistente entre frontend y backend para `Trial`, `Starter`, `Pro` y `Agency`,
+   - evitar que funciones pagas se puedan usar por rutas sueltas o llamadas directas.
+
+3. Integraciones y datos reales
+   - validar Google, GSC, GA4, Google Ads, Meta y BearAds Tracking,
+   - revisar estados de error por permisos, reconexión, tokens vencidos y cuentas sin acceso.
+
+4. Persistencia y memoria
+   - dejar firmes drafts, onboarding, contexto estratégico, entregables, commercial state y selección de workspace,
+   - asegurar que al recargar no se rompa el contexto del usuario.
+
+5. UX final web
+   - cerrar responsive fino,
+   - consistencia visual,
+   - jerarquía de CTA,
+   - banners, helpers, estados vacíos y navegación final.
+
+6. QA de producto
+   - probar por tipo de cuenta: `Trial`, `Starter`, `Pro`, `Agency`, `Superadmin`,
+   - probar por escenario: sin datos, orgánico, listo para ads, agencia/multi-proyecto.
+
+7. Prueba real de pasarela de pagos
+   - validar selección de plan, checkout, upgrade, downgrade, cancelación, renovación y webhooks,
+   - comprobar que el cambio de plan sincroniza bien el workspace y bloquea/desbloquea funciones como corresponde.
+
+### Fase 1 — Estabilidad funcional (bloque operativo)
+
+Objetivo:
+dejar la base web sin pasos rotos, con estados consistentes y con criterios claros de “esto ya está cerrado”.
+
+#### Onboarding
+
+Checklist:
+
+- el flujo avanza sin perder datos entre pasos;
+- `Atrás`, `Siguiente` y `Guardar y continuar` responden bien;
+- modo `agencia` no se bloquea por validaciones pensadas para negocio único;
+- `Saltar por ahora` no reaparece de forma inconsistente al volver a entrar;
+- reiniciar onboarding desde superadmin limpia estado local y remoto;
+- al terminar, se cierra la modal y se refleja el contexto en dashboard y estrategia.
+
+Criterio de cierre:
+
+- el usuario puede empezar desde cero, completar onboarding, volver atrás, corregir y terminar sin toasts falsos ni pérdida de información.
+
+#### Dashboard
+
+Checklist:
+
+- KPI de análisis, entregables y score cargan bien;
+- CTA rápidos llevan a la vista correcta;
+- vacíos de análisis y entregables responden con CTA funcional;
+- bloque `Base de Crecimiento` o recomendación principal siempre muestra una ruta válida;
+- historial reciente de análisis y entregables abre bien sus destinos;
+- no quedan cards que aparenten ser clickeables pero no hagan nada.
+
+Criterio de cierre:
+
+- el dashboard funciona como punto de entrada real y siempre ofrece un siguiente paso claro.
+
+#### Analizar Sitio
+
+Checklist:
+
+- URL obligatoria valida bien;
+- loader entra y sale sin dejar pantalla colgada;
+- errores de análisis se muestran con mensaje útil;
+- análisis exitoso guarda historial y renderiza resultados completos;
+- análisis anteriores se pueden reabrir;
+- CTA post-análisis a estrategia funciona;
+- límite diario de `Trial` muestra mensaje correcto y CTA a planes.
+
+Criterio de cierre:
+
+- un usuario puede analizar, fallar, reintentar, revisar historial y pasar a estrategia sin perder el flujo.
+
+#### Estrategia Inteligente
+
+Checklist:
+
+- prefill de negocio, URL, mercado y contexto funciona;
+- templates rápidos rellenan campos válidos;
+- generar estrategia no falla por contexto vacío cuando hay datos base;
+- loader, error y éxito se ven consistentes;
+- guardar estrategia funciona;
+- el bloque `ruta detectada` y `siguiente paso recomendado` aparece correctamente;
+- CTA desde el resultado lleva a campañas, creativos o agentes según corresponda.
+
+Criterio de cierre:
+
+- el plan no se siente como texto aislado, sino como puente entre diagnóstico y ejecución.
+
+#### Campañas
+
+Checklist:
+
+- selector de plataforma responde bien;
+- plantillas rápidas funcionan;
+- generación de campaña muestra loading, error y éxito correctos;
+- guardar campaña funciona;
+- pestaña de campañas guardadas carga bien;
+- gating por plan no deja pasar a `Trial`;
+- CTA desde estrategia o dashboard aterriza bien en campañas.
+
+Criterio de cierre:
+
+- un usuario `Pro` puede pasar de idea a campaña sin pasos muertos; un usuario `Trial` entiende claramente por qué no puede.
+
+#### Creativos & Ads
+
+Checklist:
+
+- generación de copy funciona con contexto mínimo;
+- guardar entregable funciona;
+- generación de imagen responde bien y deja preview/descarga;
+- tabs `Google Ads Real` y `Meta Ads Real` muestran estado coherente;
+- gating por plan no deja pasar a `Trial/Starter` donde no corresponde;
+- errores de autenticación o conexión se explican bien.
+
+Criterio de cierre:
+
+- el módulo permite producir piezas útiles o, si está bloqueado, explica el siguiente paso sin confundir.
+
+#### Integraciones
+
+Checklist:
+
+- estado de Google se refleja correctamente;
+- GSC, GA4 y Google Ads cargan su estado real;
+- BearAds Tracking muestra snippet, copia y estado;
+- tabs avanzadas bloqueadas por plan responden con CTA correcto;
+- campos de Meta, Email y E-commerce guardan sin romper la vista;
+- la recomendación de siguiente conexión cambia según el contexto del negocio.
+
+Criterio de cierre:
+
+- integraciones ya no se sienten como settings sueltos, sino como parte de la base operativa del producto.
+
+#### Agentes de apoyo
+
+Checklist:
+
+- filtros por objetivo funcionan;
+- búsqueda funciona;
+- `Todos` no se resetea sola;
+- abrir agente funciona desde cards y recomendaciones;
+- historial/entregables del agente abre bien;
+- `Trial` queda bloqueado correctamente;
+- contexto manual o desde análisis entra bien al agente.
+
+Criterio de cierre:
+
+- los agentes se sienten como apoyo especializado real y no como un módulo roto o redundante.
+
+#### Entregables / Aprendizaje
+
+Checklist:
+
+- historial abre desde KPI y desde listas recientes;
+- cada entregable se puede abrir completo;
+- copiar y descargar funcionan;
+- tabs de aprendizaje cambian bien;
+- vacíos y listas guardadas usan texto consistente.
+
+Criterio de cierre:
+
+- todo lo generado por BearAds queda accesible, abrible y reutilizable.
+
+#### Score Semanal
+
+Checklist:
+
+- vista previa carga sin romper layout;
+- enviar ahora responde con éxito o error claro;
+- activar reporte guarda configuración;
+- vacío, loading y preview hablan el mismo idioma del resto del producto.
+
+Criterio de cierre:
+
+- el módulo se comporta como un entregable complementario estable, no como experimento suelto.
+
+#### Billing / Plan Modal / Superadmin
+
+Checklist:
+
+- modal de plan abre siempre;
+- seleccionar plan actualiza el estado comercial;
+- comparativo entre etapa actual y destino se renderiza bien;
+- volver a `Trial` funciona en entorno interno;
+- superadmin muestra y guarda estado comercial sin inconsistencias;
+- CTA de upgrade abre el modal desde módulos bloqueados.
+
+Criterio de cierre:
+
+- la capa comercial deja de ser solo decorativa y pasa a ser una parte estable del producto.
+
+#### Cierre transversal de Fase 1
+
+La fase 1 se considera cerrada cuando:
+
+- no hay modales que se queden trabadas;
+- no hay CTAs principales que no hagan nada;
+- no se pierde estado al navegar entre pasos normales;
+- cada módulo principal tiene:
+  - vacío,
+  - loading,
+  - éxito,
+  - error,
+  - y CTA siguiente;
+- el flujo completo `onboarding -> análisis -> estrategia -> activación -> entregables` se puede recorrer sin puntos muertos.
+
+#### Estado inicial de Fase 1 (corte actual)
+
+Nota:
+este estado es una lectura operativa del producto actual y de lo ya implementado.
+Sirve para priorizar trabajo, pero no reemplaza la ronda formal de QA de la fase 6.
+
+| Módulo | Estado inicial | Lectura actual |
+|---|---|---|
+| Onboarding | Cerrado operativo | Ya se corrigieron avance, retroceso, guardado, modo agencia y persistencia consistente entre completar, saltar y reiniciar. Queda pendiente validación dentro de QA formal, pero ya no debería bloquear el cierre funcional. |
+| Dashboard | Cerrado operativo | KPI, vacíos, listas recientes, score, datos en vivo y CTA de historial ya limpian y renderizan bien tanto con datos como sin ellos. Queda pendiente QA formal, pero el flujo base ya no debería dejar estados viejos pegados. |
+| Analizar Sitio | Cerrado operativo | El flujo base, historial y CTA a estrategia ya están conectados. Ya limpia mejor los estados de carga/reintento, normaliza mejor URLs antes de analizar y da salidas más claras en errores. La validación dura con red real queda para la fase 6. |
+| Estrategia Inteligente | Cerrado operativo | Prefill, contexto, ruta detectada, restauración del último plan y siguiente paso ya están integrados de forma consistente. Queda QA formal y prueba de escenarios extremos, pero el flujo base ya no debería perder la continuidad al volver a entrar. |
+| Campañas | Cerrado operativo | La generación, guardado, reapertura desde campañas guardadas, tabs y feedback de contexto ya quedaron más consistentes. También responde mejor cuando falta sesión y al reabrir campañas guardadas. La validación fuerte por plataforma y plan queda para la fase 6. |
+| Creativos & Ads | Cerrado operativo | La generación de copy, gating, auth, preview de imagen y manejo de errores ya quedaron más consistentes. También se alineó mejor la generación de imagen con la sesión activa y se limpiaron mejor previews viejas. La validación operativa real en Ads e imagen queda para la fase 6. |
+| Integraciones | Cerrado operativo | Ya mejora mejor los estados visibles de conexión, tabs bloqueadas por plan, tracking y reseteo visual cuando cambia la sesión. Además recuerda mejor el foco/tab en el que venía trabajando el usuario sin reabrir tabs bloqueadas por error en Trial. La validación real de OAuth y datos conectados queda para la fase 6. |
+| Agentes de apoyo | Cerrado operativo | Filtros, búsqueda, gating y accesos principales ya están mejor resueltos. Además ya recuerda mejor el filtro y la búsqueda elegidos al volver al módulo. La prueba completa de contexto, outputs y recorridos por agente queda para la fase 6. |
+| Entregables / Aprendizaje | Cerrado operativo | Abrir, copiar, descargar y navegar desde dashboard ya funciona. También recuerda mejor la pestaña activa al volver al módulo y el vacío del historial ya empuja a generar algo útil según la etapa del usuario. La validación final de consistencia queda para la fase 6. |
+| Score Semanal | Cerrado operativo | Ya restaura mejor la configuración guardada y limpia mejor los estados entre preview y envío. La prueba funcional real con correo y datos conectados queda para la fase 6. |
+| Billing / Plan Modal / Superadmin | Cerrado operativo | El modal ya responde mejor al plan actual, oculta mejor acciones que no aplican en Trial y el copy comercial quedó más consistente. También quedó más alineada la capa visible de gating entre Trial, Starter y Pro en navegación e integraciones. La prueba final de cambios de etapa y cancelación queda para la fase 6. |
+
+##### Prioridad sugerida dentro de Fase 1
+
+Orden práctico para cerrar primero:
+
+1. Onboarding
+2. Dashboard
+3. Analizar Sitio
+4. Estrategia Inteligente
+5. Entregables / Aprendizaje
+6. Campañas
+7. Creativos & Ads
+8. Integraciones
+9. Billing / Plan Modal / Superadmin
+10. Score Semanal
+11. Agentes de apoyo
+
+##### Lectura ejecutiva
+
+Hoy BearAds ya tiene una base web bastante avanzada.
+La fase 1 puede considerarse cerrada en términos operativos.
+
+La parte más madura del flujo quedó así:
+
+- onboarding,
+- dashboard,
+- análisis,
+- estrategia,
+- entregables.
+
+Lo más sensible ya no es estabilización base, sino QA formal de la fase 6 sobre:
+
+- campañas,
+- creativos,
+- integraciones reales,
+- billing real,
+- y score semanal con correo/datos conectados.
+
+##### Cierre formal de Fase 1
+
+La Fase 1 queda cerrada como:
+
+- cierre operativo completado,
+- sin puntos muertos importantes en el flujo principal,
+- con persistencia y estados más consistentes entre módulos,
+- y lista para pasar a validación funcional formal en la Fase 6.
+
+Importante:
+este cierre no reemplaza QA real con casos, cuentas y servicios conectados.
+Lo que se cierra aquí es la base funcional web para seguir con las fases siguientes sin seguir corrigiendo fundamentos de UI/flujo.

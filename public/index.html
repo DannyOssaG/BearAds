@@ -1873,7 +1873,7 @@ tr:hover td { background: var(--surface2); }
     <div class="nav-item" onclick="showPage('strategy')">
       <span class="icon">◇</span> Estrategia rápida
     </div>
-    <div class="nav-item" onclick="showPage('weekly-score')">
+    <div class="nav-item" id="nav-weekly-score" onclick="showPage('weekly-score')">
       <span class="icon">📧</span> Score Semanal
     </div>
     <div class="nav-item" onclick="showPage('learning')">
@@ -4187,6 +4187,9 @@ function getFriendlyAnalyzeError(message) {
 function getFriendlyUiError(message) {
   var text = String(message || '').trim().toLowerCase();
   if (!text) return 'No pude completar esa acción en este momento.';
+  if (text.includes('no incluye esta función') || text.includes('plan_limit')) {
+    return 'Tu etapa actual no incluye esta función. Revisa los planes para activarla.';
+  }
   if (text.includes('unauthorized') || text.includes('no autenticado') || text.includes('401')) {
     return 'Tu sesión ya no está activa. Vuelve a entrar para continuar.';
   }
@@ -4220,6 +4223,12 @@ async function parseApiResponse(res) {
     const err = new Error(data.error || data.message || `HTTP ${res.status}`);
     err.status = res.status;
     err.payload = data;
+    err.code = data.error || '';
+    if (data.error === 'plan_limit') {
+      const requiredPlan = data.requiredPlan || 'starter';
+      planModalSelection = requiredPlan;
+      if (typeof openPlanPanel === 'function') openPlanPanel();
+    }
     throw err;
   }
   return data;
@@ -4411,6 +4420,7 @@ const ALL_AGENTS = [
 ];
 let activeAgentGoal = null;
 let agentSearchTerm = '';
+let agentUiState = DB.get('agents_ui_state', { goal: null, search: '' });
 const AGENT_GOALS = {
   director: ['start', 'scale'],
   seo: ['traffic', 'visibility'],
@@ -4448,6 +4458,8 @@ let activeTutCardIdx = null;
 function initAgentsPage() {
   const grid = document.getElementById('full-agents-grid');
   if (!grid) return;
+  const searchInput = document.getElementById('agents-search');
+  if (searchInput && searchInput.value !== agentSearchTerm) searchInput.value = agentSearchTerm;
   if (!canUseFeature('agentsAccess')) {
     clearElement(grid);
     const meta = document.getElementById('agents-results-meta');
@@ -4480,8 +4492,10 @@ function initAgentsPage() {
     return;
   }
   if (!activeAgentGoal) {
-    activeAgentGoal = getOnboardingGoalCategory();
+    activeAgentGoal = agentUiState.goal || getOnboardingGoalCategory();
   }
+  if (!agentSearchTerm && agentUiState.search) agentSearchTerm = agentUiState.search;
+  if (searchInput && searchInput.value !== agentSearchTerm) searchInput.value = agentSearchTerm;
   renderAgentGoalChips();
   renderRecommendedAgents();
   const filteredAgents = getFilteredAgents();
@@ -4673,11 +4687,15 @@ function renderAgentGoalChips() {
 
 function setAgentGoal(goal) {
   activeAgentGoal = goal;
+  agentUiState = { goal: goal, search: agentSearchTerm };
+  DB.set('agents_ui_state', agentUiState);
   initAgentsPage();
 }
 
 function setAgentSearch(value) {
   agentSearchTerm = String(value || '');
+  agentUiState = { goal: activeAgentGoal, search: agentSearchTerm };
+  DB.set('agents_ui_state', agentUiState);
   initAgentsPage();
 }
 
@@ -5130,6 +5148,11 @@ function openDeliverablesHistory() {
 }
 
 function openAnalysesHistory() {
+  if (!getAnalysisHistory().length) {
+    showPage('analyze');
+    showToast('Aún no tienes análisis guardados. Crea el primero para ver tu historial aquí.');
+    return;
+  }
   showPage('dashboard');
   setTimeout(function() {
     document.getElementById('dash-analyses-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -5318,82 +5341,101 @@ function refreshDashboard() {
 
   if ($('dash-kpi-analyses')) $('dash-kpi-analyses').textContent = analyses.length;
   if ($('dash-kpi-deliverables')) $('dash-kpi-deliverables').textContent = deliverables.length;
-  if ($('dash-kpi-sites')) $('dash-kpi-sites').textContent = [...new Set(analyses.map(a=>a.url))].length;
+  if ($('dash-kpi-sites')) $('dash-kpi-sites').textContent = [...new Set(analyses.map(a => a.url).filter(Boolean))].length;
   if ($('dash-kpi-score') && analyses.length) {
     const avg = Math.round(analyses.reduce((s,a)=>s+(a.globalScore||0),0)/analyses.length);
     $('dash-kpi-score').textContent = avg;
     $('dash-kpi-score').style.color = scoreColor(avg);
+  } else if ($('dash-kpi-score')) {
+    $('dash-kpi-score').textContent = '—';
+    $('dash-kpi-score').style.color = 'var(--accent3)';
   }
 
   const analysesList = $('dash-analyses-list');
-  if (analysesList && analyses.length) {
+  if (analysesList) {
     clearElement(analysesList);
-    analyses.slice(0,5).forEach(function(a) {
+    if (analyses.length) {
+      analyses.slice(0,5).forEach(function(a) {
+        var row = document.createElement('div');
+        row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;';
+        row.addEventListener('click', function() { loadAnalysisFromHistory(a.id); });
+        row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent)'; });
+        row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
+        var score = document.createElement('div');
+        score.style.cssText = 'width:36px;height:36px;border-radius:8px;background:' + scoreColor(a.globalScore) + '18;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:' + scoreColor(a.globalScore) + ';flex-shrink:0;';
+        score.textContent = a.globalScore;
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
+        var site = document.createElement('div');
+        site.style.cssText = 'font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        site.textContent = a.siteTitle || a.url;
+        var ts = document.createElement('div');
+        ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:1px;';
+        ts.textContent = a.ts || '';
+        body.append(site, ts);
+        row.append(score, body);
+        analysesList.appendChild(row);
+      });
+    } else {
       var row = document.createElement('div');
-      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;';
-      row.addEventListener('click', function() { loadAnalysisFromHistory(a.id); });
-      row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent)'; });
-      row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
-      var score = document.createElement('div');
-      score.style.cssText = 'width:36px;height:36px;border-radius:8px;background:' + scoreColor(a.globalScore) + '18;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:' + scoreColor(a.globalScore) + ';flex-shrink:0;';
-      score.textContent = a.globalScore;
-      var body = document.createElement('div');
-      body.style.cssText = 'flex:1;min-width:0;';
-      var site = document.createElement('div');
-      site.style.cssText = 'font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-      site.textContent = a.siteTitle || a.url;
-      var ts = document.createElement('div');
-      ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:1px;';
-      ts.textContent = a.ts || '';
-      body.append(site, ts);
-      row.append(score, body);
+      row.style.cssText = 'text-align:center;padding:40px 20px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:12px;';
+      row.innerHTML = 'Tu primer análisis aparecerá aquí.<br><span onclick="showPage(\'analyze\')" style="color:var(--accent);cursor:pointer;">Analizar mi sitio →</span>';
       analysesList.appendChild(row);
-    });
+    }
   }
 
   const delivList = $('dash-deliverables-list');
-  if (delivList && deliverables.length) {
+  if (delivList) {
     clearElement(delivList);
-    deliverables.slice(0,5).forEach(function(d) {
+    if (deliverables.length) {
+      deliverables.slice(0,5).forEach(function(d) {
+        var row = document.createElement('div');
+        row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:all 0.15s;';
+        row.addEventListener('click', function() { openDeliverablesHistory(); });
+        row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent2)'; });
+        row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
+        var icon = document.createElement('span');
+        icon.style.cssText = 'font-size:16px;flex-shrink:0;';
+        icon.textContent = d.icon || '📄';
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
+        var title = document.createElement('div');
+        title.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);';
+        title.textContent = (d.agent || 'Entrega') + ' — ' + (d.type || 'General');
+        var preview = document.createElement('div');
+        preview.style.cssText = 'font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        preview.textContent = ((d.content || '').substring(0,70) || '') + '...';
+        var ts = document.createElement('div');
+        ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+        ts.textContent = d.ts || '';
+        body.append(title, preview, ts);
+        row.append(icon, body);
+        delivList.appendChild(row);
+      });
+    } else {
       var row = document.createElement('div');
-      row.style.cssText = 'background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:all 0.15s;';
-      row.addEventListener('click', function() { openDeliverablesHistory(); });
-      row.addEventListener('mouseover', function() { row.style.borderColor = 'var(--accent2)'; });
-      row.addEventListener('mouseout', function() { row.style.borderColor = 'var(--border)'; });
-      var icon = document.createElement('span');
-      icon.style.cssText = 'font-size:16px;flex-shrink:0;';
-      icon.textContent = d.icon || '📄';
-      var body = document.createElement('div');
-      body.style.cssText = 'flex:1;min-width:0;';
-      var title = document.createElement('div');
-      title.style.cssText = 'font-size:11px;font-weight:700;color:var(--text);';
-      title.textContent = (d.agent || 'Entrega') + ' — ' + (d.type || 'General');
-      var preview = document.createElement('div');
-      preview.style.cssText = 'font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      preview.textContent = ((d.content || '').substring(0,70) || '') + '...';
-      var ts = document.createElement('div');
-      ts.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
-      ts.textContent = d.ts || '';
-      body.append(title, preview, ts);
-      row.append(icon, body);
+      row.style.cssText = 'text-align:center;padding:40px 20px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:12px;';
+      row.innerHTML = 'Tus entregables aparecerán aquí.<br><span onclick="showPage(\'agents\')" style="color:var(--accent);cursor:pointer;">Abrir un agente →</span>';
       delivList.appendChild(row);
-    });
+    }
   }
 
   const last = analyses[0];
+  const liveEl = $('dash-live-data');
   if (last?.gscData) {
-    const liveEl = $('dash-live-data');
     if (liveEl) liveEl.style.display = 'block';
     if ($('dash-gsc-clicks')) $('dash-gsc-clicks').textContent = (last.gscData.totalClicks||0).toLocaleString();
     if ($('dash-gsc-impressions')) $('dash-gsc-impressions').textContent = (last.gscData.totalImpressions||0).toLocaleString();
     const ctr = last.gscData.totalClicks&&last.gscData.totalImpressions ? ((last.gscData.totalClicks/last.gscData.totalImpressions)*100).toFixed(1)+'%' : '—';
     if ($('dash-gsc-ctr')) $('dash-gsc-ctr').textContent = ctr;
     if ($('dash-ga4-sessions') && last.ga4Data?.sessions) $('dash-ga4-sessions').textContent = last.ga4Data.sessions.toLocaleString();
+  } else if (liveEl) {
+    liveEl.style.display = 'none';
   }
 
+  const evoEl = $('dash-score-evolution');
+  const barsEl = $('dash-score-bars');
   if (analyses.length >= 2) {
-    const evoEl = $('dash-score-evolution');
-    const barsEl = $('dash-score-bars');
     if (evoEl && barsEl) {
       evoEl.style.display = 'block';
       barsEl.innerHTML = analyses.slice(0,5).reverse().map(a=>`
@@ -5406,6 +5448,9 @@ function refreshDashboard() {
           <div style="font-size:10px;color:var(--muted);width:80px;text-align:right;">${esc(a.ts.split(',')[0])}</div>
         </div>`).join('');
     }
+  } else if (evoEl && barsEl) {
+    evoEl.style.display = 'none';
+    barsEl.innerHTML = '';
   }
 }
 
@@ -5869,6 +5914,7 @@ function initCampaignsPage() {
   const bar = document.getElementById('camp-integrations-bar');
   if (!bar) return;
   const googleOk = currentAnalysis?.googleConnected;
+  const hint = document.getElementById('camp-connect-hint');
   clearElement(bar);
   bar.appendChild(createBadge(
     (googleOk ? '✓ ' : '○ ') + 'Google ' + (googleOk ? 'Conectado' : 'Sin conectar'),
@@ -5885,7 +5931,7 @@ function initCampaignsPage() {
     color: 'var(--muted)',
     className: ''
   }));
-  if (!googleOk) { const hint=document.getElementById('camp-connect-hint'); if(hint)hint.style.display='block'; }
+  if (hint) hint.style.display = googleOk ? 'none' : 'block';
   if (!document.getElementById('camp-product')?.value.trim()) applyCampaignTemplate('meta-leads', true);
   syncCampaignAuthUI();
   refreshPlanLockedUI();
@@ -5947,11 +5993,61 @@ function switchCampTab(tab) {
   if(tab==='saved')renderSavedCampaigns();
 }
 
+function renderCampaignResult(resultEl, campaign) {
+  if (!resultEl || !campaign) return;
+  const platNames = {meta:'Meta Ads (Facebook/Instagram)',google:'Google Ads',tiktok:'TikTok Ads',email:'Email Marketing'};
+  const platIcons = {meta:'📘',google:'🔵',tiktok:'🎵',email:'✉️'};
+  latestGeneratedCampaign = {
+    name: campaign.name || 'Campaña',
+    platform: campaign.platform || 'meta',
+    content: campaign.content || ''
+  };
+  clearElement(resultEl);
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;';
+  appendTextLine(header, (platIcons[campaign.platform] || '📣') + ' Campaña ' + (platNames[campaign.platform] || 'BearAds'), 'font-weight:700;font-size:14px;');
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+  actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestCampaign(); }));
+  actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+    navigator.clipboard.writeText(campaign.content || '');
+    ev.currentTarget.textContent = '✓';
+    setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+  }));
+  header.appendChild(actions);
+  renderTextCard(resultEl, {
+    header: header,
+    contentClassName: 'camp-content',
+    contentStyle: 'font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+    content: campaign.content || ''
+  });
+}
+
+function openSavedCampaign(index) {
+  const item = campSaved[index];
+  const emptyEl = document.getElementById('camp-empty');
+  const loadEl = document.getElementById('camp-loading');
+  const resultEl = document.getElementById('camp-result');
+  if (!item || !resultEl) return;
+  switchCampTab('create');
+  if (item.platform) setCampaignPlatform(item.platform);
+  const productEl = document.getElementById('camp-product');
+  if (productEl && !productEl.value.trim() && item.name) productEl.value = item.name;
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (loadEl) loadEl.style.display = 'none';
+  resultEl.style.display = 'block';
+  renderCampaignResult(resultEl, item);
+  showToast('Campaña cargada desde guardadas');
+}
+
 async function generateCampaign() {
+  const resultEl = document.getElementById('camp-result');
+  const emptyEl = document.getElementById('camp-empty');
+  const loadEl = document.getElementById('camp-loading');
+  const btn = document.getElementById('camp-btn');
   if (!hasActiveBearAdsSession()) {
     syncCampaignAuthUI(null);
-    const resultEl = document.getElementById('camp-result');
-    const emptyEl = document.getElementById('camp-empty');
+    if (loadEl) loadEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
@@ -5964,14 +6060,10 @@ async function generateCampaign() {
   const objective = document.getElementById('camp-objective').value;
   const budget = document.getElementById('camp-budget').value.trim()||'$15/día';
   const product = document.getElementById('camp-product').value.trim();
-  if (!product) { document.getElementById('camp-product').style.borderColor='var(--danger)'; setTimeout(()=>document.getElementById('camp-product').style.borderColor='var(--border)',2000); return; }
+  if (!product) { document.getElementById('camp-product').style.borderColor='var(--danger)'; setTimeout(()=>document.getElementById('camp-product').style.borderColor='var(--border)',2000); showToast('Describe qué quieres promocionar para crear la campaña'); return; }
 
   const platNames = {meta:'Meta Ads (Facebook/Instagram)',google:'Google Ads',tiktok:'TikTok Ads',email:'Email Marketing'};
   const platIcons = {meta:'📘',google:'🔵',tiktok:'🎵',email:'✉️'};
-  const emptyEl = document.getElementById('camp-empty');
-  const loadEl = document.getElementById('camp-loading');
-  const resultEl = document.getElementById('camp-result');
-  const btn = document.getElementById('camp-btn');
   if(emptyEl)emptyEl.style.display='none'; if(resultEl)resultEl.style.display='none';
   if(loadEl)loadEl.style.display='flex'; if(btn){btn.disabled=true;btn.textContent='⏳ Generando...';}
 
@@ -5984,23 +6076,9 @@ async function generateCampaign() {
     if(loadEl)loadEl.style.display='none';
     if(resultEl){
       resultEl.style.display='block';
-      latestGeneratedCampaign = { name: product.substring(0,25), platform: campPlatform, content: reply };
-      var header = document.createElement('div');
-      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:8px;flex-wrap:wrap;';
-      appendTextLine(header, platIcons[campPlatform] + ' Campaña ' + platNames[campPlatform], 'font-weight:700;font-size:14px;');
-      var actions = document.createElement('div');
-      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
-      actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestCampaign(); }));
-      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
-        navigator.clipboard.writeText(reply);
-        ev.currentTarget.textContent = '✓';
-        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
-      }));
-      header.appendChild(actions);
-      renderTextCard(resultEl, {
-        header: header,
-        contentClassName: 'camp-content',
-        contentStyle: 'font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap;',
+      renderCampaignResult(resultEl, {
+        name: product.substring(0,25),
+        platform: campPlatform,
         content: reply
       });
     }
@@ -6043,14 +6121,20 @@ function renderSavedCampaigns() {
     return;
   }
   const icons={meta:'📘',google:'🔵',tiktok:'🎵',email:'✉️'};
-  campSaved.forEach(function(c) {
+  campSaved.forEach(function(c, index) {
     var card = createInfoCard({ style: 'padding:14px;' });
+    card.style.cursor = 'pointer';
+    card.style.transition = 'all 0.15s';
+    card.addEventListener('click', function() { openSavedCampaign(index); });
+    card.addEventListener('mouseover', function() { card.style.borderColor = 'var(--accent2)'; });
+    card.addEventListener('mouseout', function() { card.style.borderColor = 'var(--border)'; });
     var header = document.createElement('div');
     header.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:8px;gap:8px;';
     appendTextLine(header, (icons[c.platform]||'📣') + ' ' + c.name, 'font-weight:700;font-size:13px;');
     appendTextLine(header, c.ts, 'font-size:11px;color:var(--muted);');
     card.appendChild(header);
     appendTextLine(card, (c.content || '').substring(0,180) + '...', 'font-size:12px;color:var(--text2);max-height:80px;overflow:hidden;');
+    appendTextLine(card, 'Haz clic para abrir esta campaña en el generador.', 'margin-top:10px;font-size:11px;color:var(--accent);font-weight:700;');
     list.appendChild(card);
   });
 }
@@ -6077,10 +6161,12 @@ const TUTORIALS = [
 let learnContextData = DB.get('learn_context', {});
 let mentorHistory = [];
 let globalHistory = [];
+let activeLearnTab = DB.get('learn_active_tab', 'tutorials');
 
 function initLearningPage() {
   renderTutorials('all');
   renderHistory();
+  switchLearnTab(activeLearnTab || 'tutorials');
   const chat = document.getElementById('mentor-chat');
   if (chat && !mentorHistory.length) {
     const ctx = learnContextData.country || learnContextData.industry;
@@ -6313,6 +6399,8 @@ function downloadGuide(text) {
 }
 
 function switchLearnTab(tab) {
+  activeLearnTab = tab;
+  DB.set('learn_active_tab', tab);
   ['tutorials','platform-guides','history'].forEach(t=>{
     const el=document.getElementById('learn-tab-'+t);
     const btn=document.getElementById('ltab-'+t);
@@ -6329,7 +6417,33 @@ function renderHistory() {
   if (!list) return;
   const deliverables = getDeliverables();
   window._historyItems = deliverables;
-  if (!deliverables.length) { if(empty)empty.style.display='block'; clearElement(list); return; }
+  if (!deliverables.length) {
+    clearElement(list);
+    if (empty) {
+      empty.style.display='block';
+      clearElement(empty);
+      appendTextLine(empty, '📂', 'font-size:40px;margin-bottom:14px;');
+      appendTextLine(empty, 'Sin entregables aún', 'font-size:14px;font-weight:700;margin-bottom:6px;color:var(--text);');
+      appendTextLine(empty, 'Todo lo que generes con agentes, campañas, estrategia o mentor aparecerá aquí para abrirlo, copiarlo o descargarlo después.', 'font-size:12px;color:var(--muted);line-height:1.7;max-width:440px;margin:0 auto 14px;');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:8px;justify-content:center;flex-wrap:wrap;';
+      if (canUseFeature('agentsAccess')) {
+        actions.appendChild(createPrimaryUtilityButton('Abrir agentes', function() {
+          showPage('agents');
+        }));
+      } else {
+        actions.appendChild(createPrimaryUtilityButton('Ver planes', function() {
+          planModalSelection = 'starter';
+          openPlanPanel();
+        }));
+      }
+      actions.appendChild(createUtilityButton('Crear estrategia', function() {
+        showPage('strategic-plan');
+      }, 'padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;'));
+      empty.appendChild(actions);
+    }
+    return;
+  }
   if(empty)empty.style.display='none';
   clearElement(list);
   deliverables.slice(0,30).forEach(function(d, i) {
@@ -6411,11 +6525,29 @@ async function startAnalysis() {
     return;
   }
 
-  const url = document.getElementById('analyze-url').value.trim();
-  if (!url) {
-    document.getElementById('analyze-url').style.borderColor='var(--danger)';
-    setTimeout(()=>document.getElementById('analyze-url').style.borderColor='var(--border)',2000);
+  const urlInput = document.getElementById('analyze-url');
+  const rawUrl = urlInput ? urlInput.value.trim() : '';
+  if (!rawUrl) {
+    if (urlInput) {
+      urlInput.style.borderColor='var(--danger)';
+      setTimeout(()=>urlInput.style.borderColor='var(--border)',2000);
+    }
     showToast('Pega una URL para empezar');
+    return;
+  }
+  let url = rawUrl;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  try {
+    const parsed = new URL(url);
+    url = parsed.toString();
+    if (urlInput) urlInput.value = url;
+  } catch (e) {
+    if (urlInput) {
+      urlInput.style.borderColor='var(--danger)';
+      setTimeout(()=>urlInput.style.borderColor='var(--border)',2000);
+      urlInput.focus();
+    }
+    showToast('Ingresa una URL válida, por ejemplo https://tusitio.com');
     return;
   }
 
@@ -6426,6 +6558,10 @@ async function startAnalysis() {
   document.getElementById('analyze-btn').textContent='⏳ Analizando...';
 
   const badges=['load-seo','load-sem','load-contenido','load-cro','load-trafico'];
+  badges.forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('loading', 'done');
+  });
   badges.forEach((id,i)=>setTimeout(()=>{const el=document.getElementById(id);if(el)el.classList.add('loading');},i*400));
 
   try {
@@ -6473,6 +6609,10 @@ async function startAnalysis() {
   } catch(err) {
     document.getElementById('analyze-loading').style.display='none';
     document.getElementById('analyze-empty').style.display='block';
+    badges.forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('loading', 'done');
+    });
     var helper = err.code === 'daily_analysis_limit'
       ? 'Tu etapa free ya usó los 4 análisis disponibles hoy. Puedes volver mañana o revisar los planes para seguir analizando.'
       : err.code === 'analysis_not_configured' || err.code === 'analysis_unavailable'
@@ -6518,6 +6658,11 @@ async function startAnalysis() {
 }
 
 function resetAnalyze() {
+  ['load-seo','load-sem','load-contenido','load-cro','load-trafico'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.remove('loading', 'done');
+  });
+  currentAnalysis = null;
   var empty = document.getElementById('analyze-empty');
   if (empty) {
     empty.style.display='block';
@@ -6531,7 +6676,10 @@ function resetAnalyze() {
     copy.appendChild(document.createTextNode('Si conectas Google, el análisis será más completo.'));
     empty.appendChild(copy);
   }
+  document.getElementById('analyze-loading').style.display='none';
   document.getElementById('analyze-results').style.display='none';
+  document.getElementById('analyze-btn').disabled=false;
+  document.getElementById('analyze-btn').textContent='⚡ Analizar con IA';
   const url=document.getElementById('analyze-url');if(url)url.value='';
 }
 
@@ -7066,6 +7214,18 @@ function renderRealData(trafficData) {
   document.getElementById('real-data-panels').style.display = hasRealData ? 'block' : 'none';
   document.getElementById('no-google-notice').style.display = hasRealData ? 'none' : 'block';
 
+  if (!gsc?.connected) {
+    document.getElementById('gsc-period').textContent = '';
+    document.getElementById('gsc-clicks').textContent = '--';
+    document.getElementById('gsc-impressions').textContent = '--';
+    document.getElementById('gsc-position').textContent = '--';
+    const kwFallback = document.getElementById('gsc-keywords');
+    if (kwFallback) {
+      clearElement(kwFallback);
+      appendTextLine(kwFallback, 'Sin datos de keywords disponibles', 'font-size:11px;color:var(--muted);padding:8px;');
+    }
+  }
+
   if (gsc?.connected) {
     document.getElementById('gsc-period').textContent = gsc.period || '28 días';
     document.getElementById('gsc-clicks').textContent = (gsc.totalClicks || 0).toLocaleString();
@@ -7096,6 +7256,19 @@ function renderRealData(trafficData) {
 	    }
   }
 
+  if (!ga4?.connected) {
+    document.getElementById('ga4-period').textContent = '';
+    document.getElementById('ga4-sessions').textContent = '--';
+    document.getElementById('ga4-users').textContent = '--';
+    document.getElementById('ga4-bounce').textContent = '--';
+    document.getElementById('ga4-duration').textContent = '--';
+    const chFallback = document.getElementById('ga4-channels');
+    if (chFallback) {
+      clearElement(chFallback);
+      appendTextLine(chFallback, 'Sin canales de tráfico disponibles', 'font-size:11px;color:var(--muted);padding:8px;');
+    }
+  }
+
   if (ga4?.connected) {
     document.getElementById('ga4-period').textContent = ga4.period || '28 días';
     document.getElementById('ga4-sessions').textContent = Number(ga4Sessions || 0).toLocaleString();
@@ -7120,6 +7293,9 @@ function renderRealData(trafficData) {
 	        appendTextLine(row, Number(c.sessions || 0).toLocaleString(), "font-family:'Inter',sans-serif;font-size:10px;color:var(--muted);width:60px;text-align:right;");
 	        chEl.appendChild(row);
 	      });
+	    } else if (chEl) {
+	      clearElement(chEl);
+	      appendTextLine(chEl, 'Sin canales de tráfico disponibles', 'font-size:11px;color:var(--muted);padding:8px;');
 	    }
 	  }
 }
@@ -7765,6 +7941,11 @@ function getPageAccessRule(page) {
       feature: 'creativeGen',
       targetPlan: 'pro',
       message: 'En Trial analizas. Pasa a Pro para generar creativos y Ads.'
+    },
+    'weekly-score': {
+      feature: 'downloadReports',
+      targetPlan: 'pro',
+      message: 'En tu etapa actual todavía no automatizas reportes. Pasa a Pro para activarlos.'
     }
   }[page] || null;
 }
@@ -7848,6 +8029,12 @@ function renderPageAccessChips() {
         : canUseFeature('campaignBuilder')
           ? [{ text: 'ADS ACTIVOS', style: 'background:rgba(94,201,160,0.1);border-color:rgba(94,201,160,0.2);color:#256b55;' }]
           : [{ text: 'ADS DESDE PRO', style: 'background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.2);color:#9a6700;' }]
+    },
+    {
+      pageId: 'page-weekly-score',
+      chips: canUseFeature('downloadReports')
+        ? [{ text: 'INCLUIDO EN PRO', style: 'background:rgba(94,201,160,0.1);border-color:rgba(94,201,160,0.2);color:#256b55;' }]
+        : [{ text: 'DESDE PRO', style: 'background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.2);color:#9a6700;' }]
     }
   ].forEach(function(config) {
     var page = document.getElementById(config.pageId);
@@ -7951,30 +8138,39 @@ function refreshAgentAccessUI() {
 }
 
 function refreshPlanNavigationUI() {
-  const isTrial = isTrialPlan();
+  const canAccessCampaigns = canUseFeature('campaignBuilder');
+  const canAccessCreatives = canUseFeature('creativeGen');
+  const canAccessWeeklyScore = canUseFeature('downloadReports');
   applyLockedModuleStyle(document.getElementById('nav-campaigns'), {
-    locked: isTrial,
+    locked: !canAccessCampaigns,
     title: 'Disponible desde BearAds Pro',
-    handler: isTrial ? openModuleUpgradeFlow('campaignBuilder', 'pro', 'En Trial analizas. Pasa a Pro para ejecutar campañas.') : function() { return showPage('campaigns', this); }
+    handler: !canAccessCampaigns ? openModuleUpgradeFlow('campaignBuilder', 'pro', 'En tu etapa actual todavía no ejecutas campañas. Pasa a Pro para activarlas.') : function() { return showPage('campaigns', this); }
   });
   applyLockedModuleStyle(document.getElementById('nav-creatives'), {
-    locked: isTrial,
+    locked: !canAccessCreatives,
     title: 'Disponible desde BearAds Pro',
-    handler: isTrial ? openModuleUpgradeFlow('creativeGen', 'pro', 'En Trial analizas. Pasa a Pro para generar creativos y Ads.') : function() { return showPage('creatives', this); }
+    handler: !canAccessCreatives ? openModuleUpgradeFlow('creativeGen', 'pro', 'En tu etapa actual todavía no generas creativos. Pasa a Pro para activarlos.') : function() { return showPage('creatives', this); }
   });
   applyLockedModuleStyle(document.getElementById('mobile-nav-campaigns'), {
-    locked: isTrial,
+    locked: !canAccessCampaigns,
     title: 'Disponible desde BearAds Pro',
-    handler: isTrial ? openModuleUpgradeFlow('campaignBuilder', 'pro', 'En Trial analizas. Pasa a Pro para ejecutar campañas.') : function() { return handleMobileNavPage(this, 'campaigns'); }
+    handler: !canAccessCampaigns ? openModuleUpgradeFlow('campaignBuilder', 'pro', 'En tu etapa actual todavía no ejecutas campañas. Pasa a Pro para activarlas.') : function() { return handleMobileNavPage(this, 'campaigns'); }
+  });
+  applyLockedModuleStyle(document.getElementById('nav-weekly-score'), {
+    locked: !canAccessWeeklyScore,
+    title: 'Disponible desde BearAds Pro',
+    handler: !canAccessWeeklyScore ? openModuleUpgradeFlow('downloadReports', 'pro', 'En tu etapa actual todavía no automatizas reportes. Pasa a Pro para activarlos.') : function() { return showPage('weekly-score', this); }
   });
   ensureNavBadge(document.getElementById('nav-agents'), canUseFeature('agentsAccess') ? '' : 'STARTER', !canUseFeature('agentsAccess') ? 'background:rgba(123,167,232,0.1);color:#35507f;' : '');
   ensureNavBadge(document.getElementById('nav-campaigns'), canUseFeature('campaignBuilder') ? '' : 'PRO', !canUseFeature('campaignBuilder') ? 'background:rgba(251,191,36,0.14);color:#9a6700;' : '');
   ensureNavBadge(document.getElementById('nav-creatives'), canUseFeature('creativeGen') ? '' : 'PRO', !canUseFeature('creativeGen') ? 'background:rgba(251,191,36,0.14);color:#9a6700;' : '');
+  ensureNavBadge(document.getElementById('nav-weekly-score'), canAccessWeeklyScore ? '' : 'PRO', !canAccessWeeklyScore ? 'background:rgba(251,191,36,0.14);color:#9a6700;' : '');
   renderPageAccessChips();
 }
 
 function refreshDashboardPlanMessaging() {
   const isTrial = isTrialPlan();
+  const canAccessCampaigns = canUseFeature('campaignBuilder');
   const title = document.getElementById('dash-guide-title');
   const copy = document.getElementById('dash-guide-copy');
   if (isTrial && title && copy) {
@@ -7987,17 +8183,22 @@ function refreshDashboardPlanMessaging() {
   }
   const campaignCard = document.getElementById('dash-quick-campaigns');
   if (campaignCard) {
-    campaignCard.style.opacity = isTrial ? '0.6' : '1';
-    campaignCard.title = isTrial ? 'Disponible desde BearAds Pro' : '';
+    campaignCard.style.opacity = canAccessCampaigns ? '1' : '0.6';
+    campaignCard.title = canAccessCampaigns ? '' : 'Disponible desde BearAds Pro';
     const headline = campaignCard.querySelector('div > div:first-child');
     const subline = campaignCard.querySelector('div > div:last-child');
-    if (headline) headline.textContent = isTrial ? 'Disponible en Pro' : 'Activar campaña';
-    if (subline) subline.textContent = isTrial ? 'En Trial primero analizas y ordenas la base' : 'Pasa del plan a ejecución';
+    if (headline) headline.textContent = canAccessCampaigns ? 'Activar campaña' : 'Disponible en Pro';
+    if (subline) subline.textContent = canAccessCampaigns ? 'Pasa del plan a ejecución' : 'Primero ordenas la base; luego ejecutas campañas en Pro';
   }
 }
 
 function refreshIntegrationsTrialUI() {
-  const isTrial = isTrialPlan();
+  const lockState = {
+    meta: !canUseFeature('metaAds'),
+    'google-ads': !canUseFeature('googleAds'),
+    'email-mkt': !canUseFeature('campaignBuilder'),
+    webhooks: !canUseFeature('apiAccess')
+  };
   const lockedMap = [
     ['itab-meta', 'Disponible desde BearAds Pro'],
     ['itab-google-ads', 'Disponible desde BearAds Pro'],
@@ -8007,8 +8208,10 @@ function refreshIntegrationsTrialUI() {
   lockedMap.forEach(function(entry) {
     const el = document.getElementById(entry[0]);
     if (!el) return;
-    el.style.opacity = isTrial ? '0.55' : '1';
-    el.title = isTrial ? entry[1] : '';
+    const key = entry[0].replace('itab-', '');
+    const locked = lockState[key];
+    el.style.opacity = locked ? '0.55' : '1';
+    el.title = locked ? entry[1] : '';
   });
   [
     ['intg-quick-meta', 'Disponible desde BearAds Pro'],
@@ -8017,12 +8220,17 @@ function refreshIntegrationsTrialUI() {
   ].forEach(function(entry) {
     const el = document.getElementById(entry[0]);
     if (!el) return;
-    el.style.opacity = isTrial ? '0.58' : '1';
-    el.title = isTrial ? entry[1] : '';
+    const key = entry[0].replace('intg-quick-', '');
+    const normalizedKey = key === 'email' ? 'email-mkt' : key;
+    const locked = lockState[normalizedKey];
+    el.style.opacity = locked ? '0.58' : '1';
+    el.title = locked ? entry[1] : '';
   });
   const guide = document.getElementById('intg-next-step');
-  if (guide && isTrial) {
+  if (guide && isTrialPlan()) {
     guide.innerHTML = 'En Trial conectas la base: Google y BearAds Tracking.<br/><strong style="color:var(--text);">Meta, Google Ads y automatizaciones</strong> se activan al actualizar plan.';
+  } else if (guide && !canUseFeature('campaignBuilder')) {
+    guide.innerHTML = 'Tu base ya puede crecer con estrategia y agentes.<br/><strong style="color:var(--text);">Meta, Google Ads y automatizaciones</strong> se activan al pasar a Pro.';
   } else if (guide) {
     guide.textContent = 'BearAds te va moviendo de base a ejecución según lo que ya tengas conectado.';
   }
@@ -8088,13 +8296,14 @@ function updatePlanModalSelection() {
   }
 
   if (cancelBtn) {
-    cancelBtn.style.display = 'inline-flex';
     if (currentCode === 'trial') {
+      cancelBtn.style.display = 'none';
       cancelBtn.textContent = 'Sin plan por cancelar';
       cancelBtn.disabled = true;
       cancelBtn.style.opacity = '0.65';
       cancelBtn.style.cursor = 'not-allowed';
     } else {
+      cancelBtn.style.display = 'inline-flex';
       cancelBtn.textContent = 'Volver a Trial';
       cancelBtn.disabled = false;
       cancelBtn.style.opacity = '1';
@@ -8675,6 +8884,10 @@ function getOnboardingState() {
     }
   });
 
+  if (!remote?.dismissedAt && local?.dismissedAt) {
+    merged.dismissedAt = local.dismissedAt;
+  }
+
   if ((!Array.isArray(remote?.platforms) || !remote.platforms.length) && Array.isArray(local?.platforms) && local.platforms.length) {
     merged.platforms = local.platforms.slice();
   }
@@ -8712,7 +8925,7 @@ function getOnboardingDraftFromUI() {
 function maybeOpenOnboarding() {
   if (!appSession?.user) return;
   const onboarding = getOnboardingState();
-  if (onboarding?.completed) return;
+  if (onboarding?.completed || onboarding?.dismissedAt) return;
   setTimeout(function() {
     onboardingScreen = 0;
     renderOnboardingModal();
@@ -8723,6 +8936,7 @@ function maybeOpenOnboarding() {
 async function completeOnboarding() {
   const onboarding = getOnboardingDraftFromUI();
   setOnboardingState(onboarding);
+  const completedAt = new Date().toISOString();
   const knowledgeLevel = onboarding.knowledgeLevel || '';
   const isAgencyMode = knowledgeLevel === 'agencia';
   const businessModel = onboarding.businessModel || '';
@@ -8745,6 +8959,7 @@ async function completeOnboarding() {
     await saveWorkspaceSetup({
       onboarding: {
         completed: true,
+        dismissedAt: completedAt,
         knowledgeLevel,
         businessModel,
         mainGoal,
@@ -8761,7 +8976,7 @@ async function completeOnboarding() {
       }
     });
     await refreshAppSession();
-    setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
+    setOnboardingState({ completed: true, dismissedAt: completedAt });
     closeModal('onboarding-modal');
     showToast('Listo. BearAds ya sabe cómo guiarte.');
     showPage('integrations');
@@ -8773,9 +8988,22 @@ async function completeOnboarding() {
   }
 }
 
-function skipOnboarding() {
-  setOnboardingState({ completed: true, dismissedAt: new Date().toISOString() });
+async function skipOnboarding() {
+  const dismissedAt = new Date().toISOString();
+  setOnboardingState({ completed: false, dismissedAt });
+  try {
+    await saveWorkspaceSetup({
+      onboarding: {
+        completed: false,
+        dismissedAt
+      }
+    });
+    await refreshAppSession();
+  } catch (error) {
+    console.warn('No pude persistir el descarte del onboarding', error);
+  }
   closeModal('onboarding-modal');
+  showToast('Puedes retomarlo después cuando quieras.');
 }
 
 async function resetOnboardingForTesting() {
@@ -8797,6 +9025,7 @@ async function resetOnboardingForTesting() {
     await saveWorkspaceSetup({
       onboarding: {
         completed: false,
+        dismissedAt: null,
         knowledgeLevel: '',
         businessModel: '',
         mainGoal: '',
@@ -9641,7 +9870,7 @@ async function saveBillingOverview() {
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error || 'No se pudo guardar billing'); return; }
-  showToast('Billing actualizado');
+  showToast('Etapa comercial guardada');
   await refreshAppSession();
   await loadSAPlatformStats();
 }
@@ -9954,7 +10183,7 @@ window.addEventListener('focus', syncNotificationButton);
 let intgConnections = DB.get('intg_connections', {
   google: null, gsc: null, ga4: null, meta: null, googleAds: null, email: null, ecom: null
 });
-let currentIntegrationFocus = 'connections';
+let currentIntegrationFocus = DB.get('integration_focus', 'connections');
 let googleServiceSnapshot = null;
 const INTEGRATION_GUIDES = {
   connections: 'Empieza conectando tus fuentes principales. Eso te da datos reales y evita trabajar a ciegas.',
@@ -9963,6 +10192,11 @@ const INTEGRATION_GUIDES = {
   'email-mkt': 'Ideal para reactivar contactos, recuperar carritos o acompañar leads sin depender de anuncios.',
   webhooks: 'Esta zona es más avanzada. Úsala cuando ya tengas el resto conectado y quieras automatizar.'
 };
+
+function resolveAvailableIntegrationTab(tab) {
+  if (!isTrialPlan()) return tab;
+  return ['meta', 'google-ads', 'email-mkt', 'webhooks'].includes(tab) ? 'connections' : tab;
+}
 
 function getIntegrationGuidanceState(googleOk) {
   const onboarding = getWorkspaceOnboarding();
@@ -10506,6 +10740,7 @@ function renderDetectedGoogleServices(snapshot) {
 
 function initIntegrationsPage() {
   refreshPlanLockedUI();
+  currentIntegrationFocus = resolveAvailableIntegrationTab(currentIntegrationFocus);
   setIntegrationFocus(currentIntegrationFocus, true);
   refreshTrackingCard();
   const onboarding = getWorkspaceOnboarding();
@@ -10606,6 +10841,9 @@ function renderSavedConnections() {
   if (intgConnections.meta) {
     if (metaStatus) { metaStatus.textContent = 'CONECTADO'; metaStatus.style.background = 'rgba(123,167,232,0.09)'; metaStatus.style.color = 'var(--accent)'; }
     if (metaBadge) { metaBadge.textContent = '✓ Meta — Conectado'; metaBadge.style.background = 'rgba(123,167,232,0.09)'; metaBadge.style.color = 'var(--accent)'; }
+  } else {
+    if (metaStatus) { metaStatus.textContent = 'NO CONECTADO'; metaStatus.style.background = 'rgba(107,114,128,0.15)'; metaStatus.style.color = 'var(--muted)'; }
+    if (metaBadge) { metaBadge.textContent = '● Meta — No conectado'; metaBadge.style.background = 'rgba(107,114,128,0.15)'; metaBadge.style.color = 'var(--muted)'; }
   }
   // Google Ads
   const gadsStatus = document.getElementById('intg-googleads-status');
@@ -10616,30 +10854,44 @@ function renderSavedConnections() {
   } else if (googleServiceSnapshot?.googleServices?.googleAds?.connected && googleServiceSnapshot.googleServices.googleAds.total) {
     if (gadsStatus) { gadsStatus.textContent = 'DETECTADO'; gadsStatus.style.background = 'rgba(251,191,36,0.08)'; gadsStatus.style.color = '#d4a843'; }
     if (gadsBadge) { gadsBadge.textContent = '● Google Ads — Detectado en Google'; gadsBadge.style.background = 'rgba(251,191,36,0.08)'; gadsBadge.style.color = '#d4a843'; }
+  } else {
+    if (gadsStatus) { gadsStatus.textContent = 'NO CONECTADO'; gadsStatus.style.background = 'rgba(107,114,128,0.15)'; gadsStatus.style.color = 'var(--muted)'; }
+    if (gadsBadge) { gadsBadge.textContent = '● Google Ads — No conectado'; gadsBadge.style.background = 'rgba(107,114,128,0.15)'; gadsBadge.style.color = 'var(--muted)'; }
   }
   // Email
   const emailStatus = document.getElementById('intg-email-status');
   if (intgConnections.email) {
     if (emailStatus) { emailStatus.textContent = 'CONECTADO'; emailStatus.style.background = 'rgba(94,201,160,0.1)'; emailStatus.style.color = '#5ec9a0'; }
+  } else if (emailStatus) {
+    emailStatus.textContent = 'NO CONECTADO';
+    emailStatus.style.background = 'rgba(107,114,128,0.15)';
+    emailStatus.style.color = 'var(--muted)';
+  }
+  const ecomStatus = document.getElementById('intg-ecom-status');
+  if (intgConnections.ecom) {
+    if (ecomStatus) { ecomStatus.textContent = 'CONECTADO'; ecomStatus.style.background = 'rgba(167,139,250,0.1)'; ecomStatus.style.color = '#8b5cf6'; }
+  } else if (ecomStatus) {
+    ecomStatus.textContent = 'NO CONECTADO';
+    ecomStatus.style.background = 'rgba(107,114,128,0.15)';
+    ecomStatus.style.color = 'var(--muted)';
   }
 }
 
 function switchIntgTab(tab) {
-  if (isTrialPlan()) {
-    const lockedTabs = {
-      meta: ['metaAds', 'pro', 'La configuración de Meta Ads está disponible desde BearAds Pro.'],
-      'google-ads': ['googleAds', 'pro', 'La configuración de Google Ads está disponible desde BearAds Pro.'],
-      'email-mkt': ['campaignBuilder', 'pro', 'La automatización de campañas está disponible desde BearAds Pro.'],
-      webhooks: ['apiAccess', 'agency', 'Las automatizaciones avanzadas están disponibles desde BearAds Agency.']
-    };
-    if (lockedTabs[tab]) {
-      requirePlanFeature(lockedTabs[tab][0], {
-        targetPlan: lockedTabs[tab][1],
-        message: lockedTabs[tab][2]
-      });
-      tab = 'connections';
-    }
+  const lockedTabs = {
+    meta: ['metaAds', 'pro', 'La configuración de Meta Ads está disponible desde BearAds Pro.'],
+    'google-ads': ['googleAds', 'pro', 'La configuración de Google Ads está disponible desde BearAds Pro.'],
+    'email-mkt': ['campaignBuilder', 'pro', 'La automatización de campañas está disponible desde BearAds Pro.'],
+    webhooks: ['apiAccess', 'agency', 'Las automatizaciones avanzadas están disponibles desde BearAds Agency.']
+  };
+  if (lockedTabs[tab] && !canUseFeature(lockedTabs[tab][0])) {
+    requirePlanFeature(lockedTabs[tab][0], {
+      targetPlan: lockedTabs[tab][1],
+      message: lockedTabs[tab][2]
+    });
+    tab = 'connections';
   }
+  tab = resolveAvailableIntegrationTab(tab);
   const tabs = ['connections','meta','google-ads','email-mkt','webhooks'];
   tabs.forEach(t => {
     const content = document.getElementById('intg-tab-' + t);
@@ -10651,6 +10903,7 @@ function switchIntgTab(tab) {
     }
   });
   currentIntegrationFocus = tab;
+  DB.set('integration_focus', tab);
   const guide = document.getElementById('intg-guide-copy');
   if (guide) guide.textContent = INTEGRATION_GUIDES[tab] || INTEGRATION_GUIDES.connections;
   const title = document.getElementById('intg-guide-title');
@@ -11217,7 +11470,7 @@ async function diagnosGSC() {
     }
   } catch(e) {
     clearElement(content);
-    appendTextLine(content, 'Error: ' + String(e.message || ''), 'padding:14px;color:#e07070;font-size:12px;');
+    appendTextLine(content, getFriendlyUiError(e.message), 'padding:14px;color:#e07070;font-size:12px;');
   }
 }
 
@@ -12208,6 +12461,18 @@ function saveStrategicPlanDraft(payload) {
   return nextDraft;
 }
 
+function syncStrategicGoalButtons(goal) {
+  var normalizedGoal = String(goal || '').trim() || 'Aumentar ventas online';
+  spGoal = normalizedGoal;
+  document.querySelectorAll('.sp-goal-btn').forEach(function(btn) {
+    var isActive = btn.getAttribute('onclick')?.includes("'" + normalizedGoal.replace(/'/g, "\\'") + "'");
+    btn.style.background = isActive ? 'rgba(123,167,232,0.1)' : 'var(--surface2)';
+    btn.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = isActive ? 'var(--accent)' : 'var(--text2)';
+    btn.style.fontWeight = isActive ? '600' : '500';
+  });
+}
+
 function deriveStrategicPlanContext() {
   var draft = getStrategicPlanDraft();
   var onboarding = getWorkspaceOnboarding();
@@ -12299,9 +12564,43 @@ function selectSPGoal(btn, goal) {
   btn.style.color = 'var(--accent)';
 }
 
+function renderStrategicPlanResult(resultEl, planText, strategicContext, options) {
+  if (!resultEl) return;
+  _lastReply = planText;
+  window._lastStrategicPlan = planText;
+  clearElement(resultEl);
+  renderStrategicPlanRouteCard(resultEl, strategicContext);
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;';
+  appendTextLine(header, '🗺️ Plan Estratégico — ' + (options?.duration || '90') + ' días', 'font-size:15px;font-weight:800;');
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+  actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+    navigator.clipboard.writeText(planText);
+    ev.currentTarget.textContent = '✓';
+    setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+  }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
+  actions.appendChild(createUtilityButton('⬇ Descargar', function() {
+    downloadTextFile('Plan-Estrategico', window._lastStrategicPlan || '');
+  }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
+  actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
+    saveLastReply('Director Estratégico', '🗺️', 'Plan Estratégico');
+  }));
+  header.appendChild(actions);
+  renderTextCard(resultEl, {
+    header: header,
+    contentStyle: 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
+    content: planText
+  });
+  renderStrategicPlanNextStep(resultEl, {
+    goal: options?.goal
+  });
+}
+
 function initStrategicPlanPage() {
   refreshPlanLockedUI();
   var ctx = deriveStrategicPlanContext();
+  var draft = getStrategicPlanDraft();
   var onboarding = getWorkspaceOnboarding();
   var businessEl = document.getElementById('sp-business');
   var productEl = document.getElementById('sp-product');
@@ -12319,6 +12618,9 @@ function initStrategicPlanPage() {
   var strategicScope = document.getElementById('spctx-scope');
   var strategicLevel = document.getElementById('spctx-level');
   var strategicBusiness = document.getElementById('spctx-business');
+  var emptyEl = document.getElementById('sp-empty');
+  var loadEl = document.getElementById('sp-loading');
+  var resultEl = document.getElementById('sp-result');
 
   if (businessEl && !businessEl.value.trim() && ctx.business) businessEl.value = ctx.business;
   if (productEl && !productEl.value.trim() && ctx.product) productEl.value = ctx.product;
@@ -12335,6 +12637,7 @@ function initStrategicPlanPage() {
   if (strategicScope && !strategicScope.value) strategicScope.value = learnContextData.scope || onboarding?.growthScope || '';
   if (strategicLevel && !strategicLevel.value) strategicLevel.value = learnContextData.level || onboarding?.knowledgeLevel || 'intermedio';
   if (strategicBusiness && !strategicBusiness.value) strategicBusiness.value = learnContextData.business || ctx.product || '';
+  syncStrategicGoalButtons(draft.goal || spGoal);
   updateStrategicContextSummary();
 
   if (banner && source) {
@@ -12364,6 +12667,22 @@ function initStrategicPlanPage() {
       marketBanner.style.display = 'none';
       marketBanner.innerHTML = '';
     }
+  }
+
+  if (loadEl) loadEl.style.display = 'none';
+  if (draft?.content && resultEl) {
+    if (emptyEl) emptyEl.style.display = 'none';
+    resultEl.style.display = 'block';
+    renderStrategicPlanResult(resultEl, draft.content, ctx, {
+      duration: draft.duration || durationEl?.value || '90',
+      goal: draft.goal || spGoal
+    });
+  } else {
+    if (resultEl) {
+      resultEl.style.display = 'none';
+      clearElement(resultEl);
+    }
+    if (emptyEl) emptyEl.style.display = 'flex';
   }
 }
 
@@ -12511,7 +12830,7 @@ async function loadGAdsForPlan() {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ credentials: creds })
   });
-  var data = await res.json();
+  var data = await parseApiResponse(res);
   if (data.campaigns) {
     spGadsData = data;
     var panel = document.getElementById('sp-gads-panel');
@@ -12559,6 +12878,15 @@ async function generateStrategicPlan() {
   if (resultEl) resultEl.style.display = 'none';
   if (loadEl) loadEl.style.display = 'flex';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando plan...'; }
+  saveStrategicPlanDraft({
+    business: business || product,
+    product: product,
+    audience: audience,
+    budget: budget,
+    duration: duration,
+    goal: spGoal,
+    url: url
+  });
 
   try {
     var strategicContext = deriveStrategicPlanContext();
@@ -12593,38 +12921,11 @@ async function generateStrategicPlan() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(body)
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (loadEl) loadEl.style.display = 'none';
     if (resultEl) {
       resultEl.style.display = 'block';
-      _lastReply = data.plan;
-      window._lastStrategicPlan = data.plan;
-      clearElement(resultEl);
-      renderStrategicPlanRouteCard(resultEl, strategicContext);
-      var header = document.createElement('div');
-      header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;';
-      appendTextLine(header, '🗺️ Plan Estratégico — ' + duration + ' días', 'font-size:15px;font-weight:800;');
-      var actions = document.createElement('div');
-      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
-      actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
-        navigator.clipboard.writeText(data.plan);
-        ev.currentTarget.textContent = '✓';
-        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
-      }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
-      actions.appendChild(createUtilityButton('⬇ Descargar', function() {
-        downloadTextFile('Plan-Estrategico', window._lastStrategicPlan || '');
-      }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
-      actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
-        saveLastReply('Director Estratégico', '🗺️', 'Plan Estratégico');
-      }));
-      header.appendChild(actions);
-      renderTextCard(resultEl, {
-        header: header,
-        contentStyle: 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
-        content: data.plan
-      });
       saveStrategicPlanDraft({
         business: body.business,
         product: body.product,
@@ -12632,9 +12933,11 @@ async function generateStrategicPlan() {
         budget: body.budget,
         duration: body.duration,
         goal: body.goal,
-        url: body.url
+        url: body.url,
+        content: data.plan
       });
-      renderStrategicPlanNextStep(resultEl, {
+      renderStrategicPlanResult(resultEl, data.plan, strategicContext, {
+        duration: body.duration,
         goal: body.goal
       });
       saveDeliverable('Director Estratégico', '🗺️', 'Plan Estratégico '+duration+'d', data.plan);
@@ -12772,6 +13075,7 @@ function applyCreativeTemplate(templateId, silent) {
 
 function syncCreativeAuthUI(session) {
   var btn = document.getElementById('cr-btn');
+  var imgBtn = document.getElementById('cr-img-btn');
   var hint = document.getElementById('cr-auth-hint');
   if (hasActiveBearAdsSession(session)) {
     if (btn) {
@@ -12779,6 +13083,12 @@ function syncCreativeAuthUI(session) {
       btn.textContent = '🎨 Generar Creativos con IA';
       btn.style.opacity = '1';
       btn.style.cursor = 'pointer';
+    }
+    if (imgBtn) {
+      imgBtn.disabled = false;
+      imgBtn.textContent = '🖼️ Generar';
+      imgBtn.style.opacity = '1';
+      imgBtn.style.cursor = 'pointer';
     }
     if (hint) hint.style.display = 'none';
     return;
@@ -12788,6 +13098,12 @@ function syncCreativeAuthUI(session) {
     btn.textContent = '🔒 Inicia sesión para generar';
     btn.style.opacity = '0.75';
     btn.style.cursor = 'not-allowed';
+  }
+  if (imgBtn) {
+    imgBtn.disabled = true;
+    imgBtn.textContent = '🔒 Inicia sesión';
+    imgBtn.style.opacity = '0.75';
+    imgBtn.style.cursor = 'not-allowed';
   }
   if (hint) {
     hint.style.display = 'block';
@@ -12821,6 +13137,8 @@ function initCreativesPage() {
   renderCreativeQuickStart();
   syncCreativeAuthUI(appSession);
   refreshPlanLockedUI();
+  var imgResultEl = document.getElementById('cr-img-result');
+  if (imgResultEl && !imgResultEl.querySelector('img')) clearElement(imgResultEl);
   var productEl = document.getElementById('cr-product');
   if (productEl && !productEl.value) {
     var business = getWorkspaceOnboarding()?.businessModel;
@@ -12835,9 +13153,19 @@ async function generateCreative() {
   var objective = document.getElementById('cr-objective').value;
   var tone = document.getElementById('cr-tone').value;
   var budget = document.getElementById('cr-budget').value;
+  var btn = document.getElementById('cr-btn');
+  var emptyEl = document.getElementById('cr-empty');
+  var loadEl = document.getElementById('cr-loading');
+  var resultEl = document.getElementById('cr-result');
+  var imgSection = document.getElementById('cr-img-section');
+  var imgResultEl = document.getElementById('cr-img-result');
   if (!product) { showToast('Ingresa el producto'); return; }
   if (!hasActiveBearAdsSession()) {
     syncCreativeAuthUI(appSession);
+    if (loadEl) loadEl.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (imgSection) imgSection.style.display = 'none';
+    if (imgResultEl) clearElement(imgResultEl);
     if (resultEl) {
       resultEl.style.display = 'block';
       renderAuthCta(resultEl, 'Tu sesión no está activa para generar creativos.');
@@ -12847,13 +13175,11 @@ async function generateCreative() {
   }
   if (!requirePlanFeature('creativeGen', { targetPlan: 'pro', message: 'Los creativos con IA están disponibles desde BearAds Pro.' })) return;
 
-  var btn = document.getElementById('cr-btn');
-  var emptyEl = document.getElementById('cr-empty');
-  var loadEl = document.getElementById('cr-loading');
-  var resultEl = document.getElementById('cr-result');
   if (emptyEl) emptyEl.style.display = 'none';
   if (resultEl) resultEl.style.display = 'none';
   if (loadEl) loadEl.style.display = 'flex';
+  if (imgSection) imgSection.style.display = 'none';
+  if (imgResultEl) clearElement(imgResultEl);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
 
   try {
@@ -12904,7 +13230,6 @@ async function generateCreative() {
       });
 
       // Show image generation section after getting copy
-      var imgSection = document.getElementById('cr-img-section');
       if (imgSection) {
         imgSection.style.display = 'block';
         // Extract DALL-E prompt from copy if present
@@ -12919,6 +13244,8 @@ async function generateCreative() {
   } catch(e) {
     if (loadEl) loadEl.style.display = 'none';
     if (emptyEl) emptyEl.style.display = 'none';
+    if (imgSection) imgSection.style.display = 'none';
+    if (imgResultEl) clearElement(imgResultEl);
     if (resultEl) {
       resultEl.style.display = 'block';
       clearElement(resultEl);
@@ -12935,13 +13262,23 @@ async function generateCreative() {
         resultEl.appendChild(card);
       }
     }
-    showToast('Error: '+e.message);
+    showToast(getFriendlyUiError(e.message));
   }
   if (btn) { btn.disabled = false; btn.textContent = '🎨 Generar Creativos con IA'; }
   syncCreativeAuthUI(appSession);
 }
 
 async function generateCreativeImage() {
+  if (!hasActiveBearAdsSession()) {
+    syncCreativeAuthUI(appSession);
+    var resultElAuth = document.getElementById('cr-result');
+    if (resultElAuth) {
+      resultElAuth.style.display = 'block';
+      renderAuthCta(resultElAuth, 'Tu sesión no está activa para generar la imagen del creativo.');
+    }
+    showToast('Primero inicia sesión en BearAds');
+    return;
+  }
   if (!requirePlanFeature('imageGen', { targetPlan: 'pro', message: 'La generación de imágenes está disponible desde BearAds Pro.' })) return;
   var prompt = document.getElementById('cr-img-prompt')?.value.trim();
   var size = document.getElementById('cr-img-size')?.value || '1024x1024';
@@ -12960,8 +13297,7 @@ async function generateCreativeImage() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ prompt:prompt, size:size, purpose:'social media ad for '+crPlatform })
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (resultEl) {
       clearElement(resultEl);
@@ -12990,7 +13326,7 @@ async function generateCreativeImage() {
   } catch(e) {
     if (resultEl) {
       clearElement(resultEl);
-      appendTextLine(resultEl, e.message, 'padding:12px;color:#e07070;font-size:12px;');
+      resultEl.appendChild(createErrorNotice(getFriendlyUiError(e?.message || '')));
     }
   }
   if (btn) { btn.disabled = false; btn.textContent = '🖼️ Generar'; }
@@ -13022,9 +13358,7 @@ async function connectGoogleAds() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ customerId: cid })
     });
-
-    if (!r.ok) throw new Error('Error del servidor: ' + r.status);
-    var test = await r.json();
+    var test = await parseApiResponse(r);
 
     if (!test.ok) {
       if (errEl) {
@@ -13057,7 +13391,7 @@ async function connectGoogleAds() {
       clearElement(errEl);
       var fatalError = document.createElement('div');
       fatalError.style.cssText = 'padding:10px;color:#e07070;font-size:12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:7px;margin-top:8px;';
-      fatalError.textContent = 'Error: ' + String(e.message || '');
+      fatalError.textContent = getFriendlyUiError(e.message);
       errEl.appendChild(fatalError);
     }
     if (btn) { btn.disabled = false; btn.textContent = '📢 Conectar Google Ads'; }
@@ -13095,11 +13429,7 @@ async function loadGAdsDashboard() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ customerId: gadsCredentials?.customerId })
     });
-
-    if (!campsRes.ok) throw new Error('Error del servidor: ' + campsRes.status);
-    var camps = await campsRes.json();
-
-    if (camps.error) throw new Error(camps.error);
+    var camps = await parseApiResponse(campsRes);
 
     spGadsData = camps;
 
@@ -13113,13 +13443,13 @@ async function loadGAdsDashboard() {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ customerId: gadsCredentials?.customerId })
       });
-      var kws = await kwRes.json();
+      var kws = await parseApiResponse(kwRes);
       renderGAdsDashboard(content, camps, kws);
     }
   } catch(e) {
     clearElement(content);
     var errorCard = createInfoCard({ style: 'padding:24px;text-align:center;' });
-    appendTextLine(errorCard, '⚠️ ' + e.message, 'font-size:13px;color:#e07070;margin-bottom:12px;font-weight:700;');
+    appendTextLine(errorCard, '⚠️ ' + getFriendlyUiError(e.message), 'font-size:13px;color:#e07070;margin-bottom:12px;font-weight:700;');
     errorCard.appendChild(createUtilityButton('← Cambiar Customer ID', function() {
       resetGAdsDashboard();
     }, 'padding:7px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;font-size:12px;color:var(--muted);cursor:pointer;'));
@@ -13216,7 +13546,7 @@ async function callGAdsAI(prompt, title) {
     });
   } catch(e) {
     clearElement(output);
-    output.appendChild(createErrorNotice('Error: ' + e.message));
+    output.appendChild(createErrorNotice(getFriendlyUiError(e.message)));
   }
 }
 
@@ -13305,7 +13635,7 @@ async function optimizeGAdsWithAI() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ campaigns: spGadsData.campaigns, keywords: [], budget: '', goal: 'maximizar conversiones' })
     });
-    var data = await res.json();
+    var data = await parseApiResponse(res);
     _lastReply = data.reply || '';
     var header = document.createElement('div');
     appendTextLine(header, '🧠 OPTIMIZACIÓN IA — Google Ads', 'font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;');
@@ -13327,7 +13657,7 @@ async function optimizeGAdsWithAI() {
     });
   } catch(e) {
     clearElement(resultEl);
-    resultEl.appendChild(createErrorNotice('Error: ' + e.message));
+    resultEl.appendChild(createErrorNotice(getFriendlyUiError(e.message)));
   }
 }
 
@@ -13356,8 +13686,7 @@ async function connectMetaAds() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ accessToken: token, accountId: accountId })
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     metaCredentials = { accessToken: token, accountId: accountId };
 
@@ -13368,7 +13697,7 @@ async function connectMetaAds() {
   } catch(e) {
     if (resultEl) {
       clearElement(resultEl);
-      appendTextLine(resultEl, '⚠️ ' + e.message, 'padding:8px;font-size:12px;color:#e07070;');
+      appendTextLine(resultEl, '⚠️ ' + getFriendlyUiError(e.message), 'padding:8px;font-size:12px;color:#e07070;');
     }
   }
 }
@@ -13384,15 +13713,14 @@ async function loadMetaDashboard() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(metaCredentials)
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     spMetaData = data;
     renderMetaDashboard(content, data);
   } catch(e) {
     clearElement(content);
     var errorCard = createInfoCard({ style: 'padding:20px;text-align:center;' });
-    appendTextLine(errorCard, '⚠️ ' + e.message, 'color:#e07070;font-size:13px;margin-bottom:10px;');
+    appendTextLine(errorCard, '⚠️ ' + getFriendlyUiError(e.message), 'color:#e07070;font-size:13px;margin-bottom:10px;');
     errorCard.appendChild(createUtilityButton('Reconectar', function() {
       metaCredentials = null;
       initMetaDashboard();
@@ -13447,7 +13775,7 @@ async function optimizeMetaWithAI() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ campaigns: spMetaData.campaigns, budget: '', goal: 'ventas' })
     });
-    var data = await res.json();
+    var data = await parseApiResponse(res);
     _lastReply = data.reply || '';
     var header = document.createElement('div');
     appendTextLine(header, '🧠 OPTIMIZACIÓN IA — Meta Ads', 'font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;');
@@ -13469,7 +13797,7 @@ async function optimizeMetaWithAI() {
     });
   } catch(e) {
     clearElement(resultEl);
-    resultEl.appendChild(createErrorNotice('Error: ' + e.message));
+    resultEl.appendChild(createErrorNotice(getFriendlyUiError(e.message)));
   }
 }
 
@@ -13539,8 +13867,7 @@ async function createGAdsCampaign() {
         biddingStrategy: bidding
       })
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     gcCampaignResourceName = data.campaignResourceName;
     if (result) result.replaceChildren(createStatusNotice('✓ ' + (data.message || ''), 'success', { marginTop: '8px' }));
@@ -13575,8 +13902,7 @@ async function createGAdsAdGroup() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ customerId: gadsCredentials?.customerId, campaignResourceName: gcCampaignResourceName, name: agName })
     });
-    var agData = await agRes.json();
-    if (agData.error) throw new Error(agData.error);
+    var agData = await parseApiResponse(agRes);
     gcAdGroupResourceName = agData.adGroupResourceName;
 
     // Create responsive search ad
@@ -13584,8 +13910,7 @@ async function createGAdsAdGroup() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ customerId: gadsCredentials?.customerId, adGroupResourceName: gcAdGroupResourceName, headlines, descriptions, finalUrl })
     });
-    var adData = await adRes.json();
-    if (adData.error) throw new Error(adData.error);
+    var adData = await parseApiResponse(adRes);
 
     if (result) result.replaceChildren(createStatusNotice('✓ Grupo de anuncios y anuncio RSA creados', 'success', { marginTop: '8px' }));
     setTimeout(function() { setGAdsStep(3); }, 1500);
@@ -13616,8 +13941,7 @@ async function createGAdsKeywords() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ customerId: gadsCredentials?.customerId, adGroupResourceName: gcAdGroupResourceName, keywords })
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (result) {
       clearElement(result);
@@ -13800,15 +14124,19 @@ showPage = function(page) {
 function initWeeklyScorePage() {
   // Pre-fill from profile and current analysis
   var p = userProfile || {};
+  var saved = DB.get('weekly_score_config', {});
   if (p.email) {
     var emailEl = document.getElementById('ws-email');
-    if (emailEl && !emailEl.value) emailEl.value = p.email;
+    if (emailEl && !emailEl.value) emailEl.value = saved.email || p.email;
   }
   if (p.biz) {
     var bizEl = document.getElementById('ws-business');
-    if (bizEl && !bizEl.value) bizEl.value = p.biz;
+    if (bizEl && !bizEl.value) bizEl.value = saved.businessName || p.biz;
   }
-  if (p.url) {
+  if (saved.siteUrl) {
+    var siteEl = document.getElementById('ws-site');
+    if (siteEl && !siteEl.value) siteEl.value = saved.siteUrl;
+  } else if (p.url) {
     var siteEl = document.getElementById('ws-site');
     if (siteEl && !siteEl.value) siteEl.value = p.url.replace(/^https?:\/\//,'');
   }
@@ -13816,6 +14144,10 @@ function initWeeklyScorePage() {
     var siteEl2 = document.getElementById('ws-site');
     if (siteEl2 && !siteEl2.value) siteEl2.value = currentAnalysis.url.replace(/^https?:\/\//,'');
   }
+  var ga4El = document.getElementById('ws-ga4');
+  if (ga4El && !ga4El.value && saved.ga4PropertyId) ga4El.value = saved.ga4PropertyId;
+  var frequencyEl = document.getElementById('ws-frequency');
+  if (frequencyEl && saved.frequency) frequencyEl.value = saved.frequency;
 }
 
 function getWSConfig() {
@@ -13829,6 +14161,7 @@ function getWSConfig() {
 }
 
 async function subscribeWeeklyScore() {
+  if (!requirePlanFeature('downloadReports', { targetPlan: 'pro', message: 'Los reportes automáticos están disponibles desde BearAds Pro.' })) return;
   var cfg = getWSConfig();
   var resultEl = document.getElementById('ws-subscribe-result');
   if (!cfg.email) { showToast('Ingresa tu email'); return; }
@@ -13843,8 +14176,7 @@ async function subscribeWeeklyScore() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(cfg)
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (resultEl) {
       clearElement(resultEl);
@@ -13862,17 +14194,21 @@ async function subscribeWeeklyScore() {
       clearElement(resultEl);
       var failure = document.createElement('div');
       failure.style.cssText = 'padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;';
-      failure.textContent = '⚠️ ' + String(e.message || '');
+      failure.textContent = '⚠️ ' + getFriendlyUiError(e.message);
       resultEl.appendChild(failure);
     }
   }
 }
 
 async function previewWeeklyScore() {
+  if (!requirePlanFeature('downloadReports', { targetPlan: 'pro', message: 'La vista previa de reportes está disponible desde BearAds Pro.' })) return;
   var cfg = getWSConfig();
   var emptyEl = document.getElementById('ws-preview-empty');
   var loadEl = document.getElementById('ws-preview-loading');
   var resultEl = document.getElementById('ws-preview-result');
+  var sendResultEl = document.getElementById('ws-send-result');
+
+  if (sendResultEl) clearElement(sendResultEl);
 
   if (emptyEl) emptyEl.style.display = 'none';
   if (resultEl) resultEl.style.display = 'none';
@@ -13883,8 +14219,7 @@ async function previewWeeklyScore() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(cfg)
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (loadEl) loadEl.style.display = 'none';
     if (resultEl) {
@@ -13901,16 +14236,22 @@ async function previewWeeklyScore() {
     if (emptyEl) {
       emptyEl.style.display = 'flex';
       clearElement(emptyEl);
-      appendTextLine(emptyEl, '⚠️ ' + String(e.message || ''), 'color:#e07070;font-size:13px;');
+      appendTextLine(emptyEl, '⚠️ ' + getFriendlyUiError(e.message), 'color:#e07070;font-size:13px;');
     }
-    showToast('Error: ' + e.message);
+    showToast(getFriendlyUiError(e.message));
   }
 }
 
 async function sendWeeklyScoreNow() {
+  if (!requirePlanFeature('downloadReports', { targetPlan: 'pro', message: 'El envío inmediato de reportes está disponible desde BearAds Pro.' })) return;
   var cfg = getWSConfig();
   var resultEl = document.getElementById('ws-send-result');
+  var previewEmptyEl = document.getElementById('ws-preview-empty');
+  var previewLoadEl = document.getElementById('ws-preview-loading');
   if (!cfg.email) { showToast('Ingresa el email destinatario'); return; }
+
+  if (previewLoadEl) previewLoadEl.style.display = 'none';
+  if (previewEmptyEl) previewEmptyEl.style.display = 'none';
 
   if (resultEl) {
     clearElement(resultEl);
@@ -13922,8 +14263,7 @@ async function sendWeeklyScoreNow() {
       method: 'POST', headers: {'Content-Type':'application/json'},
       body: JSON.stringify(cfg)
     });
-    var data = await res.json();
-    if (data.error) throw new Error(data.error);
+    var data = await parseApiResponse(res);
 
     if (resultEl) {
       clearElement(resultEl);
@@ -13938,7 +14278,7 @@ async function sendWeeklyScoreNow() {
       clearElement(resultEl);
       var sendError = document.createElement('div');
       sendError.style.cssText = 'padding:10px;background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:8px;font-size:12px;color:#e07070;';
-      sendError.textContent = '⚠️ ' + String(e.message || '');
+      sendError.textContent = '⚠️ ' + getFriendlyUiError(e.message);
       resultEl.appendChild(sendError);
     }
   }
@@ -14058,7 +14398,7 @@ async function runQATest(type) {
     resultEl.appendChild(qaActions);
   } catch(e) {
     clearElement(resultEl);
-    appendTextLine(resultEl, 'Error: ' + String(e.message || ''), 'color:#e07070;');
+    appendTextLine(resultEl, getFriendlyUiError(e.message), 'color:#e07070;');
   }
 }
 
@@ -14097,7 +14437,7 @@ async function runQACustom() {
     resultEl.appendChild(customActions);
   } catch(e) {
     clearElement(resultEl);
-    appendTextLine(resultEl, 'Error: ' + String(e.message || ''), 'color:#e07070;');
+    appendTextLine(resultEl, getFriendlyUiError(e.message), 'color:#e07070;');
   }
 }
 

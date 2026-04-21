@@ -258,6 +258,7 @@ function rolePermissions(role = 'member_trial') {
 function defaultOnboardingState() {
   return {
     completed: false,
+    dismissedAt: null,
     knowledgeLevel: '',
     businessModel: '',
     mainGoal: '',
@@ -506,33 +507,61 @@ function sanitizeWorkspace(workspace) {
 
 const PLAN_FEATURES = {
   trial: {
+    agentsAccess: false,
     strategicPlan: true,
+    campaignBuilder: false,
     creativeGen: false,
     imageGen: false,
     googleAds: false,
-    metaAds: false
+    metaAds: false,
+    downloadReports: false,
+    apiAccess: false
   },
   starter: {
+    agentsAccess: true,
     strategicPlan: true,
+    campaignBuilder: false,
     creativeGen: false,
     imageGen: false,
     googleAds: false,
-    metaAds: false
+    metaAds: false,
+    downloadReports: false,
+    apiAccess: false
   },
   pro: {
+    agentsAccess: true,
     strategicPlan: true,
+    campaignBuilder: true,
     creativeGen: true,
     imageGen: true,
     googleAds: true,
-    metaAds: true
+    metaAds: true,
+    downloadReports: true,
+    apiAccess: false
   },
   agency: {
+    agentsAccess: true,
     strategicPlan: true,
+    campaignBuilder: true,
     creativeGen: true,
     imageGen: true,
     googleAds: true,
-    metaAds: true
+    metaAds: true,
+    downloadReports: true,
+    apiAccess: true
   }
+};
+
+const FEATURE_REQUIRED_PLAN = {
+  agentsAccess: 'starter',
+  strategicPlan: 'trial',
+  campaignBuilder: 'pro',
+  creativeGen: 'pro',
+  imageGen: 'pro',
+  googleAds: 'pro',
+  metaAds: 'pro',
+  downloadReports: 'pro',
+  apiAccess: 'agency'
 };
 
 function resolveWorkspacePlanCode(workspace) {
@@ -554,7 +583,7 @@ function requirePlanFeature(feature) {
       error: 'plan_limit',
       message: `Tu plan ${plan} no incluye esta función.`,
       upgrade: true,
-      requiredPlan: feature === 'strategicPlan' ? 'starter' : 'pro'
+      requiredPlan: FEATURE_REQUIRED_PLAN[feature] || 'pro'
     });
   };
 }
@@ -1047,6 +1076,7 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
   const allowedAddOns = ['expansion'];
 
   if (Object.keys(onboarding).length) {
+    const hasDismissedAt = Object.prototype.hasOwnProperty.call(onboarding, 'dismissedAt');
     const nextKnowledge = String(onboarding.knowledgeLevel || '').trim().toLowerCase();
     const nextBusinessModel = String(onboarding.businessModel || '').trim().slice(0, 120);
     const nextMainGoal = String(onboarding.mainGoal || '').trim().slice(0, 160);
@@ -1055,6 +1085,9 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
     const nextPrimaryLanguage = String(onboarding.primaryLanguage || '').trim().toLowerCase();
     const nextGrowthScope = String(onboarding.growthScope || '').trim().toLowerCase();
     const nextBudgetRange = String(onboarding.budgetRange || '').trim().toLowerCase();
+    const nextDismissedAt = hasDismissedAt && onboarding.dismissedAt
+      ? String(onboarding.dismissedAt).trim().slice(0, 64)
+      : null;
     const nextPlatforms = Array.isArray(onboarding.platforms)
       ? onboarding.platforms.map(value => String(value || '').trim()).filter(value => allowedPlatforms.includes(value)).slice(0, 8)
       : workspace.onboarding.platforms;
@@ -1062,6 +1095,7 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
     workspace.onboarding = {
       ...defaultOnboardingState(),
       ...workspace.onboarding,
+      dismissedAt: hasDismissedAt ? nextDismissedAt : (workspace.onboarding.dismissedAt || null),
       knowledgeLevel: allowedKnowledge.includes(nextKnowledge) ? nextKnowledge : workspace.onboarding.knowledgeLevel,
       businessModel: nextBusinessModel || workspace.onboarding.businessModel,
       mainGoal: nextMainGoal || workspace.onboarding.mainGoal,
@@ -2447,7 +2481,7 @@ async function getGoogleAdsKeywords(req, customerId) {
 // ── GOOGLE ADS ENDPOINTS ──
 
 // ── TEST: Google Ads credentials check ──
-app.post('/api/gads/test', async (req, res) => {
+app.post('/api/gads/test', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     const { customerId } = req.body;
     const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
@@ -2470,7 +2504,7 @@ app.post('/api/gads/test', async (req, res) => {
   }
 });
 
-app.post('/api/gads/campaigns', async (req, res) => {
+app.post('/api/gads/campaigns', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   console.log('>>> /api/gads/campaigns hit, body:', JSON.stringify(req.body), 'auth:', req.isAuthenticated());
   try {
     const { customerId } = req.body;
@@ -2488,7 +2522,7 @@ app.post('/api/gads/campaigns', async (req, res) => {
   }
 });
 
-app.post('/api/gads/keywords', async (req, res) => {
+app.post('/api/gads/keywords', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   try {
     const { customerId } = req.body;
     const result = await getGoogleAdsKeywords(req, customerId);
@@ -2499,7 +2533,7 @@ app.post('/api/gads/keywords', async (req, res) => {
   }
 });
 
-app.post('/api/gads/optimize', async (req, res) => {
+app.post('/api/gads/optimize', requireAuth, requirePlanFeature('googleAds'), async (req, res) => {
   // AI-powered optimization suggestions based on real data
   const { campaigns, keywords, budget, goal } = req.body;
   if (!campaigns?.length) return res.json({ error: 'No hay datos de campañas' });
@@ -2547,7 +2581,7 @@ Sé específico con los números. En español.`;
 // META BUSINESS — Setup Guide + Basic API
 // ══════════════════════════════════════════
 
-app.post('/api/meta/verify', async (req, res) => {
+app.post('/api/meta/verify', requireAuth, requirePlanFeature('metaAds'), async (req, res) => {
   const { accessToken, accountId } = req.body;
   if (!accessToken || !accountId) return res.json({ error: 'Token y Account ID requeridos' });
 
@@ -2608,7 +2642,7 @@ app.post('/api/meta/campaigns', requireAuth, requirePlanFeature('metaAds'), asyn
   }
 });
 
-app.post('/api/meta/optimize', async (req, res) => {
+app.post('/api/meta/optimize', requireAuth, requirePlanFeature('metaAds'), async (req, res) => {
   const { campaigns, budget, goal } = req.body;
   if (!campaigns?.length) return res.json({ error: 'Sin datos de campañas' });
 
@@ -3490,7 +3524,7 @@ cron.schedule('0 8 * * 1', async () => {
 
 // ── EMAIL ENDPOINTS ──
 
-app.post('/api/email/subscribe', async (req, res) => {
+app.post('/api/email/subscribe', requireAuth, requirePlanFeature('downloadReports'), async (req, res) => {
   const { email, siteUrl, ga4PropertyId, businessName, frequency } = req.body;
   if (!email) return res.json({ error: 'Email requerido' });
 
@@ -3508,7 +3542,7 @@ app.post('/api/email/subscribe', async (req, res) => {
   res.json({ success: true, message: 'Reporte configurado. Recibirás el próximo lunes a las 8am.' });
 });
 
-app.post('/api/email/send-now', async (req, res) => {
+app.post('/api/email/send-now', requireAuth, requirePlanFeature('downloadReports'), async (req, res) => {
   const { email, siteUrl, ga4PropertyId, businessName } = req.body;
   if (!email) return res.json({ error: 'Email requerido' });
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -3522,7 +3556,7 @@ app.post('/api/email/send-now', async (req, res) => {
   res.json(result);
 });
 
-app.post('/api/email/preview', async (req, res) => {
+app.post('/api/email/preview', requireAuth, requirePlanFeature('downloadReports'), async (req, res) => {
   const { siteUrl, ga4PropertyId, businessName } = req.body;
   const accessToken = req.isAuthenticated() ? req.user.accessToken : null;
   const subscription = { email: 'preview', siteUrl, ga4PropertyId, businessName, accessToken };
@@ -3534,7 +3568,7 @@ app.post('/api/email/preview', async (req, res) => {
   }
 });
 
-app.get('/api/email/subscriptions', (req, res) => {
+app.get('/api/email/subscriptions', requireAuth, requirePlanFeature('downloadReports'), (req, res) => {
   const subs = Array.from(emailSubscriptions.values()).map(s => ({
     email: s.email, businessName: s.businessName,
     frequency: s.frequency, subscribedAt: s.subscribedAt
