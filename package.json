@@ -24,7 +24,8 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "stripe": "^17.7.0"
   },
   "version": "1.0.0",
   "description": "Plataforma web de marketing con IA para análisis, estrategia, campañas, integraciones y operación guiada.",

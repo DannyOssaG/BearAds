@@ -7142,7 +7142,7 @@ async function checkGoogleStatus() {
 
     // Check for ?connected=google in URL
     if (window.location.search.includes('connected=google')) {
-      history.replaceState({}, '', '/');
+      clearUrlParams(['connected']);
       showGoogleConnectedToast();
     }
   } catch(e) {}
@@ -7757,6 +7757,7 @@ let userProfile = Object.assign({
 DB.set('user_profile', null);
 let appSession = null;
 let saWorkspaceData = null;
+let billingStatusCache = null;
 
 function formatPlanLabel(workspace) {
   const sub = workspace?.subscription || {};
@@ -7808,6 +7809,42 @@ async function saveCommercialIntent(payload) {
       lastIntentSource: 'workspace-plan-modal'
     }, payload || {})
   });
+}
+
+async function fetchBillingStatus(force = false) {
+  if (billingStatusCache && !force) return billingStatusCache;
+  try {
+    const res = await fetch('/api/billing/status', { credentials: 'same-origin' });
+    const data = await parseApiResponse(res);
+    billingStatusCache = data;
+    return data;
+  } catch (error) {
+    billingStatusCache = null;
+    return null;
+  }
+}
+
+function getBillingRuntimeCopy(billing) {
+  const sub = billing?.subscription || {};
+  if (billing?.stripeIssue === 'invalid_secret_key_type') {
+    return 'Stripe mal configurado: STRIPE_SECRET_KEY está usando una pk_. Debe ser una sk_.';
+  }
+  if (billing?.stripeIssue === 'missing_secret_key') {
+    return 'Modo pruebas: falta STRIPE_SECRET_KEY en este servidor.';
+  }
+  if (billing?.stripeIssue === 'missing_webhook_secret') {
+    return 'Stripe parcial: falta STRIPE_WEBHOOK_SECRET para completar la sincronización.';
+  }
+  if (!billing?.stripeConfigured) {
+    return 'Modo pruebas: por ahora los cambios de etapa siguen funcionando internamente.';
+  }
+  if (!sub?.stripeCustomerId) {
+    return 'Stripe activo: este workspace todavía no ha completado un checkout real.';
+  }
+  if (sub?.stripeCustomerId && !sub?.stripeSubscriptionId) {
+    return 'Stripe activo: el cliente ya existe, pero la suscripción todavía no quedó vinculada.';
+  }
+  return 'Stripe activo: ' + String((sub.plan || 'trial').toUpperCase()) + ' · ' + String(sub.status || 'active').toUpperCase() + '.';
 }
 
 const PLAN_CONFIG = {
@@ -8725,6 +8762,10 @@ function canSuspendProfiles(session = appSession) {
   return !!(isGlobalOwner(session) || session?.permissions?.canSuspendUsers);
 }
 
+function canResetTrialsFromAdmin(session = appSession) {
+  return !!(isGlobalOwner(session) || session?.permissions?.canManageUsers || session?.permissions?.canManageBilling);
+}
+
 function isDannyProtectedUser(user) {
   return String(user?.email || '').trim().toLowerCase() === 'dannydlog@gmail.com';
 }
@@ -8752,6 +8793,7 @@ function collectBillingSecurityCheck(status) {
 }
 
 async function refreshAppSession() {
+  billingStatusCache = null;
   const session = await fetchAppSession();
   if (!session || !session.user) {
     appSession = null;
@@ -8792,6 +8834,61 @@ async function refreshAppSession() {
     DB.set('intg_connections', intgConnections);
   }
   return session;
+}
+
+function clearUrlParams(paramNames) {
+  try {
+    const url = new URL(window.location.href);
+    (paramNames || []).forEach(function(name) {
+      url.searchParams.delete(name);
+    });
+    const next = url.pathname + (url.search ? url.search : '') + (url.hash || '');
+    window.history.replaceState({}, '', next);
+  } catch (e) {}
+}
+
+async function pollBillingSync(attempts = 5, delayMs = 1500) {
+  for (let i = 0; i < attempts; i++) {
+    const billing = await fetchBillingStatus(true);
+    const sub = billing?.subscription || {};
+    if (sub.plan && sub.plan !== 'trial' && sub.status && sub.status !== 'trialing') {
+      return billing;
+    }
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  return await fetchBillingStatus(true);
+}
+
+async function handleBillingReturnState() {
+  try {
+    const url = new URL(window.location.href);
+    const state = String(url.searchParams.get('billing') || '').trim().toLowerCase();
+    if (!state) return;
+
+    if (state === 'success') {
+      showToast('Pago recibido. Estamos sincronizando tu plan...');
+      await pollBillingSync(6, 1500);
+      await refreshAppSession();
+      if (document.getElementById('superadmin-modal')?.style.display === 'flex' && saCurrentTab === 'billing') {
+        await loadSABillingOverview();
+      }
+      openPlanPanel();
+      showToast('Tu plan ya fue sincronizado con BearAds');
+    } else if (state === 'cancel') {
+      showToast('El checkout fue cancelado. Tu etapa no cambió.');
+    } else if (state === 'portal') {
+      await fetchBillingStatus(true);
+      await refreshAppSession();
+      if (document.getElementById('superadmin-modal')?.style.display === 'flex' && saCurrentTab === 'billing') {
+        await loadSABillingOverview();
+      }
+      showToast('Volviste desde el portal de Stripe');
+    }
+
+    clearUrlParams(['billing']);
+  } catch (e) {
+    clearUrlParams(['billing']);
+  }
 }
 
 function openProfilePanel() {
@@ -9200,6 +9297,7 @@ function openPlanPanel() {
     if (ud) ud.textContent = deliverables.length;
     const currentPlan = document.getElementById('current-plan-title');
     const trialMeta = document.getElementById('plan-trial-meta');
+    const billingRuntime = document.getElementById('plan-billing-runtime');
     const upgradeBtn = document.getElementById('plan-upgrade-btn');
     const route = getGrowthRouteRecommendation({
       onboarding: onboarding,
@@ -9265,6 +9363,12 @@ function openPlanPanel() {
         trialMeta.textContent = 'Tu etapa actual dentro de BearAds';
       }
     }
+    fetchBillingStatus().then(function(billing) {
+      if (!billingRuntime) return;
+      billingRuntime.textContent = billing?.stripeConfigured
+        ? 'Pagos activos: este modal puede abrir Checkout o Portal de Stripe.'
+        : 'Modo pruebas: por ahora los cambios de etapa siguen funcionando internamente.';
+    });
     if (currentPlanName) currentPlanName.textContent = formatPlanLabel(workspace);
     if (currentValue) {
       currentValue.textContent = {
@@ -9295,6 +9399,11 @@ function openPlanPanel() {
         triggersList.appendChild(row);
       });
     }
+    if (billingRuntime) {
+      fetchBillingStatus().then(function(billing) {
+        billingRuntime.textContent = getBillingRuntimeCopy(billing);
+      });
+    }
     planModalSelection = commercial.targetPlan || (isAgencyMode ? 'agency' : (currentCode === 'trial' ? 'starter' : 'pro'));
     if (cancelBtn) {
       cancelBtn.onclick = handlePlanCancellation;
@@ -9308,6 +9417,9 @@ function openPlanPanel() {
 
 async function handlePlanUpgradeAction(action) {
   try {
+    const billing = await fetchBillingStatus();
+    const canUseStripeCheckout = Boolean(billing?.stripeConfigured);
+
     if (action === 'trial') {
       if (!window.confirm('Vas a pasar a BearAds Trial. Se reducirá tu capacidad operativa y se quitarán add-ons activos. ¿Quieres continuar?')) return;
       await saveCommercialIntent({
@@ -9325,6 +9437,17 @@ async function handlePlanUpgradeAction(action) {
 
     if (action === 'starter') {
       if (!window.confirm('Vas a pasar a BearAds Starter. Tendrás diagnóstico completo, estrategia y más contexto operativo. ¿Quieres continuar?')) return;
+      if (canUseStripeCheckout) {
+        const res = await fetch('/api/billing/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ plan: 'starter', interval: 'monthly' })
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       await saveCommercialIntent({
         targetPlan: 'starter',
         addOns: [],
@@ -9356,6 +9479,17 @@ async function handlePlanUpgradeAction(action) {
 
     if (action === 'pro') {
       if (!window.confirm('Vas a pasar a BearAds Pro. Tendrás campañas, Ads, creativos, imágenes y reportes. ¿Quieres continuar?')) return;
+      if (canUseStripeCheckout) {
+        const res = await fetch('/api/billing/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ plan: 'pro', interval: 'monthly' })
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       await saveCommercialIntent({
         targetPlan: 'pro',
         addOns: [],
@@ -9371,6 +9505,17 @@ async function handlePlanUpgradeAction(action) {
 
     if (action === 'agency') {
       if (!window.confirm('Vas a pasar a BearAds Agency. Esto está pensado para operación multi-cliente y varios usuarios. ¿Quieres continuar?')) return;
+      if (canUseStripeCheckout) {
+        const res = await fetch('/api/billing/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ plan: 'agency', interval: 'monthly' })
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       await saveCommercialIntent({
         targetPlan: 'agency',
         addOns: [],
@@ -9392,6 +9537,18 @@ async function handlePlanUpgradeAction(action) {
 async function handlePlanCancellation() {
   try {
     if (!window.confirm('Vas a volver a BearAds Trial. ¿Quieres continuar?')) return;
+    const billing = await fetchBillingStatus();
+    if (billing?.stripeConfigured && appSession?.workspace?.subscription?.stripeCustomerId) {
+      const res = await fetch('/api/billing/create-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({})
+      });
+      const data = await parseApiResponse(res);
+      window.location.href = data.url;
+      return;
+    }
     await saveCommercialIntent({
       targetPlan: 'trial',
       addOns: [],
@@ -9525,6 +9682,8 @@ function renderDirectorModalChat() {
 // ══════════════════════════════════════════
 let saCurrentTab = 'platform';
 let saGlobalUsersData = [];
+let saBillingOverviewData = null;
+let saBillingSearchQuery = '';
 
 function getSAUserSearchQuery() {
   return document.getElementById('sa-user-search')?.value.trim().toLowerCase() || '';
@@ -9542,6 +9701,40 @@ function matchesSAUserSearch(user, extraValues) {
     return String(value).toLowerCase();
   });
   return haystack.some(function(value) { return value.includes(query); });
+}
+
+function getSABillingSearchQuery() {
+  const liveValue = document.getElementById('sa-billing-search')?.value;
+  if (typeof liveValue === 'string') return liveValue.trim().toLowerCase();
+  return saBillingSearchQuery;
+}
+
+function matchesSABillingSearch(member) {
+  const query = getSABillingSearchQuery();
+  if (!query) return true;
+  const user = member?.user || {};
+  const haystack = [
+    user?.id,
+    user?.email,
+    user?.name,
+    member?.userId,
+    member?.workspaceId,
+    member?.role
+  ].filter(Boolean).map(function(value) {
+    return String(value).toLowerCase();
+  });
+  return haystack.some(function(value) { return value.includes(query); });
+}
+
+function setSABillingSearch(value) {
+  saBillingSearchQuery = String(value || '').trim().toLowerCase();
+  renderSABillingOverview();
+}
+
+function escapeInlineArg(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'");
 }
 
 async function openSuperAdmin() {
@@ -9628,6 +9821,7 @@ function renderSAUsers() {
               + '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">ID dependencia: ' + esc(membership.workspaceId || '') + '</div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'
               + '<select onchange="updateGlobalAdminUserRole(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value)" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
+              + '<button onclick="resetAdminUserTrial(\'' + user.id + '\', \'' + membership.workspaceId + '\')" ' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
               + '</div>'
               + '</div>';
           }).join('')
@@ -9656,6 +9850,7 @@ function renderSAUsers() {
   }
   const canManageUsers = !!getCurrentSAPermissions().canManageUsers;
   const canSuspend = canSuspendProfiles();
+  const canResetTrials = canResetTrialsFromAdmin();
   list.innerHTML = filteredMembers.map(function(member) {
     const user = member.user || {};
     const isDannyProtected = isDannyProtectedUser(user);
@@ -9668,7 +9863,10 @@ function renderSAUsers() {
       + '<select onchange="updateAdminUserRole(\'' + member.userId + '\', this.value)" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
       + (isDannyProtected
         ? '<div style="padding:6px 8px;border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#7f1d1d;background:rgba(224,112,112,0.06);text-align:center;font-weight:700;">Protegido</div>'
-        : '<button onclick="toggleAdminUserStatus(\'' + member.userId + '\', \'' + (user.status === 'suspended' ? 'active' : 'suspended') + '\')" ' + (canSuspend && !isProtectedOwner ? '' : 'disabled ') + 'style="padding:6px 8px;background:' + (user.status === 'suspended' ? 'rgba(94,201,160,0.12)' : 'rgba(224,112,112,0.1)') + ';border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#0f172a;' + (canSuspend && !isProtectedOwner ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">' + (user.status === 'suspended' ? 'Reactivar' : 'Suspender') + '</button>')
+        : '<div style="display:flex;gap:6px;align-items:center;">'
+          + '<button onclick="toggleAdminUserStatus(\'' + member.userId + '\', \'' + (user.status === 'suspended' ? 'active' : 'suspended') + '\')" ' + (canSuspend && !isProtectedOwner ? '' : 'disabled ') + 'style="padding:6px 8px;background:' + (user.status === 'suspended' ? 'rgba(94,201,160,0.12)' : 'rgba(224,112,112,0.1)') + ';border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#0f172a;' + (canSuspend && !isProtectedOwner ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">' + (user.status === 'suspended' ? 'Reactivar' : 'Suspender') + '</button>'
+          + '<button onclick="resetAdminUserTrial(\'' + member.userId + '\')" ' + (canResetTrials && !isProtectedOwner ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + (canResetTrials && !isProtectedOwner ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
+          + '</div>')
       + '</div>';
   }).join('');
 }
@@ -9771,6 +9969,23 @@ async function toggleGlobalAdminUserStatus(userId, status, workspaceId) {
   await loadSAPlatformStats();
 }
 
+async function resetAdminUserTrial(userId, workspaceId) {
+  const ok = window.confirm('Esto reiniciará el trial del workspace asociado a este usuario para pruebas internas. ¿Quieres continuar?');
+  if (!ok) return;
+  const payload = workspaceId ? { workspaceId: workspaceId } : {};
+  const res = await fetch('/api/admin/users/' + userId + '/reset-trial', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo reiniciar el trial'); return; }
+  showToast(data.message || 'Trial reiniciado correctamente');
+  await refreshAppSession();
+  await loadSAPlatformStats();
+}
+
 async function loadSAGrowthInsights() {
   const box = document.getElementById('sa-growth-result');
   if (!box) return;
@@ -9804,21 +10019,52 @@ async function loadSABillingOverview() {
     const res = await fetch('/api/admin/billing-overview', { credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo cargar billing');
-    const workspace = data.workspace || {};
-    const stats = data.stats || {};
-    const subscription = workspace.subscription || {};
-    const paymentStatus = data.paymentStatus || {};
-    const billingNotes = Array.isArray(data.billingNotes) ? data.billingNotes : [];
-    box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">'
+    saBillingOverviewData = data;
+    renderSABillingOverview();
+  } catch (e) {
+    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
+  }
+}
+
+function renderSABillingOverview() {
+  const box = document.getElementById('sa-billing-result');
+  if (!box) return;
+  const data = saBillingOverviewData || {};
+  const workspace = data.workspace || {};
+  const stats = data.stats || {};
+  const subscription = workspace.subscription || {};
+  const paymentStatus = data.paymentStatus || {};
+  const billingNotes = Array.isArray(data.billingNotes) ? data.billingNotes : [];
+  const members = Array.isArray(data.members) ? data.members : [];
+  const stripe = data.stripe || {};
+  const stripeConfigured = !!data.stripeConfigured;
+  const stripeLinked = Boolean(stripe.customerId || stripe.subscriptionId || stripe.priceId);
+  const stripeIssue = data.stripeIssue || '';
+  const stripeMode = stripeIssue === 'invalid_secret_key_type'
+    ? 'Stripe mal configurado: STRIPE_SECRET_KEY está usando una pk_ en vez de una sk_.'
+    : stripeIssue === 'missing_secret_key'
+      ? 'Modo interno de pruebas. Stripe todavía no está configurado en este servidor.'
+      : stripeIssue === 'missing_webhook_secret'
+        ? 'Stripe parcial: falta STRIPE_WEBHOOK_SECRET para completar la sincronización.'
+        : (!stripeConfigured
+            ? 'Modo interno de pruebas. Stripe todavía no está configurado en este servidor.'
+            : (stripeLinked ? 'Stripe activo y vinculado' : 'Stripe configurado, pero este workspace todavía no ha completado checkout'));
+  const stripeColor = stripeIssue === 'invalid_secret_key_type' ? '#e07070' : (stripeConfigured ? '#0f9f6e' : '#7f1d1d');
+  const filteredMembers = members.filter(matchesSABillingSearch);
+  box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">'
       + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">ETAPA ACTUAL</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(formatPlanLabel(workspace)) + '</div></div>'
       + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">USUARIOS TRIAL</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(String(stats.trialUsers || 0)) + '</div></div>'
       + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">USUARIOS PAGO</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(String(stats.paidUsers || 0)) + '</div></div>'
       + '</div>'
       + '<div style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;">'
+      + '<div><strong>Stripe:</strong> <span style="color:' + stripeColor + ';font-weight:700;">' + esc(stripeMode) + '</span></div>'
       + '<div><strong>Estado comercial:</strong> ' + esc(subscription.status || 'trialing') + '</div>'
       + '<div><strong>Total usuarios:</strong> ' + esc(String(stats.totalMembers || 0)) + '</div>'
       + '<div><strong>Fin del trial:</strong> ' + esc(subscription.trialEndsAt ? new Date(subscription.trialEndsAt).toLocaleDateString('es-CO') : 'No aplica') + '</div>'
       + '<div><strong>Motivo actual:</strong> ' + esc(paymentStatus.reason || 'Sin novedad') + '</div>'
+      + '<div><strong>Stripe customer id:</strong> ' + esc(stripe.customerId || 'No conectado todavía') + '</div>'
+      + '<div><strong>Stripe subscription id:</strong> ' + esc(stripe.subscriptionId || 'No conectado todavía') + '</div>'
+      + '<div><strong>Stripe price id:</strong> ' + esc(stripe.priceId || 'No conectado todavía') + '</div>'
       + '<div><strong>Siguiente paso comercial:</strong> revisar pasos desde Trial, movimientos a Starter/Pro y cambios a Agency cuando haya operación multi-cliente.</div>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;">'
@@ -9839,7 +10085,32 @@ async function loadSABillingOverview() {
       + '<input id="sa-billing-reason" type="text" placeholder="Motivo o novedad de facturacion" value="' + esc(paymentStatus.reason || '') + '" style="width:100%;margin-top:10px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
         + '<textarea id="sa-billing-note" rows="3" placeholder="Nota interna: llamada, promesa de pago, cambio de etapa confirmado..." style="width:100%;margin-top:10px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;resize:vertical;"></textarea>'
       + '<button onclick="saveBillingOverview()" style="width:100%;margin-top:10px;padding:10px 12px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Guardar etapa comercial</button>'
+      + '<button onclick="refreshSABillingStatus()" style="width:100%;margin-top:8px;padding:10px 12px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;color:#0f172a;font-size:12px;font-weight:800;cursor:pointer;">Refrescar estado de billing</button>'
+      + (stripeConfigured && stripe.customerId
+        ? '<button onclick="openStripePortalFromAdmin()" style="width:100%;margin-top:8px;padding:10px 12px;background:rgba(94,201,160,0.12);border:1px solid rgba(94,201,160,0.2);border-radius:8px;color:#256b55;font-size:12px;font-weight:800;cursor:pointer;">Abrir portal de Stripe</button>'
+        : '')
+      + '<button onclick="resetWorkspaceTrialFromBilling()" style="width:100%;margin-top:8px;padding:10px 12px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:8px;color:#35507f;font-size:12px;font-weight:800;cursor:pointer;">Reiniciar trial del workspace</button>'
       + '<button onclick="resetOnboardingForTesting()" style="width:100%;margin-top:8px;padding:10px 12px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;color:#7f1d1d;font-size:12px;font-weight:800;cursor:pointer;">Reabrir onboarding desde cero</button>'
+      + '<div style="margin-top:12px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">'
+      + '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:10px;">'
+      + '<input id="sa-billing-search" type="text" placeholder="Buscar por correo, nombre o ID de perfil..." oninput="setSABillingSearch(this.value)" value="' + esc(getSABillingSearchQuery()) + '" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 12px;font-size:12px;color:#0f172a;outline:none;"/>'
+      + '<div style="padding:9px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;white-space:nowrap;">Usuarios del workspace</div>'
+      + '</div>'
+      + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">USUARIOS Y ETAPA</div>'
+      + (filteredMembers.length
+          ? filteredMembers.map(function(member) {
+              const user = member.user || {};
+              const memberTrial = member.role === 'member_trial';
+              const memberStatus = user.status === 'suspended' ? 'Suspendido' : (memberTrial ? 'Trial' : 'Pago');
+              return '<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);font-size:11px;color:#334155;">'
+                + '<div><div style="font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="margin-top:3px;color:#64748b;">' + esc(user.email || '') + '</div><div style="margin-top:3px;color:#94a3b8;">ID perfil: ' + esc(user.id || member.userId || '') + '</div></div>'
+                + '<div><div style="font-weight:700;color:#0f172a;">' + esc(formatSARole(member.role)) + '</div><div style="margin-top:3px;color:#64748b;">' + esc((subscription.plan || 'trial').toUpperCase()) + '</div></div>'
+                + '<div><div style="font-weight:700;color:' + (user.status === 'suspended' ? '#e07070' : '#0f172a') + ';">' + esc(memberStatus) + '</div><div style="margin-top:3px;color:#64748b;">Workspace: ' + esc(member.workspaceId || workspace.id || '') + '</div></div>'
+                + '<button onclick="resetAdminUserTrial(\'' + escapeInlineArg(member.userId || user.id || '') + '\', \'' + escapeInlineArg(member.workspaceId || workspace.id || '') + '\')" ' + (canResetTrialsFromAdmin() ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + (canResetTrialsFromAdmin() ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
+                + '</div>';
+            }).join('')
+          : '<div style="font-size:11px;color:#64748b;">No encontré usuarios con ese correo, nombre o ID.</div>')
+      + '</div>'
       + '<div style="margin-top:12px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">'
       + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">NOTAS RECIENTES</div>'
       + (billingNotes.length
@@ -9852,9 +10123,6 @@ async function loadSABillingOverview() {
             }).join('')
           : '<div style="font-size:11px;color:#64748b;">Sin notas todavia.</div>')
       + '</div>';
-  } catch (e) {
-    box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
-  }
 }
 
 async function saveBillingOverview() {
@@ -9871,6 +10139,47 @@ async function saveBillingOverview() {
   const data = await res.json();
   if (!res.ok) { showToast(data.error || 'No se pudo guardar billing'); return; }
   showToast('Etapa comercial guardada');
+  await refreshAppSession();
+  await loadSAPlatformStats();
+}
+
+async function refreshSABillingStatus() {
+  await refreshAppSession();
+  await loadSABillingOverview();
+  showToast('Billing recargado');
+}
+
+async function openStripePortalFromAdmin() {
+  try {
+    const res = await fetch('/api/billing/create-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({})
+    });
+    const data = await parseApiResponse(res);
+    if (data?.url) {
+      window.location.href = data.url;
+      return;
+    }
+    showToast('No se pudo abrir el portal de Stripe');
+  } catch (e) {
+    showToast(getFriendlyUiError(e.message));
+  }
+}
+
+async function resetWorkspaceTrialFromBilling() {
+  const ok = window.confirm('Esto reiniciará el trial del workspace actual y lo devolverá a Trial para pruebas. ¿Quieres continuar?');
+  if (!ok) return;
+  const res = await fetch('/api/admin/billing-overview/reset-trial', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({})
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'No se pudo reiniciar el trial'); return; }
+  showToast('Trial del workspace reiniciado');
   await refreshAppSession();
   await loadSAPlatformStats();
 }
@@ -10164,6 +10473,7 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async () => {
   await loadProfileOnStart();
+  await handleBillingReturnState();
   syncNotificationButton();
   refreshDashboard();
   const defaults = getDefaultGoogleAnalysisSelection();
@@ -14508,6 +14818,7 @@ async function runQACustom() {
       <button onclick="document.getElementById('plan-modal').style.display='none'" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;">✕</button>
     </div>
     <div id="plan-trial-meta" style="font-size:12px;color:var(--muted);margin-bottom:14px;">Estado del plan</div>
+    <div id="plan-billing-runtime" style="font-size:11px;color:var(--muted);margin:-6px 0 14px 0;">Revisando estado de billing...</div>
     <div style="padding:14px 16px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.16);border-radius:12px;margin-bottom:16px;">
       <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--accent);margin-bottom:6px;">TU MOMENTO ACTUAL</div>
       <div id="plan-current-name" style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px;">TRIAL</div>

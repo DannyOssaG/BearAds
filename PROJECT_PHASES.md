@@ -251,6 +251,17 @@ Avance reciente de esta fase:
 - `Score Semanal` quedó alineado con `Pro`: navegación, chips, preview, envío y suscripción ya no quedan abiertos para `Trial` o `Starter`;
 - los endpoints de email (`subscribe`, `preview`, `send-now`) ahora exigen autenticación y el feature de reportes.
 - también quedó protegido `email/subscriptions`, para que el módulo de reportes no tenga una ruta lateral abierta fuera de `Pro`.
+- Stripe ya quedó instalado como dependencia del proyecto.
+- Se montó la base real de `Fase 7`:
+  - `GET /api/billing/status`
+  - `POST /api/billing/create-checkout`
+  - `POST /api/billing/create-portal`
+  - `POST /api/stripe/webhook`
+- El modal de planes ya sabe distinguir entre `modo pruebas` y `checkout real`: si Stripe está configurado, abre Checkout o Portal; si no, sigue usando activación interna para QA.
+- Queda como tarea adicional del bloque de billing:
+  - mostrar en `Superadmin` si Stripe está configurado,
+  - exponer `plan`, `status`, `customer id` y `subscription id`,
+  - y añadir una acción simple de `refrescar estado de billing`.
 
 ## Primera lista de trabajo para cerrar Fase 2
 

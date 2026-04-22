@@ -11,6 +11,7 @@ const session = require('express-session');
 const passport = require('passport');
 const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
 const { google } = require('googleapis');
+const Stripe = require('stripe');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,6 +107,20 @@ const PRIMARY_OWNER_EMAIL = normalizeOwnerEmail(
   process.env.BEARADS_PRIMARY_OWNER_EMAIL ||
   'dannydlog@gmail.com'
 );
+const STRIPE_PRICE_ENV_MAP = {
+  starter: {
+    monthly: 'STRIPE_PRICE_STARTER_MONTHLY',
+    annual: 'STRIPE_PRICE_STARTER_ANNUAL'
+  },
+  pro: {
+    monthly: 'STRIPE_PRICE_PRO_MONTHLY',
+    annual: 'STRIPE_PRICE_PRO_ANNUAL'
+  },
+  agency: {
+    monthly: 'STRIPE_PRICE_AGENCY_MONTHLY',
+    annual: 'STRIPE_PRICE_AGENCY_ANNUAL'
+  }
+};
 
 if (!process.env.SESSION_SECRET) {
   console.warn('SESSION_SECRET not set. Generated an ephemeral secret for this process.');
@@ -121,6 +136,124 @@ function saveAppUsers() {
 
 function saveWorkspaces() {
   writeJsonFile(WORKSPACES_FILE, workspaces);
+}
+
+function getStripeConfigIssue() {
+  const secretKey = String(process.env.STRIPE_SECRET_KEY || '').trim();
+  if (!secretKey) return 'missing_secret_key';
+  if (!secretKey.startsWith('sk_')) return 'invalid_secret_key_type';
+  if (!process.env.STRIPE_WEBHOOK_SECRET) return 'missing_webhook_secret';
+  return null;
+}
+
+function getStripeClient() {
+  const issue = getStripeConfigIssue();
+  if (issue) return null;
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
+}
+
+function isStripeConfigured() {
+  return !getStripeConfigIssue();
+}
+
+function getStripePriceId(plan, interval = 'monthly') {
+  const planMap = STRIPE_PRICE_ENV_MAP[plan];
+  if (!planMap) return null;
+  const envKey = planMap[interval] || planMap.monthly;
+  return process.env[envKey] || null;
+}
+
+function getBillingBaseUrl(req) {
+  const explicit =
+    process.env.APP_BASE_URL ||
+    process.env.PUBLIC_APP_URL ||
+    process.env.RENDER_EXTERNAL_URL;
+  if (explicit) return explicit.replace(/\/$/, '');
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+function mapStripePriceToPlan(priceId) {
+  if (!priceId) return null;
+  for (const [plan, intervals] of Object.entries(STRIPE_PRICE_ENV_MAP)) {
+    for (const envKey of Object.values(intervals)) {
+      if (process.env[envKey] === priceId) return plan;
+    }
+  }
+  return null;
+}
+
+function findWorkspaceByStripeReference({ customerId, subscriptionId, workspaceId }) {
+  if (workspaceId && workspaces[workspaceId]) return ensureWorkspaceState(workspaces[workspaceId]);
+  return Object.values(workspaces).find(workspace => {
+    const sub = workspace?.subscription || {};
+    return (
+      (customerId && sub.stripeCustomerId === customerId) ||
+      (subscriptionId && sub.stripeSubscriptionId === subscriptionId)
+    );
+  }) || null;
+}
+
+function syncWorkspaceStripeSubscription(workspace, details) {
+  if (!workspace) return null;
+  const current = ensureWorkspaceState(workspace);
+  const nextPlan = details.plan || current.subscription?.plan || 'trial';
+  const nextStatus = details.status || current.subscription?.status || 'trialing';
+  current.subscription = {
+    ...(current.subscription || {}),
+    plan: nextPlan,
+    status: nextStatus,
+    stripeCustomerId: details.customerId || current.subscription?.stripeCustomerId || null,
+    stripeSubscriptionId: details.subscriptionId || current.subscription?.stripeSubscriptionId || null,
+    stripePriceId: details.priceId || current.subscription?.stripePriceId || null,
+    stripeCheckoutSessionId: details.checkoutSessionId || current.subscription?.stripeCheckoutSessionId || null,
+    activatedAt: nextStatus === 'trialing' ? current.subscription?.activatedAt || null : (current.subscription?.activatedAt || nowIso()),
+    canceledAt: nextStatus === 'canceled' ? nowIso() : (current.subscription?.canceledAt || null),
+    source: details.source || current.subscription?.source || 'stripe'
+  };
+  current.commercial = {
+    ...defaultCommercialState(),
+    ...(current.commercial || {}),
+    targetPlan: nextPlan === 'trial' ? 'trial' : nextPlan,
+    addOns: nextPlan === 'pro'
+      ? ((current.commercial?.addOns || []).filter(addOn => addOn === 'expansion'))
+      : [],
+    agencyLead: nextPlan === 'agency',
+    contactRequested: nextPlan === 'agency',
+    lastIntentAt: nowIso(),
+    lastIntentSource: details.source || 'stripe'
+  };
+  current.paymentStatus = {
+    status: nextStatus,
+    reason: details.reason || current.paymentStatus?.reason || '',
+    updatedAt: nowIso(),
+    updatedBy: details.updatedBy || 'stripe-webhook'
+  };
+  current.updatedAt = nowIso();
+  saveWorkspaces();
+  return current;
+}
+
+async function ensureStripeCustomerForWorkspace(workspace, user) {
+  const stripe = getStripeClient();
+  if (!stripe) return null;
+  if (workspace?.subscription?.stripeCustomerId) {
+    return workspace.subscription.stripeCustomerId;
+  }
+  const customer = await stripe.customers.create({
+    email: user?.email || undefined,
+    name: workspace?.name || user?.name || 'BearAds customer',
+    metadata: {
+      workspaceId: workspace.id,
+      userId: user?.id || ''
+    }
+  });
+  workspace.subscription = {
+    ...(workspace.subscription || {}),
+    stripeCustomerId: customer.id
+  };
+  workspace.updatedAt = nowIso();
+  saveWorkspaces();
+  return customer.id;
 }
 
 function saveMemberships() {
@@ -393,6 +526,51 @@ function createWorkspace(name, ownerUserId, createdBy) {
   });
   workspaces[workspaceId] = workspace;
   saveWorkspaces();
+  return workspace;
+}
+
+function resetWorkspaceTrialState(workspace, updatedBy = null, source = 'admin-trial-reset', reason = 'Trial reiniciado manualmente') {
+  if (!workspace) return null;
+  const now = nowIso();
+  const trialEndsAt = addDays(now, TRIAL_DAYS);
+  workspace.subscription = {
+    ...(workspace.subscription || {}),
+    plan: 'trial',
+    status: 'trialing',
+    trialStartedAt: now,
+    trialEndsAt,
+    activatedAt: null,
+    stripeSubscriptionId: null,
+    stripePriceId: null,
+    stripeCheckoutSessionId: null,
+    source
+  };
+  workspace.commercial = {
+    ...defaultCommercialState(),
+    ...(workspace.commercial || {}),
+    targetPlan: 'trial',
+    addOns: [],
+    agencyLead: false,
+    contactRequested: false,
+    lastIntentAt: now,
+    lastIntentSource: source
+  };
+  workspace.paymentStatus = {
+    status: 'trialing',
+    reason,
+    updatedAt: now,
+    updatedBy: updatedBy || 'system'
+  };
+  workspace.updatedAt = now;
+  workspace.billingNotes = Array.isArray(workspace.billingNotes) ? workspace.billingNotes : [];
+  workspace.billingNotes.unshift({
+    id: crypto.randomUUID(),
+    note: reason,
+    reason: 'Trial reiniciado',
+    createdAt: now,
+    createdBy: updatedBy || 'system'
+  });
+  workspace.billingNotes = workspace.billingNotes.slice(0, 20);
   return workspace;
 }
 
@@ -850,6 +1028,80 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
+});
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const stripe = getStripeClient();
+  const signature = req.headers['stripe-signature'];
+  const stripeIssue = getStripeConfigIssue();
+  if (!stripe || stripeIssue) {
+    return res.status(503).send(stripeIssue || 'stripe_not_configured');
+  }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (error) {
+    console.error('Stripe webhook signature error:', error.message);
+    return res.status(400).send(`Webhook Error: ${error.message}`);
+  }
+
+  try {
+    if (event.type === 'checkout.session.completed') {
+      const sessionObject = event.data.object;
+      const workspace = findWorkspaceByStripeReference({
+        workspaceId: sessionObject.metadata?.workspaceId,
+        customerId: sessionObject.customer,
+        subscriptionId: sessionObject.subscription
+      });
+      syncWorkspaceStripeSubscription(workspace, {
+        plan: sessionObject.metadata?.targetPlan || mapStripePriceToPlan(sessionObject.metadata?.priceId) || workspace?.subscription?.plan || 'trial',
+        status: 'active',
+        customerId: sessionObject.customer,
+        subscriptionId: sessionObject.subscription,
+        priceId: sessionObject.metadata?.priceId || null,
+        checkoutSessionId: sessionObject.id,
+        source: 'stripe-checkout',
+        updatedBy: 'stripe-webhook',
+        reason: 'Checkout completado'
+      });
+    }
+
+    if (event.type === 'customer.subscription.created' || event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
+      const subscriptionObject = event.data.object;
+      const priceId = subscriptionObject.items?.data?.[0]?.price?.id || null;
+      const planFromPrice = mapStripePriceToPlan(priceId);
+      const workspace = findWorkspaceByStripeReference({
+        workspaceId: subscriptionObject.metadata?.workspaceId,
+        customerId: subscriptionObject.customer,
+        subscriptionId: subscriptionObject.id
+      });
+      const statusMap = {
+        active: 'active',
+        trialing: 'trialing',
+        past_due: 'past_due',
+        unpaid: 'past_due',
+        canceled: 'canceled',
+        incomplete_expired: 'canceled',
+        incomplete: 'paused',
+        paused: 'paused'
+      };
+      syncWorkspaceStripeSubscription(workspace, {
+        plan: planFromPrice || workspace?.subscription?.plan || 'trial',
+        status: statusMap[subscriptionObject.status] || 'active',
+        customerId: subscriptionObject.customer,
+        subscriptionId: subscriptionObject.id,
+        priceId,
+        source: 'stripe-subscription',
+        updatedBy: 'stripe-webhook',
+        reason: 'Stripe sincronizó la suscripción'
+      });
+    }
+
+    return res.json({ received: true });
+  } catch (error) {
+    console.error('Stripe webhook handling error:', error.message);
+    return res.status(500).send('stripe_webhook_failed');
+  }
 });
 app.use(express.json({ limit: '10mb' }));
 
@@ -1531,6 +1783,56 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   });
 });
 
+app.post('/api/admin/users/:userId/reset-trial', requireUserOperations, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const targetUserId = req.params.userId;
+  const requestedWorkspaceId = String(req.body.workspaceId || '').trim();
+  const workspaceId = requestedWorkspaceId && isPlatformOwner(currentUser)
+    ? requestedWorkspaceId
+    : currentUser.membership?.workspaceId;
+  const workspace = ensureWorkspaceState(workspaces[workspaceId]);
+  const key = membershipKey(workspaceId, targetUserId);
+  const membership = memberships[key];
+  const targetUser = appUsers[targetUserId];
+  const permissions = rolePermissions(currentUser.membership?.role);
+
+  if (!workspace || !membership || !targetUser) {
+    return res.status(404).json({ error: 'Usuario o workspace no encontrado' });
+  }
+  if (!isPlatformOwner(currentUser) && !(permissions.canManageUsers || permissions.canManageBilling)) {
+    return res.status(403).json({ error: 'No puedes reiniciar el trial de este usuario' });
+  }
+  if (isPrimaryPlatformOwner(targetUser) && !isPlatformOwner(currentUser)) {
+    return res.status(403).json({ error: 'No puedes reiniciar el trial de este perfil protegido' });
+  }
+
+  resetWorkspaceTrialState(
+    workspace,
+    currentUser.id,
+    'admin-user-trial-reset',
+    `Trial reiniciado manualmente para ${targetUser.email || targetUser.name || targetUser.id}`
+  );
+
+  membership.role = 'member_trial';
+  membership.updatedAt = nowIso();
+
+  getWorkspaceMembers(workspaceId).forEach(item => {
+    if (['member_paid', 'member_trial'].includes(item.role)) {
+      item.role = 'member_trial';
+      item.updatedAt = nowIso();
+    }
+  });
+
+  saveMemberships();
+  saveWorkspaces();
+
+  res.json({
+    success: true,
+    message: 'Trial reiniciado correctamente',
+    workspace: sanitizeWorkspace(workspace)
+  });
+});
+
 app.get('/api/admin/workspaces', requirePlatformOwner, (req, res) => {
   const items = Object.values(workspaces).map(workspace => ({
     ...sanitizeWorkspace(workspace),
@@ -1590,6 +1892,7 @@ Responde en español, máximo 250 palabras, con:
 app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
   const workspace = req.user.workspace;
   if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  const stripeIssue = getStripeConfigIssue();
   const workspaceMembers = getWorkspaceMembers(workspace.id).map(membership => ({
     ...membership,
     role: getEffectiveMembershipRole(membership, workspace),
@@ -1597,6 +1900,15 @@ app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
   }));
   res.json({
     workspace: sanitizeWorkspace(workspace),
+    stripeConfigured: isStripeConfigured(),
+    stripeIssue: stripeIssue,
+    stripe: {
+      customerId: workspace.subscription?.stripeCustomerId || null,
+      subscriptionId: workspace.subscription?.stripeSubscriptionId || null,
+      priceId: workspace.subscription?.stripePriceId || null,
+      checkoutSessionId: workspace.subscription?.stripeCheckoutSessionId || null
+    },
+    members: workspaceMembers,
     stats: {
       trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
       paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length,
@@ -1682,6 +1994,177 @@ app.patch('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
     paymentStatus: workspace.paymentStatus,
     billingNotes: workspace.billingNotes || []
   });
+});
+
+app.post('/api/admin/billing-overview/reset-trial', requireBillingAccess, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(currentUser.workspace);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  resetWorkspaceTrialState(workspace, currentUser.id, 'superadmin-billing-trial-reset', 'Trial reiniciado desde billing admin');
+
+  getWorkspaceMembers(workspace.id).forEach(item => {
+    if (['member_paid', 'member_trial'].includes(item.role)) {
+      item.role = 'member_trial';
+      item.updatedAt = nowIso();
+    }
+  });
+
+  saveMemberships();
+  saveWorkspaces();
+
+  res.json({
+    success: true,
+    workspace: sanitizeWorkspace(workspace),
+    paymentStatus: workspace.paymentStatus,
+    billingNotes: workspace.billingNotes || []
+  });
+});
+
+app.get('/api/billing/status', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(currentUser.workspace);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  const stripeIssue = getStripeConfigIssue();
+  res.json({
+    success: true,
+    stripeConfigured: isStripeConfigured(),
+    stripeIssue: stripeIssue,
+    subscription: sanitizeWorkspace(workspace).subscription,
+    commercial: workspace.commercial || defaultCommercialState(),
+    supportedPlans: Object.keys(STRIPE_PRICE_ENV_MAP).map(plan => ({
+      plan,
+      monthly: Boolean(getStripePriceId(plan, 'monthly')),
+      annual: Boolean(getStripePriceId(plan, 'annual'))
+    }))
+  });
+});
+
+app.post('/api/billing/create-checkout', requireAuth, async (req, res) => {
+  const stripe = getStripeClient();
+  const stripeIssue = getStripeConfigIssue();
+  if (!stripe || stripeIssue) {
+    const issueMessage = stripeIssue === 'invalid_secret_key_type'
+      ? 'Stripe está mal configurado: usa STRIPE_SECRET_KEY con una llave secreta sk_, no una pk_.'
+      : 'Stripe no está configurado en el servidor';
+    return res.status(503).json({ error: issueMessage, code: stripeIssue || 'stripe_not_configured' });
+  }
+
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(currentUser.workspace);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  const requestedPlan = String(req.body.plan || '').trim().toLowerCase();
+  const billingCycle = String(req.body.interval || 'monthly').trim().toLowerCase();
+  const allowedPlans = ['starter', 'pro', 'agency'];
+  const allowedIntervals = ['monthly', 'annual'];
+  if (!allowedPlans.includes(requestedPlan)) return res.status(400).json({ error: 'Plan inválido para checkout' });
+  if (!allowedIntervals.includes(billingCycle)) return res.status(400).json({ error: 'Intervalo inválido' });
+
+  const priceId = getStripePriceId(requestedPlan, billingCycle);
+  if (!priceId) return res.status(400).json({ error: 'Falta configurar el price de Stripe para ese plan' });
+
+  const baseUrl = getBillingBaseUrl(req);
+  const successUrl = String(req.body.successUrl || `${baseUrl}/?billing=success`).trim();
+  const cancelUrl = String(req.body.cancelUrl || `${baseUrl}/?billing=cancel`).trim();
+  try {
+    const customerId = await ensureStripeCustomerForWorkspace(workspace, currentUser);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer: customerId,
+      allow_promotion_codes: true,
+      billing_address_collection: 'auto',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        workspaceId: workspace.id,
+        userId: currentUser.id,
+        targetPlan: requestedPlan,
+        billingCycle,
+        priceId
+      },
+      subscription_data: {
+        metadata: {
+          workspaceId: workspace.id,
+          userId: currentUser.id,
+          targetPlan: requestedPlan,
+          billingCycle,
+          priceId
+        }
+      }
+    });
+
+    workspace.subscription = {
+      ...(workspace.subscription || {}),
+      stripeCustomerId: customerId,
+      stripeCheckoutSessionId: session.id
+    };
+    workspace.commercial = {
+      ...defaultCommercialState(),
+      ...(workspace.commercial || {}),
+      targetPlan: requestedPlan,
+      lastIntentAt: nowIso(),
+      lastIntentSource: 'stripe-checkout'
+    };
+    workspace.updatedAt = nowIso();
+    saveWorkspaces();
+
+    res.json({
+      success: true,
+      url: session.url,
+      sessionId: session.id
+    });
+  } catch (error) {
+    console.error('Stripe checkout error:', error.message);
+    return res.status(502).json({
+      error: error.code === 'secret_key_required'
+        ? 'Stripe está usando una llave incorrecta. Configura STRIPE_SECRET_KEY con una sk_ válida.'
+        : 'No se pudo crear el checkout de Stripe',
+      code: error.code || 'stripe_checkout_failed'
+    });
+  }
+});
+
+app.post('/api/billing/create-portal', requireAuth, async (req, res) => {
+  const stripe = getStripeClient();
+  const stripeIssue = getStripeConfigIssue();
+  if (!stripe || stripeIssue) {
+    const issueMessage = stripeIssue === 'invalid_secret_key_type'
+      ? 'Stripe está mal configurado: usa STRIPE_SECRET_KEY con una llave secreta sk_, no una pk_.'
+      : 'Stripe no está configurado en el servidor';
+    return res.status(503).json({ error: issueMessage, code: stripeIssue || 'stripe_not_configured' });
+  }
+
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(currentUser.workspace);
+  const customerId = workspace?.subscription?.stripeCustomerId;
+  if (!workspace || !customerId) {
+    return res.status(400).json({ error: 'Todavía no existe un cliente de Stripe para este workspace' });
+  }
+
+  const baseUrl = getBillingBaseUrl(req);
+  const returnUrl = String(req.body.returnUrl || `${baseUrl}/?billing=portal`).trim();
+  try {
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl
+    });
+
+    res.json({
+      success: true,
+      url: portalSession.url
+    });
+  } catch (error) {
+    console.error('Stripe portal error:', error.message);
+    return res.status(502).json({
+      error: error.code === 'secret_key_required'
+        ? 'Stripe está usando una llave incorrecta. Configura STRIPE_SECRET_KEY con una sk_ válida.'
+        : 'No se pudo abrir el portal de Stripe',
+      code: error.code || 'stripe_portal_failed'
+    });
+  }
 });
 
 app.get('/api/debug/gsc-sites', async (req, res) => {
