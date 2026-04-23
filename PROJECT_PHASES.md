@@ -263,6 +263,291 @@ Avance reciente de esta fase:
   - exponer `plan`, `status`, `customer id` y `subscription id`,
   - y añadir una acción simple de `refrescar estado de billing`.
 
+## Checklist ejecutable de cierre final
+
+Este bloque sirve para cerrar producto con criterio real, no solo con percepción.
+
+Regla de uso:
+
+- Cada escenario debe quedar marcado como:
+  - `cerrado`
+  - `pendiente`
+  - `fallo`
+- Si una sola prueba crítica falla, la fase no se cierra.
+- La validación debe hacerse idealmente en servidor de pruebas, no solo en local.
+
+### Escenario 1 - Trial
+
+Objetivo:
+confirmar que `Trial` deja entrar al valor base sin prometer ejecución premium.
+
+Checklist:
+
+- login correcto y sesión estable;
+- onboarding abre, guarda, salta y no reaparece roto;
+- dashboard muestra mensaje correcto:
+  - `En Trial analizas`
+  - `En Starter activas agentes`
+  - `En Pro ejecutas campañas`
+- `Analizar Sitio` funciona y respeta límite diario;
+- al llegar al límite diario, aparece CTA correcto de plan;
+- `Agentes de apoyo` no abre y empuja a `Starter`;
+- `Campañas` no abre y empuja a `Pro`;
+- `Creativos` no abre y empuja a `Pro`;
+- `Score Semanal` no abre y empuja a `Pro`;
+- `Integraciones` deja conectar base, pero tabs avanzadas quedan bloqueadas;
+- `Perfil` deja ver `Plan` y `Facturas y suscripción` con copy correcto según billing real o modo pruebas;
+- no hay errores técnicos crudos visibles al usuario.
+
+Criterio de cierre:
+
+- el usuario siente valor inicial,
+- entiende por qué está en Trial,
+- y nunca entra a módulos premium como si fueran suyos.
+
+### Escenario 2 - Starter
+
+Objetivo:
+confirmar que `Starter` abre estrategia y agentes, pero no finge ejecución completa.
+
+Checklist:
+
+- login y sesión correctos;
+- dashboard refleja que ya puede activar agentes y estrategia;
+- `Plan Estratégico` funciona con contexto, mercado y plan detectado;
+- `Agentes de apoyo` abre normal;
+- filtros, búsqueda e historial de agentes funcionan;
+- `Campañas` sigue bloqueado hacia `Pro`;
+- `Creativos` sigue bloqueado hacia `Pro`;
+- `Score Semanal` sigue bloqueado hacia `Pro`;
+- tabs avanzadas de `Integraciones` siguen protegidas si dependen de `Pro`;
+- entregables e historial funcionan sin prometer descargas premium si no aplican;
+- mensajes de upgrade apuntan siempre a `Pro`, no a otro plan equivocado.
+
+Criterio de cierre:
+
+- el usuario puede pasar de análisis a estrategia,
+- usar agentes,
+- y entiende claramente que la ejecución completa vive en `Pro`.
+
+### Escenario 3 - Pro
+
+Objetivo:
+confirmar que `Pro` puede ejecutar de verdad sin bloqueos falsos.
+
+Checklist:
+
+- login y sesión correctos;
+- dashboard y modal de plan muestran `Pro` correctamente;
+- `Agentes de apoyo` abre normal;
+- `Campañas` genera campañas;
+- `Creativos & Ads` genera copies;
+- `Generación de imagen` funciona;
+- `Score Semanal` deja preview, suscripción y envío;
+- `Integraciones` deja usar Google Ads / Meta / Email según estado real;
+- entregables pueden abrirse y descargarse;
+- no aparecen badges o bloqueos de upgrade en módulos que ya pertenecen a `Pro`;
+- backend no devuelve `plan_limit` por error en rutas de `Pro`.
+
+Criterio de cierre:
+
+- `Pro` se siente como ejecución real, no como demo maquillada.
+
+### Escenario 4 - Agency
+
+Objetivo:
+confirmar que `Agency` mantiene todo lo de `Pro` y además comunica operación multi-cliente.
+
+Checklist:
+
+- onboarding / contexto en modo agencia no bloquea guardado;
+- dashboard detecta `Modo Agencia`;
+- `Plan Estratégico` detecta `Modo Agencia`;
+- modal de planes muestra narrativa multi-cliente correcta;
+- el producto habla de cartera, cuentas, usuarios y reutilización;
+- `Agency` no pierde nada de lo que ya tenía `Pro`;
+- permisos y paneles avanzados no muestran contradicciones visibles;
+- `Superadmin` puede seguir probando cambios de etapa sobre workspaces agency.
+
+Criterio de cierre:
+
+- `Agency` se siente como operación multi-cliente,
+- no solo como `Pro` con otro nombre.
+
+### Escenario 5 - Stripe y billing real
+
+Objetivo:
+cerrar el flujo comercial real de punta a punta.
+
+Checklist:
+
+- Stripe configurado con:
+  - `sk_...`
+  - `whsec_...`
+  - `price_...` mensual y anual por plan;
+- `Plan Modal` deja elegir:
+  - `mensual`
+  - `anual`
+- checkout abre con el plan correcto;
+- checkout abre con el intervalo correcto;
+- al volver con `billing=success`, la app sincroniza el plan;
+- `billing=cancel` no rompe estado;
+- `billing=portal` refresca estado correctamente;
+- `Superadmin > Billing` muestra:
+  - `customer id`
+  - `subscription id`
+  - `price id`
+  - estado comercial;
+- el rol de usuario se actualiza:
+  - `member_trial`
+  - `member_paid`
+- `Perfil` muestra:
+  - `Plan`
+  - `Facturas y suscripción`
+- `Facturas y suscripción` abre Stripe portal cuando corresponde;
+- downgrade abre modal de confirmación y retención;
+- downgrade a un plan menor o a trial no ocurre “de golpe” sin confirmación;
+- upgrade, downgrade y cancelación dejan el estado correcto en UI y backend.
+
+Criterio de cierre:
+
+- el sistema comercial deja de depender de activación manual para validarse.
+
+### Escenario 6 - Superadmin y pruebas operativas
+
+Objetivo:
+confirmar que el entorno interno sirve para probar sin romper la experiencia final.
+
+Checklist:
+
+- `Superadmin` abre solo para perfiles autorizados;
+- tabs visibles coinciden con permisos;
+- `Usuarios` deja buscar por:
+  - correo
+  - nombre
+  - ID de perfil;
+- `Billing` deja buscar usuarios sin perder foco;
+- `Reiniciar trial` por usuario funciona;
+- `Reiniciar trial del workspace` funciona;
+- `Reabrir onboarding desde cero` funciona;
+- cambio manual de etapa comercial se guarda;
+- refresh de billing funciona;
+- notas internas de billing se guardan;
+- no hay botones muertos en `Superadmin`.
+
+Criterio de cierre:
+
+- el equipo interno puede probar todo el flujo sin tocar datos manualmente en archivos.
+
+## Cierre formal recomendado
+
+Orden inmediato para cerrar fases:
+
+1. ejecutar completo el checklist de `Trial`;
+2. ejecutar completo el checklist de `Starter`;
+3. ejecutar completo el checklist de `Pro`;
+4. ejecutar completo el checklist de `Agency`;
+5. ejecutar completo el checklist de `Stripe y billing real`;
+6. ejecutar completo el checklist de `Superadmin`;
+7. corregir hallazgos abiertos;
+8. declarar cerradas:
+  - `Fase 2`
+  - `Fase 3`
+  - `Fase 4`
+  - `Fase 5`
+  - `Fase 6`
+
+Condición:
+
+si billing real queda estable y la QA por planes sale limpia, la base web puede considerarse lista para pasar a la etapa móvil.
+
+## 2026-04-23 — Resultado real de la ronda final QA
+
+### Hallazgo corregido
+
+- Se encontró y corrigió un bug real en `Superadmin > Billing`:
+  - al cambiar manualmente un workspace entre `Trial` y `Starter/Pro`, el `workspace.subscription` sí cambiaba,
+  - pero las membresías no se sincronizaban en esa misma ruta,
+  - por eso `/api/session` podía seguir mostrando `member_paid` o `member_trial` aunque el plan ya hubiera cambiado.
+- Fix aplicado:
+  - `app.patch('/api/admin/billing-overview')` ahora ejecuta `syncWorkspaceMembershipPlanRoles(workspace)` antes de persistir cambios.
+- Resultado validado:
+  - `Trial` devuelve `membership.role = member_trial`
+  - `Starter` devuelve `membership.role = member_paid`
+
+### Resultado por escenario
+
+#### Trial
+
+- Validado con servidor local corriendo y sesión autenticada real.
+- Confirmado:
+  - `/api/session` devuelve `plan: trial`, `status: trialing`, `role: member_trial`
+  - `/api/gads/test` responde `plan_limit`
+  - `/api/email/preview` responde `plan_limit`
+
+Estado:
+- cerrado en backend para este bloque.
+
+#### Starter
+
+- Validado con servidor local y sesión autenticada real.
+- Confirmado:
+  - `/api/session` devuelve `plan: starter`, `status: active`, `role: member_paid`
+  - `/api/billing/status` refleja `stripeConfigured: true`
+  - `/api/admin/billing-overview` refleja `customerId`, `subscriptionId`, `priceId`
+
+Estado:
+- cerrado en backend para este bloque.
+
+#### Pro
+
+- Validado temporalmente cambiando el workspace desde `Superadmin > Billing`.
+- Confirmado:
+  - `/api/session` devuelve `plan: pro`, `status: active`
+  - `/api/gads/test` deja de bloquear por plan y entra al flujo real de Google Ads
+  - `/api/email/preview` deja de bloquear por plan y genera HTML del reporte
+
+Estado:
+- cerrado en backend para este bloque.
+
+#### Agency
+
+- Validado temporalmente cambiando el workspace desde `Superadmin > Billing`.
+- Confirmado:
+  - mantiene el comportamiento base de `Pro`
+  - no pierde acceso a rutas que ya pertenecen a ejecución premium
+
+Riesgo residual:
+- la parte diferencial de `Agency` sigue siendo más de producto/UX/comunicación que de una capa técnica separada y profunda.
+
+Estado:
+- funcional para esta etapa, pero todavía no “enterprise-complete”.
+
+#### Stripe y billing real
+
+- Validado con checkout de prueba aprobado en Stripe.
+- Confirmado:
+  - `create-checkout` genera sesión real
+  - `create-portal` devuelve portal real
+  - `billing-overview` y `billing/status` muestran `customer`, `subscription` y `price`
+  - el workspace quedó sincronizado después del checkout
+  - el rol del miembro también quedó alineado al plan pagado
+
+Estado:
+- operativo para cierre web.
+
+#### Superadmin
+
+- Validado con endpoints y panel reales.
+- Confirmado:
+  - `Billing` lista usuarios y busca por correo / nombre / ID
+  - `Reiniciar trial` funciona
+  - cambios manuales de etapa comercial persisten
+  - notas de billing quedan trazadas
+
+Estado:
+- operativo para QA y soporte interno.
+
 ## Primera lista de trabajo para cerrar Fase 2
 
 - Unificar branding legado (`MIRTHOS`, `nexusai`) a `BearAds`.

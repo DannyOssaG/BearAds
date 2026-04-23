@@ -1800,6 +1800,9 @@ tr:hover td { background: var(--surface2); }
     <span style="font-size:15px;font-weight:800;background:linear-gradient(90deg,#7ba7e8,#5ec9a0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">BearAds</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
+    <button onclick="openMobileExtrasModal()" style="width:34px;height:34px;background:rgba(255,255,255,0.82);border:1px solid rgba(15,23,42,0.08);border-radius:10px;cursor:pointer;color:var(--text2);display:flex;align-items:center;justify-content:center;padding:0;" title="Soporte y extras" aria-label="Soporte y extras">
+      <img src="/soporte-y-extras.svg" alt="" aria-hidden="true" style="width:19px;height:19px;object-fit:contain;display:block;"/>
+    </button>
     <button onclick="openDirectorChat()" style="width:34px;height:34px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:8px;cursor:pointer;font-size:16px;">🧠</button>
     <button onclick="openProfilePanel()" style="width:34px;height:34px;background:linear-gradient(135deg,#7ba7e8,#5ec9a0);border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:700;color:#ffffff;" id="mobile-avatar">AC</button>
   </div>
@@ -1823,6 +1826,39 @@ tr:hover td { background: var(--surface2); }
     <span class="nav-icon">⊕</span>Conectar
   </button>
 </nav>
+
+<div id="mobile-extras-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.48);z-index:1010;align-items:flex-start;justify-content:flex-end;padding:68px 14px 14px;">
+  <div style="width:min(320px,92vw);background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 70px rgba(15,23,42,0.22);padding:14px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:14px;font-weight:800;color:var(--text);">Soporte y Extras</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Accesos rápidos para ayuda, soporte estratégico y módulos complementarios.</div>
+      </div>
+      <button onclick="closeModal('mobile-extras-modal')" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="display:grid;gap:8px;">
+      <button type="button" onclick="openMobileExtraDestination('agents', { feature: 'agentsAccess', targetPlan: 'starter', message: 'Agentes de apoyo está disponible desde BearAds Starter.' })" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
+        <div style="font-size:12px;font-weight:800;color:var(--text);">◎ Agentes de apoyo</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Profundiza tareas concretas después del análisis o del plan.</div>
+      </button>
+      <button type="button" onclick="openMobileExtraDestination('strategy')" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
+        <div style="font-size:12px;font-weight:800;color:var(--text);">◇ Estrategia rápida</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Abre ideas guiadas y salidas rápidas sin pasar por todo el flujo.</div>
+      </button>
+      <button id="mobile-extra-weekly" type="button" onclick="openMobileExtraDestination('weekly-score', { feature: 'downloadReports', targetPlan: 'pro', message: 'Score Semanal está disponible desde BearAds Pro.' })" style="padding:12px;background:var(--surface2);border:1px solid rgba(251,191,36,0.18);border-radius:12px;text-align:left;cursor:pointer;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="font-size:12px;font-weight:800;color:var(--text);">📧 Score Semanal</div>
+          <span id="mobile-extra-weekly-badge" style="display:none;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;background:rgba(251,191,36,0.14);color:#9a6700;font-size:10px;font-weight:800;">PRO</span>
+        </div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Reportes automáticos, vista previa y envío por correo.</div>
+      </button>
+      <button type="button" onclick="openMobileExtraDestination('learning')" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
+        <div style="font-size:12px;font-weight:800;color:var(--text);">◉ Aprendizaje</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Guías, tutoriales, historial y ayuda contextual para seguir avanzando.</div>
+      </button>
+    </div>
+  </div>
+</div>
 
 <div class="app">
 
@@ -7743,8 +7779,35 @@ function closeModal(id) {
   var el = document.getElementById(id);
   if (el) el.style.display = 'none';
 }
+
+function openMobileExtrasModal() {
+  refreshMobileExtrasMenu();
+  openModal('mobile-extras-modal');
+}
+
+function openMobileExtraDestination(page, options) {
+  closeModal('mobile-extras-modal');
+  if (options && options.feature && !canUseFeature(options.feature)) {
+    var targetPlan = options.targetPlan || 'starter';
+    var message = options.message || 'Esta función requiere un plan superior.';
+    openModuleUpgradeFlow(options.feature, targetPlan, message)();
+    return;
+  }
+  showPage(page);
+}
+
+function refreshMobileExtrasMenu() {
+  var weeklyBtn = document.getElementById('mobile-extra-weekly');
+  if (weeklyBtn) {
+    var canAccessWeeklyScore = canUseFeature('downloadReports');
+    weeklyBtn.style.opacity = canAccessWeeklyScore ? '1' : '0.7';
+    weeklyBtn.style.borderColor = canAccessWeeklyScore ? 'rgba(251,191,36,0.18)' : 'rgba(251,191,36,0.12)';
+    var badge = document.getElementById('mobile-extra-weekly-badge');
+    if (badge) badge.style.display = canAccessWeeklyScore ? 'none' : 'inline-flex';
+  }
+}
 document.addEventListener('click', e => {
-  ['onboarding-modal','profile-modal','plan-modal','plan-downgrade-modal','director-chat-modal','superadmin-modal','history-item-modal'].forEach(id => {
+  ['onboarding-modal','profile-modal','plan-modal','plan-downgrade-modal','mobile-extras-modal','director-chat-modal','superadmin-modal','history-item-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el && e.target === el) closeModal(id);
   });
@@ -7762,6 +7825,7 @@ let appSession = null;
 let saWorkspaceData = null;
 let billingStatusCache = null;
 let planDowngradeState = null;
+let planBillingInterval = DB.get('plan_billing_interval', 'monthly');
 
 const PLAN_RANK = {
   trial: 0,
@@ -7873,6 +7937,33 @@ function getReadablePlanName(plan) {
     pro: 'BearAds Pro',
     agency: 'BearAds Agency'
   })[String(plan || 'trial').toLowerCase()] || 'BearAds';
+}
+
+function setPlanBillingInterval(interval) {
+  planBillingInterval = interval === 'annual' ? 'annual' : 'monthly';
+  DB.set('plan_billing_interval', planBillingInterval);
+  var monthlyBtn = document.getElementById('plan-interval-monthly');
+  var annualBtn = document.getElementById('plan-interval-annual');
+  [monthlyBtn, annualBtn].forEach(function(btn) {
+    if (!btn) return;
+    var active = btn.dataset.interval === planBillingInterval;
+    btn.style.background = active ? 'var(--accent)' : 'var(--surface)';
+    btn.style.color = active ? '#fff' : 'var(--text2)';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  });
+  var starterPrice = document.getElementById('plan-price-starter');
+  var proPrice = document.getElementById('plan-price-pro');
+  var agencyPrice = document.getElementById('plan-price-agency');
+  var starterCopy = document.getElementById('plan-copy-starter');
+  var proCopy = document.getElementById('plan-copy-pro');
+  var agencyCopy = document.getElementById('plan-copy-agency');
+  if (starterPrice) starterPrice.textContent = planBillingInterval === 'annual' ? '$39' : '$49';
+  if (proPrice) proPrice.textContent = planBillingInterval === 'annual' ? '$79' : '$99';
+  if (agencyPrice) agencyPrice.textContent = planBillingInterval === 'annual' ? '$199' : '$249';
+  if (starterCopy) starterCopy.textContent = planBillingInterval === 'annual' ? '1 workspace · 2 usuarios · agentes + estrategia completa · facturado anual' : '1 workspace · 2 usuarios · agentes + estrategia completa';
+  if (proCopy) proCopy.textContent = planBillingInterval === 'annual' ? '3 workspaces · 5 usuarios · campañas, Ads, creativos y PDF · facturado anual' : '3 workspaces · 5 usuarios · campañas, Ads, creativos y PDF';
+  if (agencyCopy) agencyCopy.textContent = planBillingInterval === 'annual' ? '15 workspaces · usuarios ilimitados · multi-cliente y cartera · facturado anual' : '15 workspaces · usuarios ilimitados · multi-cliente y cartera';
+  updatePlanModalSelection();
 }
 
 async function fetchAppSession() {
@@ -8411,7 +8502,7 @@ function updatePlanModalSelection() {
         + ' a ' + planMap[planModalSelection].title + '. '
         + (isDowngrade
           ? 'Antes de confirmarlo, te mostraremos opciones para ayudarte y no perder tu avance.'
-          : planMap[planModalSelection].copy);
+          : planMap[planModalSelection].copy + ' Cobro ' + (planBillingInterval === 'annual' ? 'anual.' : 'mensual.'));
     }
   }
 
@@ -8429,10 +8520,10 @@ function updatePlanModalSelection() {
       upgradeBtn.textContent = planModalSelection === 'trial'
         ? '⬇ Revisar cambio a Trial'
         : planModalSelection === 'agency'
-          ? '🚀 Elegir Agency'
+          ? ('🚀 Elegir Agency ' + (planBillingInterval === 'annual' ? 'anual' : 'mensual'))
           : planModalSelection === 'starter'
-            ? (isDowngrade ? '⬇ Revisar cambio a Starter' : '🚀 Elegir Starter')
-            : (needsExpansion ? '🌍 Elegir Pro + Expansion' : (isDowngrade ? '⬇ Revisar cambio a Pro' : '🚀 Elegir Pro'));
+            ? (isDowngrade ? '⬇ Revisar cambio a Starter' : ('🚀 Elegir Starter ' + (planBillingInterval === 'annual' ? 'anual' : 'mensual')))
+            : (needsExpansion ? ('🌍 Elegir Pro + Expansion ' + (planBillingInterval === 'annual' ? 'anual' : 'mensual')) : (isDowngrade ? '⬇ Revisar cambio a Pro' : ('🚀 Elegir Pro ' + (planBillingInterval === 'annual' ? 'anual' : 'mensual'))));
       upgradeBtn.onclick = function() { handlePlanUpgradeAction(planModalSelection === 'pro' && needsExpansion ? 'expansion' : planModalSelection); };
     }
   }
@@ -9023,19 +9114,97 @@ async function updateProfileBillingCard() {
   clearElement(actions);
   const billing = await fetchBillingStatus(true);
   const sub = billing?.subscription || {};
+  const planLabel = getReadablePlanName(sub?.plan || 'trial');
+
+  function createProfileBillingAction(config) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.onclick = config.onClick;
+    button.style.cssText = 'width:100%;padding:12px;background:' + (config.background || 'var(--surface)') + ';border:1px solid ' + (config.border || 'var(--border)') + ';border-radius:10px;text-align:left;cursor:pointer;';
+    button.innerHTML = ''
+      + '<div style="font-size:12px;font-weight:800;color:' + (config.titleColor || 'var(--text)') + ';">' + esc(config.title) + '</div>'
+      + '<div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">' + esc(config.copy) + '</div>';
+    return button;
+  }
 
   if (!billing?.stripeConfigured) {
-    runtime.textContent = 'Pagos en modo interno de pruebas. Cuando Stripe quede activo, aquí podrás gestionar pagos y descargar facturas.';
+    runtime.textContent = 'Aquí puedes revisar tu plan actual y, cuando Stripe esté activo, gestionar tu suscripción y descargar facturas.';
+    actions.style.display = 'grid';
+    actions.style.gridTemplateColumns = '1fr';
+    actions.appendChild(createProfileBillingAction({
+      title: '⚡ Plan',
+      copy: 'Tu etapa actual: ' + planLabel + '. Revisa qué incluye y si quieres mejorar tu plan.',
+      onClick: function() {
+        closeModal('profile-modal');
+        openPlanPanel();
+      },
+      background: 'rgba(123,167,232,0.08)',
+      border: 'rgba(123,167,232,0.18)',
+      titleColor: '#35507f'
+    }));
+    actions.appendChild(createProfileBillingAction({
+      title: '🧾 Facturas y suscripción',
+      copy: 'Stripe todavía no está activo en este servidor. Cuando quede listo, aquí podrás ver cobros, gestionar la suscripción y descargar facturas.',
+      onClick: function() {
+        showToast('Stripe todavía no está activo en este servidor');
+      },
+      background: 'rgba(15,23,42,0.03)',
+      border: 'rgba(15,23,42,0.08)'
+    }));
     return;
   }
 
   if (!sub?.stripeCustomerId) {
-    runtime.textContent = 'Stripe está listo, pero este workspace todavía no tiene una suscripción activa. Cuando hagas checkout, aquí aparecerán tus pagos y facturas.';
+    runtime.textContent = 'Tu workspace ya puede activar facturación real. Desde aquí puedes revisar el plan y luego gestionar la suscripción cuando completes el checkout.';
+    actions.style.display = 'grid';
+    actions.style.gridTemplateColumns = '1fr';
+    actions.appendChild(createProfileBillingAction({
+      title: '⚡ Plan',
+      copy: 'Tu etapa actual: ' + planLabel + '. Revisa tu plan, compáralo y actívalo cuando quieras.',
+      onClick: function() {
+        closeModal('profile-modal');
+        openPlanPanel();
+      },
+      background: 'rgba(123,167,232,0.08)',
+      border: 'rgba(123,167,232,0.18)',
+      titleColor: '#35507f'
+    }));
+    actions.appendChild(createProfileBillingAction({
+      title: '🧾 Facturas y suscripción',
+      copy: 'Todavía no hay una suscripción activa. Después del checkout podrás ver pagos, gestionar la suscripción y descargar facturas.',
+      onClick: function() {
+        closeModal('profile-modal');
+        openPlanPanel();
+      },
+      background: 'rgba(94,201,160,0.06)',
+      border: 'rgba(94,201,160,0.16)',
+      titleColor: '#256b55'
+    }));
     return;
   }
 
-  runtime.textContent = 'Tu facturación se gestiona desde Stripe. Allí puedes actualizar método de pago, ver cobros y descargar facturas.';
-  actions.appendChild(createActionButton('💳 Gestionar pagos y facturas', openUserBillingPortal, 'padding:10px 12px;background:rgba(94,201,160,0.12);border:1px solid rgba(94,201,160,0.2);border-radius:8px;color:#256b55;font-size:12px;font-weight:800;cursor:pointer;'));
+  runtime.textContent = 'Gestiona desde aquí tu plan actual y la parte de facturación: método de pago, suscripción y facturas.';
+  actions.style.display = 'grid';
+  actions.style.gridTemplateColumns = '1fr';
+  actions.appendChild(createProfileBillingAction({
+    title: '⚡ Plan',
+    copy: 'Tu plan actual es ' + planLabel + '. Revisa qué incluye o si quieres mejorar tu etapa.',
+    onClick: function() {
+      closeModal('profile-modal');
+      openPlanPanel();
+    },
+    background: 'rgba(123,167,232,0.08)',
+    border: 'rgba(123,167,232,0.18)',
+    titleColor: '#35507f'
+  }));
+  actions.appendChild(createProfileBillingAction({
+    title: '🧾 Facturas y suscripción',
+    copy: 'Abre Stripe para gestionar pagos, método de cobro, suscripción y descargar tus facturas.',
+    onClick: openUserBillingPortal,
+    background: 'rgba(94,201,160,0.08)',
+    border: 'rgba(94,201,160,0.18)',
+    titleColor: '#256b55'
+  }));
 }
 
 async function openUserBillingPortal() {
@@ -9663,6 +9832,16 @@ function openPlanPanel() {
     if (billingRuntime) {
       fetchBillingStatus().then(function(billing) {
         billingRuntime.textContent = getBillingRuntimeCopy(billing);
+        var annualBtn = document.getElementById('plan-interval-annual');
+        var hasAnnual = Array.isArray(billing?.supportedPlans) && billing.supportedPlans.some(function(plan) { return plan.annual; });
+        if (annualBtn) {
+          annualBtn.disabled = !hasAnnual;
+          annualBtn.style.opacity = hasAnnual ? '1' : '0.6';
+          annualBtn.style.cursor = hasAnnual ? 'pointer' : 'not-allowed';
+          if (!hasAnnual && planBillingInterval === 'annual') {
+            setPlanBillingInterval('monthly');
+          }
+        }
       });
     }
     planModalSelection = commercial.targetPlan || (isAgencyMode ? 'agency' : (currentCode === 'trial' ? 'starter' : 'pro'));
@@ -9677,6 +9856,7 @@ function openPlanPanel() {
       });
       portalBtn.onclick = openUserBillingPortal;
     }
+    setPlanBillingInterval(planBillingInterval);
     updatePlanModalSelection();
   } catch (error) {
     console.error('openPlanPanel error', error);
@@ -9758,7 +9938,7 @@ async function executePlanAction(action, options) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ plan: 'starter', interval: 'monthly' })
+          body: JSON.stringify({ plan: 'starter', interval: planBillingInterval })
         });
         const data = await parseApiResponse(res);
         window.location.href = data.url;
@@ -9824,7 +10004,7 @@ async function executePlanAction(action, options) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ plan: 'pro', interval: 'monthly' })
+          body: JSON.stringify({ plan: 'pro', interval: planBillingInterval })
         });
         const data = await parseApiResponse(res);
         window.location.href = data.url;
@@ -9852,7 +10032,7 @@ async function executePlanAction(action, options) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
-          body: JSON.stringify({ plan: 'agency', interval: 'monthly' })
+          body: JSON.stringify({ plan: 'agency', interval: planBillingInterval })
         });
         const data = await parseApiResponse(res);
         window.location.href = data.url;
@@ -15150,6 +15330,16 @@ async function runQACustom() {
     </div>
     <div id="plan-trial-meta" style="font-size:12px;color:var(--muted);margin-bottom:14px;">Estado del plan</div>
     <div id="plan-billing-runtime" style="font-size:11px;color:var(--muted);margin:-6px 0 14px 0;">Revisando estado de billing...</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:var(--text);">Forma de cobro</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">Elige si quieres ver el valor mensual o el facturado anual con descuento.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="plan-interval-monthly" data-interval="monthly" type="button" onclick="setPlanBillingInterval('monthly')" style="padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">Mensual</button>
+        <button id="plan-interval-annual" data-interval="annual" type="button" onclick="setPlanBillingInterval('annual')" style="padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">Anual</button>
+      </div>
+    </div>
     <div style="padding:14px 16px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.16);border-radius:12px;margin-bottom:16px;">
       <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--accent);margin-bottom:6px;">TU MOMENTO ACTUAL</div>
       <div id="plan-current-name" style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px;">TRIAL</div>
@@ -15164,20 +15354,20 @@ async function runQACustom() {
       <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">15 días · diagnóstico base · conecta Google y Tracking</div>
     </div>
       <div id="plan-card-starter" onclick="selectPlanOption('starter')" style="background:rgba(123,167,232,0.07);border:2px solid var(--accent);border-radius:10px;padding:14px;position:relative;cursor:pointer;transition:all 0.15s;">
-        <div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--accent);color:#ffffff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;">NEGOCIO</div>
+        <div style="position:absolute;top:-9px;left:50%;transform:translateX(-50%);background:var(--accent);color:#ffffff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:8px;">1 MARCA</div>
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">STARTER</div>
-        <div style="font-size:22px;font-weight:800;color:var(--accent);">$49</div>
-        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">1 workspace · 2 usuarios · agentes + estrategia completa</div>
+        <div id="plan-price-starter" style="font-size:22px;font-weight:800;color:var(--accent);">$49</div>
+        <div id="plan-copy-starter" style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">1 workspace · 2 usuarios · agentes + estrategia completa</div>
       </div>
       <div id="plan-card-pro" onclick="selectPlanOption('pro')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.15s;">
         <div style="font-size:12px;font-weight:700;margin-bottom:6px;">PRO</div>
-        <div style="font-size:22px;font-weight:800;color:#0f9f6e;">$99</div>
-        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">3 workspaces · 5 usuarios · campañas, Ads, creativos y PDF</div>
+        <div id="plan-price-pro" style="font-size:22px;font-weight:800;color:#0f9f6e;">$99</div>
+        <div id="plan-copy-pro" style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">3 workspaces · 5 usuarios · campañas, Ads, creativos y PDF</div>
       </div>
       <div id="plan-card-agency" onclick="selectPlanOption('agency')" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all 0.15s;">
         <div style="font-size:12px;font-weight:700;margin-bottom:6px;">AGENCY</div>
-        <div style="font-size:22px;font-weight:800;color:#d4a843;">$249</div>
-        <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">15 workspaces · usuarios ilimitados · multi-cliente y cartera</div>
+        <div id="plan-price-agency" style="font-size:22px;font-weight:800;color:#d4a843;">$249</div>
+        <div id="plan-copy-agency" style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:6px;">15 workspaces · usuarios ilimitados · multi-cliente y cartera</div>
       </div>
     </div>
     <div id="plan-expansion-addon" style="display:none;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.16);border-radius:10px;padding:14px;margin-bottom:14px;">

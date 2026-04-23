@@ -1334,8 +1334,17 @@ app.get('/auth/status', (req, res) => {
 
 app.get('/api/session', requireAuth, (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const membership = currentUser.membership || null;
-  const workspace = sanitizeWorkspace(currentUser.workspace);
+  const effectiveWorkspace = currentUser.workspace ? ensureWorkspaceState(currentUser.workspace) : null;
+  if (effectiveWorkspace) {
+    syncWorkspaceMembershipPlanRoles(effectiveWorkspace);
+  }
+  const membership = currentUser.membership
+    ? {
+        ...currentUser.membership,
+        role: getEffectiveMembershipRole(currentUser.membership, effectiveWorkspace)
+      }
+    : null;
+  const workspace = sanitizeWorkspace(effectiveWorkspace);
   res.json({
     authenticated: true,
     user: sanitizeUser(currentUser),
@@ -2076,6 +2085,7 @@ app.patch('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
   }
 
   workspace.updatedAt = nowIso();
+  syncWorkspaceMembershipPlanRoles(workspace);
   saveWorkspaces();
 
   res.json({
