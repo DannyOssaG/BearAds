@@ -4196,6 +4196,9 @@ function getFriendlyUiError(message) {
   if (text.includes('api key') || text.includes('x-api-key') || text.includes('anthropic')) {
     return 'La conexión con la IA no está disponible en este momento.';
   }
+  if (text.includes('price configurado') || text.includes('price_') || text.includes('parameter_invalid_integer')) {
+    return 'Stripe tiene un price mal configurado. Debe ser un ID price_..., no un valor numérico.';
+  }
   if (text.includes('failed to fetch') || text.includes('network') || text.includes('servidor')) {
     return 'No pude conectarme con el servidor.';
   }
@@ -7741,7 +7744,7 @@ function closeModal(id) {
   if (el) el.style.display = 'none';
 }
 document.addEventListener('click', e => {
-  ['onboarding-modal','profile-modal','plan-modal','director-chat-modal','superadmin-modal','history-item-modal'].forEach(id => {
+  ['onboarding-modal','profile-modal','plan-modal','plan-downgrade-modal','director-chat-modal','superadmin-modal','history-item-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el && e.target === el) closeModal(id);
   });
@@ -7758,6 +7761,83 @@ DB.set('user_profile', null);
 let appSession = null;
 let saWorkspaceData = null;
 let billingStatusCache = null;
+let planDowngradeState = null;
+
+const PLAN_RANK = {
+  trial: 0,
+  starter: 1,
+  pro: 2,
+  agency: 3
+};
+
+const PLAN_DOWNGRADE_REASONS = {
+  expensive: {
+    title: 'Quiero reducir costo por ahora',
+    copy: 'Podemos ayudarte a concentrarte en los módulos que más retorno te dan antes de bajar la etapa.',
+    tutorialLabel: 'Cómo priorizar lo que más retorno da',
+    tutorialPrompt: 'Enséñame a priorizar BearAds para obtener resultados con el menor esfuerzo y costo posible.',
+    checklist: [
+      'Revisar qué módulo sí te está dando valor hoy.',
+      'Concentrarte en una sola ruta: análisis, estrategia o ejecución.',
+      'Dejar el resto como segunda fase para no pagar por capacidad que aún no usas.'
+    ]
+  },
+  usage: {
+    title: 'Siento que no lo estoy usando suficiente',
+    copy: 'Antes de bajar la etapa, te puedo mostrar una ruta simple para sacarle más provecho en menos tiempo.',
+    tutorialLabel: 'Ruta rápida para aprovechar BearAds',
+    tutorialPrompt: 'Dame una ruta rápida para usar BearAds mejor esta semana con los módulos que ya tengo activos.',
+    checklist: [
+      'Completar contexto de negocio y mercado.',
+      'Hacer un análisis nuevo con datos reales o URL actualizada.',
+      'Convertir ese análisis en plan y siguiente acción.'
+    ]
+  },
+  complexity: {
+    title: 'Se me hizo complejo o no supe por dónde seguir',
+    copy: 'No queremos perderte por complejidad. Podemos enseñarte el flujo exacto paso a paso.',
+    tutorialLabel: 'Tutorial paso a paso',
+    tutorialPrompt: 'Explícame paso a paso cómo usar BearAds desde análisis hasta activación sin perderme.',
+    checklist: [
+      'Entrar por Dashboard y seguir la Base de Crecimiento.',
+      'Usar primero análisis y estrategia antes de campañas.',
+      'Activar módulos avanzados solo cuando ya haya contexto.'
+    ]
+  },
+  features: {
+    title: 'No encontré una función que esperaba',
+    copy: 'Cuéntanos qué te falta y te mostramos si ya existe, cómo se activa o cuál es la mejor ruta para lograrlo.',
+    tutorialLabel: 'Ver guía de módulos y activación',
+    tutorialPrompt: 'Muéstrame qué módulo de BearAds resuelve mi necesidad y cómo activarlo paso a paso.',
+    checklist: [
+      'Validar si esa función vive en otro módulo.',
+      'Revisar si depende de conexión o plan.',
+      'Ver una guía rápida antes de bajar de etapa.'
+    ]
+  },
+  support: {
+    title: 'Necesito ayuda más guiada',
+    copy: 'Podemos llevarte a una guía o dejar lista una pregunta al asistente para que no te quedes solo en el proceso.',
+    tutorialLabel: 'Abrir guía con ayuda',
+    tutorialPrompt: 'Ayúdame a usar BearAds mejor según mi negocio y dime por dónde debo continuar.',
+    checklist: [
+      'Abrir Aprendizaje con una guía concreta.',
+      'Dejar una pregunta ya redactada para el asistente.',
+      'Volver al plan con una ruta más clara.'
+    ]
+  },
+  pause: {
+    title: 'Solo quiero pausar por ahora',
+    copy: 'Si es una pausa temporal, podemos dejarte una ruta corta para retomar después sin perder el hilo.',
+    tutorialLabel: 'Qué dejar listo antes de pausar',
+    tutorialPrompt: 'Dame un checklist corto de qué debo dejar listo en BearAds antes de pausar o bajar de plan.',
+    checklist: [
+      'Guardar contexto del negocio y mercado.',
+      'Dejar un plan o entregable base listo.',
+      'Registrar cuál es el siguiente paso cuando regreses.'
+    ]
+  }
+};
 
 function formatPlanLabel(workspace) {
   const sub = workspace?.subscription || {};
@@ -7776,6 +7856,23 @@ function formatPlanLabel(workspace) {
   return Array.isArray(commercial.addOns) && commercial.addOns.includes('expansion')
     ? base + ' + EXP'
     : base;
+}
+
+function getPlanRank(plan) {
+  return PLAN_RANK[String(plan || 'trial').toLowerCase()] ?? 0;
+}
+
+function isPlanDowngrade(currentPlan, nextPlan) {
+  return getPlanRank(nextPlan) < getPlanRank(currentPlan);
+}
+
+function getReadablePlanName(plan) {
+  return ({
+    trial: 'BearAds Trial',
+    starter: 'BearAds Starter',
+    pro: 'BearAds Pro',
+    agency: 'BearAds Agency'
+  })[String(plan || 'trial').toLowerCase()] || 'BearAds';
 }
 
 async function fetchAppSession() {
@@ -8282,6 +8379,7 @@ function updatePlanModalSelection() {
   const workspace = appSession?.workspace || {};
   const onboarding = getWorkspaceOnboarding();
   const currentCode = getCurrentPlanCode(workspace);
+  const isDowngrade = isPlanDowngrade(currentCode, planModalSelection) || planModalSelection === 'trial';
   const needsExpansion = Boolean(planModalSelection === 'pro' && onboarding?.knowledgeLevel !== 'agencia' && (onboarding?.growthScope === 'regional' || onboarding?.growthScope === 'global' || onboarding?.targetRegion));
   const compare = document.getElementById('plan-compare-copy');
   const upgradeBtn = document.getElementById('plan-upgrade-btn');
@@ -8306,7 +8404,14 @@ function updatePlanModalSelection() {
     if (planModalSelection === currentCode && !(needsExpansion && !(Array.isArray(workspace?.commercial?.addOns) && workspace.commercial.addOns.includes('expansion')))) {
       compare.textContent = 'Ya estás en esta etapa. Si quieres volver a Trial para pruebas, puedes hacerlo aquí o desde superadmin.';
     } else {
-      compare.textContent = 'Vas a pasar de ' + (planMap[currentCode]?.title || 'tu etapa actual') + ' a ' + planMap[planModalSelection].title + '. ' + planMap[planModalSelection].copy;
+      compare.textContent = (isDowngrade
+        ? 'Vas a bajar de '
+        : 'Vas a pasar de ')
+        + (planMap[currentCode]?.title || 'tu etapa actual')
+        + ' a ' + planMap[planModalSelection].title + '. '
+        + (isDowngrade
+          ? 'Antes de confirmarlo, te mostraremos opciones para ayudarte y no perder tu avance.'
+          : planMap[planModalSelection].copy);
     }
   }
 
@@ -8322,12 +8427,12 @@ function updatePlanModalSelection() {
       upgradeBtn.style.opacity = '1';
       upgradeBtn.style.cursor = 'pointer';
       upgradeBtn.textContent = planModalSelection === 'trial'
-        ? '⬇ Pasar a Trial'
+        ? '⬇ Revisar cambio a Trial'
         : planModalSelection === 'agency'
           ? '🚀 Elegir Agency'
           : planModalSelection === 'starter'
-            ? '🚀 Elegir Starter'
-            : (needsExpansion ? '🌍 Elegir Pro + Expansion' : '🚀 Elegir Pro');
+            ? (isDowngrade ? '⬇ Revisar cambio a Starter' : '🚀 Elegir Starter')
+            : (needsExpansion ? '🌍 Elegir Pro + Expansion' : (isDowngrade ? '⬇ Revisar cambio a Pro' : '🚀 Elegir Pro'));
       upgradeBtn.onclick = function() { handlePlanUpgradeAction(planModalSelection === 'pro' && needsExpansion ? 'expansion' : planModalSelection); };
     }
   }
@@ -8906,7 +9011,50 @@ function openProfilePanel() {
   if (nameDisp) nameDisp.textContent = p.name;
   const emailDisp = document.getElementById('profile-email-display');
   if (emailDisp) emailDisp.textContent = p.email;
+  updateProfileBillingCard();
   openModal('profile-modal');
+}
+
+async function updateProfileBillingCard() {
+  const runtime = document.getElementById('profile-billing-runtime');
+  const actions = document.getElementById('profile-billing-actions');
+  if (!runtime || !actions) return;
+  runtime.textContent = 'Revisando estado de pagos...';
+  clearElement(actions);
+  const billing = await fetchBillingStatus(true);
+  const sub = billing?.subscription || {};
+
+  if (!billing?.stripeConfigured) {
+    runtime.textContent = 'Pagos en modo interno de pruebas. Cuando Stripe quede activo, aquí podrás gestionar pagos y descargar facturas.';
+    return;
+  }
+
+  if (!sub?.stripeCustomerId) {
+    runtime.textContent = 'Stripe está listo, pero este workspace todavía no tiene una suscripción activa. Cuando hagas checkout, aquí aparecerán tus pagos y facturas.';
+    return;
+  }
+
+  runtime.textContent = 'Tu facturación se gestiona desde Stripe. Allí puedes actualizar método de pago, ver cobros y descargar facturas.';
+  actions.appendChild(createActionButton('💳 Gestionar pagos y facturas', openUserBillingPortal, 'padding:10px 12px;background:rgba(94,201,160,0.12);border:1px solid rgba(94,201,160,0.2);border-radius:8px;color:#256b55;font-size:12px;font-weight:800;cursor:pointer;'));
+}
+
+async function openUserBillingPortal() {
+  try {
+    const res = await fetch('/api/billing/create-portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({})
+    });
+    const data = await parseApiResponse(res);
+    if (data?.url) {
+      window.location.href = data.url;
+      return;
+    }
+    showToast('No se pudo abrir el portal de pagos');
+  } catch (e) {
+    showToast(getFriendlyUiError(e.message));
+  }
 }
 
 function saveProfile() {
@@ -9275,6 +9423,119 @@ function renderOnboardingModal() {
 // ══════════════════════════════════════════
 // PLAN PANEL
 // ══════════════════════════════════════════
+function renderPlanDowngradeHelp(reasonId) {
+  const panel = document.getElementById('plan-downgrade-help');
+  const continueBtn = document.getElementById('plan-downgrade-confirm');
+  const tutorialBtn = document.getElementById('plan-downgrade-tutorial');
+  const note = document.getElementById('plan-downgrade-note');
+  const reason = PLAN_DOWNGRADE_REASONS[reasonId];
+  if (!panel || !continueBtn) return;
+  if (!reason) {
+    panel.innerHTML = '<div style="font-size:12px;color:var(--text2);line-height:1.7;">Cuéntanos qué te está frenando. Antes de bajar de etapa queremos mostrarte una salida práctica.</div>';
+    continueBtn.disabled = true;
+    continueBtn.style.opacity = '0.6';
+    continueBtn.style.cursor = 'not-allowed';
+    if (tutorialBtn) tutorialBtn.style.display = 'none';
+    return;
+  }
+  panel.innerHTML = ''
+    + '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px;">' + esc(reason.title) + '</div>'
+    + '<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px;">' + esc(reason.copy) + '</div>'
+    + reason.checklist.map(function(item) {
+        return '<div style="display:flex;gap:8px;font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:6px;"><span style="color:var(--accent);font-weight:800;">•</span><span>' + esc(item) + '</span></div>';
+      }).join('');
+  continueBtn.disabled = false;
+  continueBtn.style.opacity = '1';
+  continueBtn.style.cursor = 'pointer';
+  if (tutorialBtn) {
+    tutorialBtn.style.display = 'inline-flex';
+    tutorialBtn.textContent = '📚 ' + reason.tutorialLabel;
+  }
+  if (note && !note.value.trim()) {
+    note.value = '';
+  }
+}
+
+function selectPlanDowngradeReason(reasonId) {
+  planDowngradeState = Object.assign({}, planDowngradeState || {}, { reasonId: reasonId });
+  Object.keys(PLAN_DOWNGRADE_REASONS).forEach(function(key) {
+    var btn = document.getElementById('plan-downgrade-reason-' + key);
+    if (!btn) return;
+    var active = key === reasonId;
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.background = active ? 'rgba(123,167,232,0.08)' : 'var(--surface)';
+    btn.style.color = active ? 'var(--text)' : 'var(--text2)';
+  });
+  renderPlanDowngradeHelp(reasonId);
+}
+
+function openDowngradeTutorial() {
+  const reason = PLAN_DOWNGRADE_REASONS[planDowngradeState?.reasonId];
+  if (!reason) {
+    showToast('Selecciona primero el motivo para mostrarte una guía útil');
+    return;
+  }
+  closeModal('plan-downgrade-modal');
+  closeModal('plan-modal');
+  showPage('learning');
+  switchLearnTab('tutorials');
+  setTimeout(function() {
+    openGuideChat();
+    var input = document.getElementById('guide-chat-input');
+    if (input) {
+      input.value = reason.tutorialPrompt;
+      sendGuideChatMessage();
+    }
+  }, 120);
+}
+
+function openPlanDowngradeModal(action) {
+  const workspace = appSession?.workspace || {};
+  const currentPlan = getCurrentPlanCode(workspace);
+  const targetPlan = action === 'expansion' ? 'pro' : action;
+  const title = document.getElementById('plan-downgrade-title');
+  const copy = document.getElementById('plan-downgrade-copy');
+  const confirmBtn = document.getElementById('plan-downgrade-confirm');
+  const note = document.getElementById('plan-downgrade-note');
+  planDowngradeState = { action: action, currentPlan: currentPlan, targetPlan: targetPlan, reasonId: '', note: '' };
+  if (title) title.textContent = '¿Seguro que quieres pasar de ' + getReadablePlanName(currentPlan) + ' a ' + getReadablePlanName(targetPlan) + '?';
+  if (copy) copy.textContent = 'No queremos perderte. Cuéntanos qué te está frenando y te mostramos una forma práctica de resolverlo antes de bajar tu etapa.';
+  if (note) note.value = '';
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.6';
+    confirmBtn.style.cursor = 'not-allowed';
+    confirmBtn.textContent = targetPlan === 'trial' ? 'Sí, volver a Trial' : 'Sí, cambiar a ' + getReadablePlanName(targetPlan).replace('BearAds ', '');
+  }
+  Object.keys(PLAN_DOWNGRADE_REASONS).forEach(function(key) {
+    var btn = document.getElementById('plan-downgrade-reason-' + key);
+    if (!btn) return;
+    btn.style.borderColor = 'var(--border)';
+    btn.style.background = 'var(--surface)';
+    btn.style.color = 'var(--text2)';
+  });
+  renderPlanDowngradeHelp('');
+  openModal('plan-downgrade-modal');
+}
+
+async function continuePlanDowngrade() {
+  const note = document.getElementById('plan-downgrade-note');
+  const reasonId = planDowngradeState?.reasonId;
+  if (!reasonId) {
+    showToast('Selecciona un motivo antes de continuar');
+    return;
+  }
+  if (note) {
+    planDowngradeState.note = note.value.trim();
+  }
+  closeModal('plan-downgrade-modal');
+  await executePlanAction(planDowngradeState.action, {
+    downgrade: true,
+    reasonId: reasonId,
+    note: planDowngradeState.note || ''
+  });
+}
+
 function openPlanPanel() {
   openModal('plan-modal');
   try {
@@ -9408,6 +9669,14 @@ function openPlanPanel() {
     if (cancelBtn) {
       cancelBtn.onclick = handlePlanCancellation;
     }
+    var portalBtn = document.getElementById('plan-portal-btn');
+    if (portalBtn) {
+      fetchBillingStatus().then(function(billing) {
+        const hasPortal = Boolean(billing?.stripeConfigured && billing?.subscription?.stripeCustomerId);
+        portalBtn.style.display = hasPortal ? 'inline-flex' : 'none';
+      });
+      portalBtn.onclick = openUserBillingPortal;
+    }
     updatePlanModalSelection();
   } catch (error) {
     console.error('openPlanPanel error', error);
@@ -9415,28 +9684,75 @@ function openPlanPanel() {
   }
 }
 
-async function handlePlanUpgradeAction(action) {
+async function executePlanAction(action, options) {
   try {
+    options = options || {};
     const billing = await fetchBillingStatus();
     const canUseStripeCheckout = Boolean(billing?.stripeConfigured);
+    const currentCode = getCurrentPlanCode(appSession?.workspace || {});
+    const noteSuffix = options?.reasonId
+      ? (' Motivo: ' + (PLAN_DOWNGRADE_REASONS[options.reasonId]?.title || options.reasonId) + (options.note ? '. Nota: ' + options.note : ''))
+      : '';
 
     if (action === 'trial') {
-      if (!window.confirm('Vas a pasar a BearAds Trial. Se reducirá tu capacidad operativa y se quitarán add-ons activos. ¿Quieres continuar?')) return;
+      if (!options?.downgrade && !window.confirm('Vas a pasar a BearAds Trial. Se reducirá tu capacidad operativa y se quitarán add-ons activos. ¿Quieres continuar?')) return;
+      if (canUseStripeCheckout && appSession?.workspace?.subscription?.stripeCustomerId && currentCode !== 'trial') {
+        await saveCommercialIntent({
+          targetPlan: 'trial',
+          addOns: [],
+          agencyLead: false,
+          contactRequested: false,
+          activatePlan: false,
+          downgradeReason: options?.reasonId || '',
+          downgradeNote: options?.note || ''
+        });
+        const res = await fetch('/api/billing/create-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({})
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       await saveCommercialIntent({
         targetPlan: 'trial',
         addOns: [],
         agencyLead: false,
         contactRequested: false,
-        activatePlan: true
+        activatePlan: true,
+        downgradeReason: options?.reasonId || '',
+        downgradeNote: options?.note || ''
       });
       await refreshAppSession();
       closeModal('plan-modal');
-      showToast('Tu cuenta ahora está en BearAds Trial');
+      showToast('Tu cuenta ahora está en BearAds Trial.' + noteSuffix);
       return;
     }
 
     if (action === 'starter') {
-      if (!window.confirm('Vas a pasar a BearAds Starter. Tendrás diagnóstico completo, estrategia y más contexto operativo. ¿Quieres continuar?')) return;
+      if (!options?.downgrade && !window.confirm('Vas a pasar a BearAds Starter. Tendrás diagnóstico completo, estrategia y más contexto operativo. ¿Quieres continuar?')) return;
+      if (options?.downgrade && canUseStripeCheckout && appSession?.workspace?.subscription?.stripeCustomerId) {
+        await saveCommercialIntent({
+          targetPlan: 'starter',
+          addOns: [],
+          agencyLead: false,
+          contactRequested: false,
+          activatePlan: false,
+          downgradeReason: options?.reasonId || '',
+          downgradeNote: options?.note || ''
+        });
+        const res = await fetch('/api/billing/create-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({})
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       if (canUseStripeCheckout) {
         const res = await fetch('/api/billing/create-checkout', {
           method: 'POST',
@@ -9453,11 +9769,13 @@ async function handlePlanUpgradeAction(action) {
         addOns: [],
         agencyLead: false,
         contactRequested: false,
-        activatePlan: true
+        activatePlan: true,
+        downgradeReason: options?.reasonId || '',
+        downgradeNote: options?.note || ''
       });
       await refreshAppSession();
       closeModal('plan-modal');
-      showToast('Tu cuenta ahora está en BearAds Starter');
+      showToast('Tu cuenta ahora está en BearAds Starter' + (options?.downgrade ? '.' + noteSuffix : ''));
       return;
     }
 
@@ -9468,7 +9786,9 @@ async function handlePlanUpgradeAction(action) {
         addOns: ['expansion'],
         agencyLead: false,
         contactRequested: false,
-        activatePlan: true
+        activatePlan: true,
+        downgradeReason: options?.reasonId || '',
+        downgradeNote: options?.note || ''
       });
       if (workspace && appSession) appSession.workspace = workspace;
       await refreshAppSession();
@@ -9478,7 +9798,27 @@ async function handlePlanUpgradeAction(action) {
     }
 
     if (action === 'pro') {
-      if (!window.confirm('Vas a pasar a BearAds Pro. Tendrás campañas, Ads, creativos, imágenes y reportes. ¿Quieres continuar?')) return;
+      if (!options?.downgrade && !window.confirm('Vas a pasar a BearAds Pro. Tendrás campañas, Ads, creativos, imágenes y reportes. ¿Quieres continuar?')) return;
+      if (options?.downgrade && canUseStripeCheckout && appSession?.workspace?.subscription?.stripeCustomerId) {
+        await saveCommercialIntent({
+          targetPlan: 'pro',
+          addOns: [],
+          agencyLead: false,
+          contactRequested: false,
+          activatePlan: false,
+          downgradeReason: options?.reasonId || '',
+          downgradeNote: options?.note || ''
+        });
+        const res = await fetch('/api/billing/create-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({})
+        });
+        const data = await parseApiResponse(res);
+        window.location.href = data.url;
+        return;
+      }
       if (canUseStripeCheckout) {
         const res = await fetch('/api/billing/create-checkout', {
           method: 'POST',
@@ -9495,11 +9835,13 @@ async function handlePlanUpgradeAction(action) {
         addOns: [],
         agencyLead: false,
         contactRequested: false,
-        activatePlan: true
+        activatePlan: true,
+        downgradeReason: options?.reasonId || '',
+        downgradeNote: options?.note || ''
       });
       await refreshAppSession();
       closeModal('plan-modal');
-      showToast('Tu cuenta ahora está en BearAds Pro');
+      showToast('Tu cuenta ahora está en BearAds Pro' + (options?.downgrade ? '.' + noteSuffix : ''));
       return;
     }
 
@@ -9534,34 +9876,18 @@ async function handlePlanUpgradeAction(action) {
   }
 }
 
-async function handlePlanCancellation() {
-  try {
-    if (!window.confirm('Vas a volver a BearAds Trial. ¿Quieres continuar?')) return;
-    const billing = await fetchBillingStatus();
-    if (billing?.stripeConfigured && appSession?.workspace?.subscription?.stripeCustomerId) {
-      const res = await fetch('/api/billing/create-portal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({})
-      });
-      const data = await parseApiResponse(res);
-      window.location.href = data.url;
-      return;
-    }
-    await saveCommercialIntent({
-      targetPlan: 'trial',
-      addOns: [],
-      agencyLead: false,
-      contactRequested: false,
-      activatePlan: true
-    });
-    await refreshAppSession();
-    closeModal('plan-modal');
-    showToast('Tu cuenta ahora está en BearAds Trial');
-  } catch (error) {
-    showToast(error?.message || 'No pude volver la cuenta a Trial');
+async function handlePlanUpgradeAction(action) {
+  const currentCode = getCurrentPlanCode(appSession?.workspace || {});
+  const nextPlan = action === 'expansion' ? 'pro' : action;
+  if (isPlanDowngrade(currentCode, nextPlan) || action === 'trial') {
+    openPlanDowngradeModal(action);
+    return;
   }
+  await executePlanAction(action);
+}
+
+async function handlePlanCancellation() {
+  openPlanDowngradeModal('trial');
 }
 
 // ══════════════════════════════════════════
@@ -14802,6 +15128,11 @@ async function runQACustom() {
         <select id="profile-industry" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;">
           <option>E-commerce</option><option>Servicios B2B</option><option>Salud</option><option>Educación</option><option>Tecnología / SaaS</option><option>Retail</option><option>Gastronomía</option><option>Otro</option>
         </select></div>
+      <div style="padding:12px;background:rgba(94,201,160,0.06);border:1px solid rgba(94,201,160,0.16);border-radius:10px;">
+        <div style="font-size:11px;font-weight:800;color:#256b55;margin-bottom:6px;">PAGOS Y FACTURAS</div>
+        <div id="profile-billing-runtime" style="font-size:12px;color:var(--text2);line-height:1.7;">Revisando estado de pagos...</div>
+        <div id="profile-billing-actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button onclick="saveProfile()" style="flex:1;padding:11px;background:var(--accent);border:none;border-radius:8px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar</button>
         <button onclick="document.getElementById('profile-modal').style.display='none'" style="padding:11px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;">Cancelar</button>
@@ -14870,7 +15201,38 @@ async function runQACustom() {
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button type="button" id="plan-upgrade-btn" style="flex:1;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:9px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">🚀 Elegir Agency</button>
+      <button type="button" id="plan-portal-btn" style="display:none;padding:12px 14px;background:rgba(94,201,160,0.12);border:1px solid rgba(94,201,160,0.2);border-radius:9px;color:#256b55;font-size:12px;font-weight:700;cursor:pointer;">💳 Pagos y facturas</button>
       <button type="button" id="plan-cancel-btn" style="padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">Volver a Trial</button>
+    </div>
+  </div>
+</div>
+
+<div id="plan-downgrade-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.68);z-index:1010;align-items:center;justify-content:center;padding:18px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:min(720px,96vw);max-height:88vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;">
+      <div>
+        <div id="plan-downgrade-title" style="font-size:18px;font-weight:800;color:var(--text);">¿Seguro que quieres bajar tu etapa?</div>
+        <div id="plan-downgrade-copy" style="font-size:12px;color:var(--text2);line-height:1.7;margin-top:6px;">No queremos perderte. Cuéntanos qué te está frenando y te mostraremos una salida más útil antes de confirmar.</div>
+      </div>
+      <button onclick="closeModal('plan-downgrade-modal')" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted);margin-bottom:10px;">¿QUÉ TE ESTÁ FRENANDO?</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:14px;">
+      <button id="plan-downgrade-reason-expensive" type="button" onclick="selectPlanDowngradeReason('expensive')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">💸 Quiero bajar costo</button>
+      <button id="plan-downgrade-reason-usage" type="button" onclick="selectPlanDowngradeReason('usage')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">📉 No lo uso suficiente</button>
+      <button id="plan-downgrade-reason-complexity" type="button" onclick="selectPlanDowngradeReason('complexity')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">🧭 Se me hizo complejo</button>
+      <button id="plan-downgrade-reason-features" type="button" onclick="selectPlanDowngradeReason('features')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">🧩 Me faltó una función</button>
+      <button id="plan-downgrade-reason-support" type="button" onclick="selectPlanDowngradeReason('support')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">🤝 Necesito más ayuda</button>
+      <button id="plan-downgrade-reason-pause" type="button" onclick="selectPlanDowngradeReason('pause')" style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;text-align:left;font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;">⏸️ Solo quiero pausar</button>
+    </div>
+    <div id="plan-downgrade-help" style="padding:14px;background:rgba(123,167,232,0.06);border:1px solid rgba(123,167,232,0.14);border-radius:12px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+      Cuéntanos qué te está frenando. Antes de bajar de etapa queremos mostrarte una salida práctica.
+    </div>
+    <textarea id="plan-downgrade-note" rows="3" placeholder="Si quieres, cuéntanos un poco más para mejorar el producto o ayudarte mejor." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+      <button id="plan-downgrade-tutorial" type="button" onclick="openDowngradeTutorial()" style="display:none;flex:1;padding:11px 12px;background:rgba(123,167,232,0.12);border:1px solid rgba(123,167,232,0.22);border-radius:9px;color:var(--accent);font-size:12px;font-weight:800;cursor:pointer;">📚 Ver tutorial</button>
+      <button type="button" onclick="closeModal('plan-downgrade-modal')" style="padding:11px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;">Seguir evaluando</button>
+      <button id="plan-downgrade-confirm" type="button" onclick="continuePlanDowngrade()" style="padding:11px 12px;background:#e07070;border:none;border-radius:9px;color:#fff;font-size:12px;font-weight:800;cursor:not-allowed;opacity:0.6;">Sí, continuar</button>
     </div>
   </div>
 </div>

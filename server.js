@@ -163,6 +163,10 @@ function getStripePriceId(plan, interval = 'monthly') {
   return process.env[envKey] || null;
 }
 
+function isValidStripePriceId(priceId) {
+  return /^price_[A-Za-z0-9]+$/.test(String(priceId || '').trim());
+}
+
 function getBillingBaseUrl(req) {
   const explicit =
     process.env.APP_BASE_URL ||
@@ -191,6 +195,23 @@ function findWorkspaceByStripeReference({ customerId, subscriptionId, workspaceI
       (subscriptionId && sub.stripeSubscriptionId === subscriptionId)
     );
   }) || null;
+}
+
+function syncWorkspaceMembershipPlanRoles(workspace) {
+  if (!workspace?.id) return;
+  const paidState = workspace.subscription?.status && workspace.subscription.status !== 'trialing';
+  const nextRole = paidState ? 'member_paid' : 'member_trial';
+  let changed = false;
+  getWorkspaceMembers(workspace.id).forEach(membership => {
+    if (membership.role === 'member_trial' || membership.role === 'member_paid') {
+      if (membership.role !== nextRole) {
+        membership.role = nextRole;
+        membership.updatedAt = nowIso();
+        changed = true;
+      }
+    }
+  });
+  if (changed) saveMemberships();
 }
 
 function syncWorkspaceStripeSubscription(workspace, details) {
@@ -229,6 +250,7 @@ function syncWorkspaceStripeSubscription(workspace, details) {
     updatedBy: details.updatedBy || 'stripe-webhook'
   };
   current.updatedAt = nowIso();
+  syncWorkspaceMembershipPlanRoles(current);
   saveWorkspaces();
   return current;
 }
@@ -254,6 +276,68 @@ async function ensureStripeCustomerForWorkspace(workspace, user) {
   workspace.updatedAt = nowIso();
   saveWorkspaces();
   return customer.id;
+}
+
+async function trySyncStripeCheckoutForWorkspace(workspace) {
+  const stripe = getStripeClient();
+  const current = ensureWorkspaceState(workspace);
+  if (!stripe || !current) return current;
+  if (current.subscription?.stripeSubscriptionId) return current;
+  const checkoutSessionId = current.subscription?.stripeCheckoutSessionId;
+  if (!checkoutSessionId) return current;
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(checkoutSessionId, {
+      expand: ['subscription']
+    });
+    if (!session || session.payment_status !== 'paid' || session.status !== 'complete') {
+      return current;
+    }
+
+    const priceId = session.metadata?.priceId || session.line_items?.data?.[0]?.price?.id || null;
+    const subscriptionObject = typeof session.subscription === 'object' && session.subscription
+      ? session.subscription
+      : (session.subscription ? await stripe.subscriptions.retrieve(session.subscription) : null);
+
+    if (subscriptionObject) {
+      const statusMap = {
+        active: 'active',
+        trialing: 'trialing',
+        past_due: 'past_due',
+        unpaid: 'past_due',
+        canceled: 'canceled',
+        incomplete_expired: 'canceled',
+        incomplete: 'paused',
+        paused: 'paused'
+      };
+      return syncWorkspaceStripeSubscription(current, {
+        plan: mapStripePriceToPlan(priceId || subscriptionObject.items?.data?.[0]?.price?.id) || session.metadata?.targetPlan || current.subscription?.plan || 'trial',
+        status: statusMap[subscriptionObject.status] || 'active',
+        customerId: session.customer || subscriptionObject.customer || current.subscription?.stripeCustomerId || null,
+        subscriptionId: subscriptionObject.id,
+        priceId: priceId || subscriptionObject.items?.data?.[0]?.price?.id || null,
+        checkoutSessionId: session.id,
+        source: 'stripe-checkout-recovery',
+        updatedBy: 'billing-status-sync',
+        reason: 'Suscripción recuperada desde checkout'
+      });
+    }
+
+    return syncWorkspaceStripeSubscription(current, {
+      plan: mapStripePriceToPlan(priceId) || session.metadata?.targetPlan || current.subscription?.plan || 'trial',
+      status: 'active',
+      customerId: session.customer || current.subscription?.stripeCustomerId || null,
+      subscriptionId: session.subscription || null,
+      priceId: priceId || null,
+      checkoutSessionId: session.id,
+      source: 'stripe-checkout-recovery',
+      updatedBy: 'billing-status-sync',
+      reason: 'Checkout recuperado desde Stripe'
+    });
+  } catch (error) {
+    console.warn('Stripe checkout recovery error:', error.message);
+    return current;
+  }
 }
 
 function saveMemberships() {
@@ -1892,34 +1976,40 @@ Responde en español, máximo 250 palabras, con:
 app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
   const workspace = req.user.workspace;
   if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
-  const stripeIssue = getStripeConfigIssue();
-  const workspaceMembers = getWorkspaceMembers(workspace.id).map(membership => ({
-    ...membership,
-    role: getEffectiveMembershipRole(membership, workspace),
-    user: sanitizeUser(appUsers[membership.userId])
-  }));
-  res.json({
-    workspace: sanitizeWorkspace(workspace),
-    stripeConfigured: isStripeConfigured(),
-    stripeIssue: stripeIssue,
-    stripe: {
-      customerId: workspace.subscription?.stripeCustomerId || null,
-      subscriptionId: workspace.subscription?.stripeSubscriptionId || null,
-      priceId: workspace.subscription?.stripePriceId || null,
-      checkoutSessionId: workspace.subscription?.stripeCheckoutSessionId || null
-    },
-    members: workspaceMembers,
-    stats: {
-      trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
-      paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length,
-      totalMembers: workspaceMembers.length
-    },
-    billingNotes: workspace.billingNotes || [],
-    paymentStatus: workspace.paymentStatus || {
-      status: workspace.subscription?.status === 'trialing' ? 'trialing' : 'active',
-      reason: '',
-      updatedAt: workspace.updatedAt || workspace.createdAt || nowIso()
-    }
+  Promise.resolve(trySyncStripeCheckoutForWorkspace(workspace)).then(function(syncedWorkspace) {
+    const effectiveWorkspace = syncedWorkspace || workspace;
+    syncWorkspaceMembershipPlanRoles(effectiveWorkspace);
+    const stripeIssue = getStripeConfigIssue();
+    const workspaceMembers = getWorkspaceMembers(effectiveWorkspace.id).map(membership => ({
+      ...membership,
+      role: getEffectiveMembershipRole(membership, effectiveWorkspace),
+      user: sanitizeUser(appUsers[membership.userId])
+    }));
+    res.json({
+      workspace: sanitizeWorkspace(effectiveWorkspace),
+      stripeConfigured: isStripeConfigured(),
+      stripeIssue: stripeIssue,
+      stripe: {
+        customerId: effectiveWorkspace.subscription?.stripeCustomerId || null,
+        subscriptionId: effectiveWorkspace.subscription?.stripeSubscriptionId || null,
+        priceId: effectiveWorkspace.subscription?.stripePriceId || null,
+        checkoutSessionId: effectiveWorkspace.subscription?.stripeCheckoutSessionId || null
+      },
+      members: workspaceMembers,
+      stats: {
+        trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
+        paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length,
+        totalMembers: workspaceMembers.length
+      },
+      billingNotes: effectiveWorkspace.billingNotes || [],
+      paymentStatus: effectiveWorkspace.paymentStatus || {
+        status: effectiveWorkspace.subscription?.status === 'trialing' ? 'trialing' : 'active',
+        reason: '',
+        updatedAt: effectiveWorkspace.updatedAt || effectiveWorkspace.createdAt || nowIso()
+      }
+    });
+  }).catch(function(error) {
+    res.status(500).json({ error: error.message || 'No se pudo cargar billing' });
   });
 });
 
@@ -2021,10 +2111,11 @@ app.post('/api/admin/billing-overview/reset-trial', requireBillingAccess, (req, 
   });
 });
 
-app.get('/api/billing/status', requireAuth, (req, res) => {
+app.get('/api/billing/status', requireAuth, async (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const workspace = ensureWorkspaceState(currentUser.workspace);
+  const workspace = await trySyncStripeCheckoutForWorkspace(currentUser.workspace);
   if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  syncWorkspaceMembershipPlanRoles(workspace);
   const stripeIssue = getStripeConfigIssue();
   res.json({
     success: true,
@@ -2063,6 +2154,12 @@ app.post('/api/billing/create-checkout', requireAuth, async (req, res) => {
 
   const priceId = getStripePriceId(requestedPlan, billingCycle);
   if (!priceId) return res.status(400).json({ error: 'Falta configurar el price de Stripe para ese plan' });
+  if (!isValidStripePriceId(priceId)) {
+    return res.status(400).json({
+      error: 'El price configurado en Stripe es inválido. Debe ser un ID price_..., no un valor numérico.',
+      code: 'invalid_stripe_price_id'
+    });
+  }
 
   const baseUrl = getBillingBaseUrl(req);
   const successUrl = String(req.body.successUrl || `${baseUrl}/?billing=success`).trim();
@@ -2121,7 +2218,9 @@ app.post('/api/billing/create-checkout', requireAuth, async (req, res) => {
     return res.status(502).json({
       error: error.code === 'secret_key_required'
         ? 'Stripe está usando una llave incorrecta. Configura STRIPE_SECRET_KEY con una sk_ válida.'
-        : 'No se pudo crear el checkout de Stripe',
+        : error.code === 'parameter_invalid_integer'
+          ? 'El price configurado en Stripe no es un ID price_... válido.'
+          : 'No se pudo crear el checkout de Stripe',
       code: error.code || 'stripe_checkout_failed'
     });
   }
