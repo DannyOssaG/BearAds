@@ -7097,7 +7097,48 @@ async function startAnalysis() {
       error.usedToday = err.usedToday;
       throw error;
     }
-    const data = await res.json();
+    let data = await res.json();
+
+    // ── Async job queue (Phase 7) ─────────────────────────────────────────────
+    // Si el servidor devuelve { jobId } en lugar del resultado completo, hacemos polling.
+    if (data.jobId && !data.seo && !data.sem) {
+      const jobId = data.jobId;
+      const POLL_INTERVAL = 2500;
+      const MAX_POLLS = 60; // 2.5s × 60 = 2.5min max
+      let polls = 0;
+      const agentKeys = ['seo','sem','contenido','cro','trafico'];
+      let badgesStarted = false;
+
+      data = await new Promise(function(resolve, reject) {
+        function poll() {
+          fetch('/api/analyze/job/' + jobId, { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(job) {
+              polls++;
+              // Animar badges progresivamente mientras corre
+              if (!badgesStarted && job.status === 'running') {
+                badgesStarted = true;
+                badges.forEach(function(id,i){setTimeout(function(){const el=document.getElementById(id);if(el)el.classList.add('loading');},i*600);});
+              }
+              if (job.status === 'done' && job.result) {
+                resolve(job.result);
+              } else if (job.status === 'error') {
+                const e = new Error(job.error || 'El análisis falló');
+                e.code = 'analysis_error'; reject(e);
+              } else if (polls >= MAX_POLLS) {
+                const e = new Error('El análisis tardó demasiado. Intenta de nuevo.');
+                e.code = 'analysis_timeout'; reject(e);
+              } else {
+                setTimeout(poll, POLL_INTERVAL);
+              }
+            })
+            .catch(function(e) { if (polls++ < MAX_POLLS) setTimeout(poll, POLL_INTERVAL); else reject(e); });
+        }
+        setTimeout(poll, 1000); // primer check después de 1s
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     currentAnalysis = data;
     saveAnalysisToHistory(data);
     await saveGoogleConnectionSelection({

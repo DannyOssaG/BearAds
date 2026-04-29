@@ -87,11 +87,44 @@
 // mes, Último análisis), más sección de historial mensual y detalle en la
 // pestaña "IAs Estratégicas". Invisible para roles sin permisos admin.
 //
+// FASE 7 — DB real, cola async, modularización parcial, costos cross-workspace
+// [2026-04-29] [Claude] Cuatro pilares implementados en una sola sesión:
+//
+//   7A. SQLite con better-sqlite3 (lib/db.js)
+//       Tres tablas: analysis_jobs, ai_cost_events, platform_cost_summary.
+//       WAL mode + índices para workspace_id, status, month_key.
+//       API: createJob, getJob, markJobStarted/Done/Error, recordCostEvent,
+//       getCostsByMonth, getPlatformSummary, pruneOldJobs.
+//
+//   7B. Cola async para /api/analyze
+//       POST /api/analyze → crea job SQLite → devuelve { jobId } inmediatamente
+//       Procesamiento en background (fire-and-forget) → actualiza job cuando termina
+//       GET /api/analyze/job/:id → polling del resultado
+//       GET /api/analyze/jobs → historial del workspace (últimos 20)
+//       Límite: 2 jobs pendientes por workspace simultáneos
+//       Frontend actualizado: detecta { jobId } y hace polling automático
+//       Retrocompatible: si Phase 7 no carga, server.js legacy routes activan.
+//
+//   7C. Costos cross-workspace (GET /api/admin/platform-costs)
+//       Solo accesible para platform owner. Agrega costos de todos los
+//       workspaces desde SQLite + fallback de JSON stores. Incluye top 10
+//       workspaces por gasto del mes y breakdown por proveedor.
+//
+//   7D. Modularización parcial (lib/ + routes/)
+//       lib/db.js        — capa SQLite
+//       lib/state.js     — stores en memoria exportados por referencia
+//       lib/helpers.js   — utilidades puras (nowIso, getUsageDayKey, etc.)
+//       lib/workspace-helpers.js — lógica de workspaces, roles, usuarios
+//       lib/auth-middleware.js   — middleware Express de autenticación
+//       routes/analyze.js — motor IA con cola async + callAI modular
+//       routes/admin.js   — panel admin con platform-costs endpoint
+//       Estrategia: montar routers Phase 7 ANTES del monolito para que
+//       Express use las versiones modulares sin eliminar el código legacy.
+//
 // ─── PENDIENTE / NEXT ────────────────────────────────────────────────────────
-// Phase 7 — Migración a base de datos real (SQLite o PostgreSQL)
-//           Cola async para análisis (evitar timeouts en planes Pro/Agency)
-//           Modularización de server.js en routers separados
-//           Acumulador mensual de costos a nivel plataforma (cross-workspace)
+// Phase 7E — Modularización completa (auth, billing, gads, meta, email routes)
+// Phase 7F — Migración de JSON stores a SQLite (users, workspaces, memberships)
+// Phase 8  — Queue con prioridades, rate limiting por provider, retry con backoff
 // ─────────────────────────────────────────────────────────────────────────────
 
 require('dotenv').config();
@@ -2435,6 +2468,7 @@ app.get('/bearads-tracker.js', (req, res) => {
 // ── PING (diagnostico) ──
 app.get('/api/ping', (req, res) => res.json({ pong: true, version: 'v2', time: new Date().toISOString() }));
 
+
 // ── SESSION ──
 app.use(session({
   secret: sessionSecret,
@@ -4554,8 +4588,43 @@ const ROUTE_AGENTS = {
 
 // ── AGENT PROMPTS ──
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 7 — Módulos extraídos (DB + cola async + costos cross-workspace)
+// Se montan AQUÍ para que scrapeSite / getGSCData / getGA4Data ya estén
+// definidas y disponibles en el scope global de este archivo.
+// ─────────────────────────────────────────────────────────────────────────────
+try {
+  const _db = require('./lib/db');
+  global.bearadsDb = _db;
 
-// ── ENDPOINT: ANÁLISIS COMPLETO ──
+  // Exponer helpers de scraping para routes/analyze.js (acceso por referencia global)
+  global.scrapeSite   = scrapeSite;
+  global.getGSCData   = getGSCData;
+  global.getGA4Data   = getGA4Data;
+
+  const analyzeRouter = require('./routes/analyze');
+  const adminRouter   = require('./routes/admin');
+
+  // El router de analyze reemplaza /api/analyze, /api/analyze/job/:id y /api/analyze/jobs
+  app.use(analyzeRouter);
+  // El router de admin agrega /api/admin/platform-costs
+  app.use(adminRouter);
+
+  // Cron diario: purgar jobs completados con > 7 días
+  cron.schedule('0 3 * * *', () => {
+    try {
+      const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      _db.pruneOldJobs(cutoff);
+      console.log('🗑️  Phase7: Jobs antiguos purgados de SQLite');
+    } catch(e) { console.warn('Prune jobs error:', e.message); }
+  });
+
+  console.log('✅ Phase 7 loaded: SQLite DB · async analyze queue · cross-workspace costs');
+} catch(e) {
+  console.warn('⚠️ Phase 7 modules failed to load — monolith routes remain active:', e.message);
+}
+
+// ── ENDPOINT: ANÁLISIS COMPLETO (monolito legacy — routes/analyze.js lo sobreescribe) ──
 app.post('/api/analyze', async (req, res) => {
   const { url, ga4PropertyId, routeMode } = req.body;
   if (!url) return res.status(400).json({ error: 'URL requerida' });
