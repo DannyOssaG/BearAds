@@ -1,4 +1,4 @@
-const CACHE = 'mirthos-v2';
+const CACHE = 'bearads-v3';
 const STATIC = [];
 
 self.addEventListener('install', e => {
@@ -19,7 +19,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   // Network first for API calls
-  if (e.request.url.includes('/api/')) {
+  const requestUrl = new URL(e.request.url);
+  if (requestUrl.pathname.startsWith('/api/') || requestUrl.pathname.startsWith('/auth/')) {
     e.respondWith(
       fetch(e.request).catch(() =>
         new Response(JSON.stringify({ error: 'Sin conexión' }), {

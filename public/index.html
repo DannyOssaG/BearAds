@@ -184,7 +184,26 @@ body {
   border: 1px solid rgba(232, 255, 71, 0.15);
 }
 
-.nav-item .icon { font-size: 14px; width: 18px; text-align: center; }
+.nav-item .icon,
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nav-item .icon svg,
+.nav-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .nav-badge {
   margin-left: auto;
@@ -1640,7 +1659,21 @@ tr:hover td { background: var(--surface2); }
   -webkit-tap-highlight-color: transparent;
 }
 .mobile-nav-item.active { color: var(--accent); }
-.mobile-nav-item .nav-icon { font-size: 20px; line-height: 1; }
+.mobile-nav-item .nav-icon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+
+.mobile-nav-item .nav-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* Mobile header */
 .mobile-header {
@@ -1811,19 +1844,19 @@ tr:hover td { background: var(--surface2); }
 <!-- MOBILE BOTTOM NAV -->
 <nav class="mobile-nav">
   <button class="mobile-nav-item active" id="mobile-nav-dashboard" onclick="handleMobileNavPage(this,'dashboard')">
-    <span class="nav-icon">📊</span>Dashboard
+    <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"></rect><rect x="14" y="4" width="7" height="4" rx="1.5"></rect><rect x="14" y="11" width="7" height="9" rx="1.5"></rect><rect x="3" y="14" width="7" height="6" rx="1.5"></rect></svg></span>Dashboard
   </button>
   <button class="mobile-nav-item" id="mobile-nav-analyze" onclick="handleMobileNavPage(this,'analyze')">
-    <span class="nav-icon">🔬</span>Analizar
+    <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg></span>Analizar
   </button>
   <button class="mobile-nav-item" id="mobile-nav-strategic-plan" onclick="handleMobileNavPage(this,'strategic-plan')">
-    <span class="nav-icon">🗺️</span>Plan
+    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 19l5-2 6 2 5-2V5l-5 2-6-2-5 2z"></path><path d="M9 7v10"></path><path d="M15 5v10"></path></svg></span>Plan
   </button>
   <button class="mobile-nav-item" id="mobile-nav-campaigns" onclick="handleMobileNavPage(this,'campaigns')">
-    <span class="nav-icon">📣</span>Campañas
+    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13V9l10-4v12L4 13z"></path><path d="M14 9h3a3 3 0 0 1 0 6h-3"></path><path d="M7 13l1.5 5h2L9 12.5"></path></svg></span>Campañas
   </button>
   <button class="mobile-nav-item" id="mobile-nav-integrations" onclick="handleMobileNavPage(this,'integrations')">
-    <span class="nav-icon">⊕</span>Conectar
+    <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 8V5a2 2 0 1 1 4 0v3"></path><path d="M7 8h10v5a5 5 0 0 1-10 0z"></path><path d="M12 18v1"></path></svg></span>Conectar
   </button>
 </nav>
 
@@ -1838,22 +1871,22 @@ tr:hover td { background: var(--surface2); }
     </div>
     <div style="display:grid;gap:8px;">
       <button type="button" onclick="openMobileExtraDestination('agents', { feature: 'agentsAccess', targetPlan: 'starter', message: 'Agentes de apoyo está disponible desde BearAds Starter.' })" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
-        <div style="font-size:12px;font-weight:800;color:var(--text);">◎ Agentes de apoyo</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"></path><path d="M18.5 15.5l.8 2 .2.8.8.2 2 .8-2 .8-.8.2-.2.8-.8 2-.8-2-.2-.8-.8-.2-2-.8 2-.8.8-.2.2-.8z"></path></svg></span>Agentes de apoyo</div>
         <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Profundiza tareas concretas después del análisis o del plan.</div>
       </button>
       <button type="button" onclick="openMobileExtraDestination('strategy')" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
-        <div style="font-size:12px;font-weight:800;color:var(--text);">◇ Estrategia rápida</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.4-2.9 7.9-7 9-4.1-1.1-7-4.6-7-9V7z"></path><path d="M9 12l2 2 4-4"></path></svg></span>Estrategia rápida</div>
         <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Abre ideas guiadas y salidas rápidas sin pasar por todo el flujo.</div>
       </button>
       <button id="mobile-extra-weekly" type="button" onclick="openMobileExtraDestination('weekly-score', { feature: 'downloadReports', targetPlan: 'pro', message: 'Score Semanal está disponible desde BearAds Pro.' })" style="padding:12px;background:var(--surface2);border:1px solid rgba(251,191,36,0.18);border-radius:12px;text-align:left;cursor:pointer;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <div style="font-size:12px;font-weight:800;color:var(--text);">📧 Score Semanal</div>
+          <div style="font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M4 7l8 6 8-6"></path></svg></span>Score Semanal</div>
           <span id="mobile-extra-weekly-badge" style="display:none;align-items:center;justify-content:center;padding:2px 8px;border-radius:999px;background:rgba(251,191,36,0.14);color:#9a6700;font-size:10px;font-weight:800;">PRO</span>
         </div>
         <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Reportes automáticos, vista previa y envío por correo.</div>
       </button>
       <button type="button" onclick="openMobileExtraDestination('learning')" style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;">
-        <div style="font-size:12px;font-weight:800;color:var(--text);">◉ Aprendizaje</div>
+        <div style="font-size:12px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:8px;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v15.5a.5.5 0 0 1-.8.4L16 17.5l-3.2 2.4a.5.5 0 0 1-.6 0L9 17.5l-3.2 2.4a.5.5 0 0 1-.8-.4z"></path><path d="M8 8h8"></path><path d="M8 11h8"></path></svg></span>Aprendizaje</div>
         <div style="font-size:11px;color:var(--text2);line-height:1.6;margin-top:4px;">Guías, tutoriales, historial y ayuda contextual para seguir avanzando.</div>
       </button>
     </div>
@@ -1883,37 +1916,38 @@ tr:hover td { background: var(--surface2); }
   <div class="nav-section">
     <div class="nav-label">Flujo Principal</div>
     <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
-      <span class="icon">◈</span> Dashboard
+      <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1.5"></rect><rect x="14" y="4" width="7" height="4" rx="1.5"></rect><rect x="14" y="11" width="7" height="9" rx="1.5"></rect><rect x="3" y="14" width="7" height="6" rx="1.5"></rect></svg></span> Dashboard
     </div>
-    <div class="nav-item" id="nav-analyze" onclick="showPage('analyze')"><span class="icon">🔬</span> Analizar Sitio
+    <div class="nav-item" id="nav-analyze" onclick="showPage('analyze')">
+      <span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path><path d="M11 8v6"></path><path d="M8 11h6"></path></svg></span> Analizar Sitio
     </div>
     <div class="nav-item" id="nav-strategic-plan" onclick="showPage('strategic-plan')">
-      <span class="icon">🗺️</span> Plan Estratégico
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 19l5-2 6 2 5-2V5l-5 2-6-2-5 2z"></path><path d="M9 7v10"></path><path d="M15 5v10"></path></svg></span> Plan Estratégico
     </div>
     <div class="nav-item" id="nav-campaigns" onclick="showPage('campaigns')">
-      <span class="icon">▷</span> Campañas
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 13V9l10-4v12L4 13z"></path><path d="M14 9h3a3 3 0 0 1 0 6h-3"></path><path d="M7 13l1.5 5h2L9 12.5"></path></svg></span> Campañas
     </div>
     <div class="nav-item" id="nav-creatives" onclick="showPage('creatives')">
-      <span class="icon">🎨</span> Creativos & Ads
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18h1.2a2.3 2.3 0 0 0 0-4.6H12a2.2 2.2 0 0 1 0-4.4h5a4 4 0 0 0 0-8z"></path><circle cx="7.5" cy="10" r="1"></circle><circle cx="9.5" cy="7" r="1"></circle><circle cx="13.5" cy="7" r="1"></circle></svg></span> Creativos & Ads
     </div>
     <div class="nav-item" id="nav-integrations" onclick="showPage('integrations')">
-      <span class="icon">⊕</span> Integraciones
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M9 8V5a2 2 0 1 1 4 0v3"></path><path d="M7 8h10v5a5 5 0 0 1-10 0z"></path><path d="M12 18v1"></path></svg></span> Integraciones
     </div>
   </div>
 
   <div class="nav-section" style="margin-top:18px;">
     <div class="nav-label">Soporte y Extras</div>
     <div class="nav-item" id="nav-agents" onclick="showPage('agents')">
-      <span class="icon">◎</span> Agentes de apoyo
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"></path><path d="M18.5 15.5l.8 2 .2.8.8.2 2 .8-2 .8-.8.2-.2.8-.8 2-.8-2-.2-.8-.8-.2-2-.8 2-.8.8-.2.2-.8z"></path></svg></span> Agentes de apoyo
     </div>
     <div class="nav-item" onclick="showPage('strategy')">
-      <span class="icon">◇</span> Estrategia rápida
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 3l7 4v5c0 4.4-2.9 7.9-7 9-4.1-1.1-7-4.6-7-9V7z"></path><path d="M9 12l2 2 4-4"></path></svg></span> Estrategia rápida
     </div>
     <div class="nav-item" id="nav-weekly-score" onclick="showPage('weekly-score')">
-      <span class="icon">📧</span> Score Semanal
+      <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M4 7l8 6 8-6"></path></svg></span> Score Semanal
     </div>
     <div class="nav-item" onclick="showPage('learning')">
-      <span class="icon">◉</span> Aprendizaje
+      <span class="icon"><svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v15.5a.5.5 0 0 1-.8.4L16 17.5l-3.2 2.4a.5.5 0 0 1-.6 0L9 17.5l-3.2 2.4a.5.5 0 0 1-.8-.4z"></path><path d="M8 8h8"></path><path d="M8 11h8"></path></svg></span> Aprendizaje
     </div>
   </div>
 
@@ -2016,6 +2050,8 @@ tr:hover td { background: var(--surface2); }
       <div><div style="font-size:13px;font-weight:700;">Activar campaña</div><div style="font-size:11px;color:var(--muted);">Pasa del plan a ejecución</div></div>
     </div>
   </div>
+
+  <div id="dash-diagnosis-overview" style="margin-bottom:20px;"></div>
 
   <!-- Main grid: Recent analyses + Deliverables -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
@@ -2195,6 +2231,8 @@ tr:hover td { background: var(--surface2); }
 
   <!-- Integration status banner -->
   <div id="camp-integrations-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 20px;"></div>
+
+  <div id="camp-strategy-bridge" style="display:none;margin-bottom:18px;"></div>
 
   <div style="margin-bottom:18px;padding:18px;background:linear-gradient(135deg,rgba(96,165,250,0.12),rgba(94,201,160,0.08));border:1px solid rgba(96,165,250,0.2);border-radius:14px;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
@@ -2851,6 +2889,8 @@ tr:hover td { background: var(--surface2); }
 <div class="page" id="page-strategic-plan">
   <div class="page-title">Plan Estratégico</div>
   <div class="page-sub">Plan completo orgánico + pago con IA — basado en datos reales de tu negocio</div>
+
+  <div id="sp-analysis-bridge" style="display:none;margin:14px 0 0 0;"></div>
 
   <div id="sp-context-bar" style="margin:14px 0;padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
@@ -3844,6 +3884,32 @@ window.onerror = function(msg, src, line, col, err) {
 // BEARADS — CLEAN UNIFIED SCRIPT
 // ══════════════════════════════════════════
 
+const AUTH_ENTRY_PATH = '/auth';
+
+function getAuthEntryHref() {
+  return AUTH_ENTRY_PATH;
+}
+
+function getSuggestedAnalyzeUrl() {
+  var analysisUrl = String(currentAnalysis?.url || '').trim();
+  if (analysisUrl) return analysisUrl.replace('sc-domain:', '');
+  var profileUrl = String(userProfile?.url || '').trim();
+  if (profileUrl) return profileUrl.replace('sc-domain:', '');
+  var workspaceUrl = String(appSession?.workspace?.profile?.website || '').trim();
+  if (workspaceUrl) return workspaceUrl.replace('sc-domain:', '');
+  return '';
+}
+
+function syncAnalyzeUrlPrefill(force) {
+  var input = document.getElementById('analyze-url');
+  if (!input) return;
+  var suggested = getSuggestedAnalyzeUrl();
+  if (!suggested) return;
+  if (force || !String(input.value || '').trim()) {
+    input.value = suggested;
+  }
+}
+
 // ── PAGE NAVIGATION ──
 function showPage(page, el) {
   if (!tryOpenPage(page)) return false;
@@ -3883,7 +3949,7 @@ function showPage(page, el) {
   if (page === 'weekly-score')   setTimeout(initWeeklyScorePage, 50);
   if (page === 'creatives')      setTimeout(initCreativesPage, 50);
   if (page === 'learning')     setTimeout(initLearningPage, 50);
-  if (page === 'analyze')      setTimeout(() => { injectCompetitorMonitorSection(); updateAnalyzeAuthStatus(); }, 100);
+  if (page === 'analyze')      setTimeout(() => { syncAnalyzeUrlPrefill(false); injectCompetitorMonitorSection(); updateAnalyzeAuthStatus(); }, 100);
   return true;
 }
 
@@ -4073,6 +4139,27 @@ function setFormattedText(el, value) {
   });
 }
 
+function normalizeAnalysisText(value) {
+  if (value == null) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(normalizeAnalysisText).filter(Boolean).join(' · ');
+  if (typeof value === 'object') {
+    return String(
+      value.detalle
+      || value.detail
+      || value.titulo
+      || value.title
+      || value.razon
+      || value.reason
+      || value.text
+      || value.label
+      || value.name
+      || ''
+    );
+  }
+  return String(value);
+}
+
 function createInfoCard(options) {
   var opts = options || {};
   var card = document.createElement('div');
@@ -4133,8 +4220,8 @@ function createAuthCtaNode(message) {
   actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
 
   var login = document.createElement('a');
-  login.href = '/auth/google';
-  login.textContent = '🔗 Entrar con Google';
+  login.href = getAuthEntryHref();
+  login.textContent = '🔐 Entrar o crear acceso';
   login.style.cssText = 'padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;';
   actions.appendChild(login);
 
@@ -4142,12 +4229,10 @@ function createAuthCtaNode(message) {
     refreshAppSession().then(function() { showToast('Sesión actualizada'); });
   }, 'padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;'));
 
-  var disabled = document.createElement('button');
-  disabled.type = 'button';
-  disabled.disabled = true;
-  disabled.textContent = '✉️ Registro con correo (temporalmente desactivado)';
-  disabled.style.cssText = 'padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;';
-  actions.appendChild(disabled);
+  var helper = document.createElement('div');
+  helper.style.cssText = 'padding:9px 14px;background:#eef2f7;border-radius:8px;color:#64748b;font-size:12px;font-weight:700;';
+  helper.textContent = 'Google, correo personal y Meta próximamente';
+  actions.appendChild(helper);
 
   wrapper.appendChild(actions);
   return wrapper;
@@ -4246,9 +4331,9 @@ function getAuthCtaHtml(message) {
     <div style="font-size:13px;font-weight:700;color:#f3c1c1;margin-bottom:6px;">Necesitas volver a autenticarte</div>
     <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px;">${esc(message || 'Tu sesión ya no está activa. Vuelve a entrar para seguir usando BearAds.')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <a href="/auth/google" style="padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;">🔗 Entrar con Google</a>
+      <a href="${esc(getAuthEntryHref())}" style="padding:9px 14px;background:linear-gradient(90deg,#4285f4,#34a853);border-radius:8px;color:#eef0f8;font-size:12px;font-weight:700;text-decoration:none;">🔐 Entrar o crear acceso</a>
       <button onclick="refreshAppSession().then(()=>showToast('Sesión actualizada'))" style="padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;">🔄 Reintentar</button>
-      <button disabled style="padding:9px 14px;background:#d8e0ea;border:none;border-radius:8px;color:#6b7280;font-size:12px;font-weight:700;cursor:not-allowed;">✉️ Registro con correo (temporalmente desactivado)</button>
+      <div style="padding:9px 14px;background:#eef2f7;border-radius:8px;color:#64748b;font-size:12px;font-weight:700;">Google, correo personal y Meta próximamente</div>
     </div>
   </div>`;
 }
@@ -5151,20 +5236,14 @@ function openStrategyFromDashboard() {
   const latestWithReport = analyses.find(function(item) { return !!item.report; });
 
   if (currentAnalysis?.url) {
-    saveStrategicPlanDraft({
-      business: userProfile?.biz || currentAnalysis.siteTitle || '',
-      url: currentAnalysis.url
-    });
+    saveStrategicPlanDraft(buildStrategicDraftFromAnalysis(currentAnalysis));
     showPage('strategic-plan');
     return;
   }
 
   if (latestWithReport?.report) {
     currentAnalysis = latestWithReport.report;
-    saveStrategicPlanDraft({
-      business: userProfile?.biz || latestWithReport.siteTitle || '',
-      url: latestWithReport.url
-    });
+    saveStrategicPlanDraft(buildStrategicDraftFromAnalysis(latestWithReport.report));
     showPage('strategic-plan');
     showToast('Usando el ultimo analisis para crear tu plan');
     return;
@@ -5184,6 +5263,47 @@ function openDeliverablesHistory() {
     switchLearnTab('history');
     document.getElementById('history-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 80);
+}
+
+function getSuggestedStrategicGoalFromAnalysis(analysis) {
+  if (!analysis) return spGoal || 'Aumentar ventas online';
+  var semScore = Number(analysis.sem?.score || 0);
+  var trafficScore = Number(analysis.trafico?.score || 0);
+  var croScore = Number(analysis.cro?.score || 0);
+  var contentScore = Number(analysis.contenido?.score || 0);
+  var recommendedChannels = Array.isArray(analysis.trafico?.canales_recomendados) ? analysis.trafico.canales_recomendados : [];
+  var hasLeadSignal = recommendedChannels.some(function(channel) {
+    var text = normalizeAnalysisText(channel?.canal || channel?.razon || channel).toLowerCase();
+    return text.includes('lead') || text.includes('whatsapp');
+  });
+
+  if (hasLeadSignal) return 'Generar leads';
+  if (croScore < 55) return 'Mejorar conversiones';
+  if (contentScore < 55) return 'Aumentar tráfico orgánico';
+  if (semScore >= 65 || trafficScore >= 65) return 'Aumentar ventas online';
+  return spGoal || 'Aumentar ventas online';
+}
+
+function buildStrategicDraftFromAnalysis(analysis) {
+  var safeAnalysis = analysis || {};
+  var route = getGrowthRouteRecommendation({
+    onboarding: getWorkspaceOnboarding(),
+    analysis: safeAnalysis,
+    hub: getWorkspaceIntegrationHub()
+  });
+  return {
+    business: userProfile?.biz || safeAnalysis.siteTitle || '',
+    product: userProfile?.biz || safeAnalysis.siteTitle || '',
+    audience: userProfile?.audience || getWorkspaceOnboarding()?.mainGoal || '',
+    url: safeAnalysis.url || '',
+    goal: getSuggestedStrategicGoalFromAnalysis(safeAnalysis),
+    sourceAnalysisId: safeAnalysis.id || '',
+    sourceAnalysisScore: safeAnalysis.globalScore || 0,
+    sourceAnalysisSite: safeAnalysis.siteTitle || safeAnalysis.url || '',
+    routeBadge: route?.badge || '',
+    routeTitle: route?.title || '',
+    routeCopy: route?.copy || ''
+  };
 }
 
 function openAnalysesHistory() {
@@ -5460,6 +5580,7 @@ function refreshDashboard() {
   }
 
   const last = analyses[0];
+  renderDashboardDiagnosisOverview(last);
   const liveEl = $('dash-live-data');
   if (last?.gscData) {
     if (liveEl) liveEl.style.display = 'block';
@@ -5491,6 +5612,122 @@ function refreshDashboard() {
     evoEl.style.display = 'none';
     barsEl.innerHTML = '';
   }
+}
+
+function getDiagnosisPriorityFromAnalysis(analysis) {
+  if (!analysis) return null;
+  const modules = [
+    { key: 'seo', label: 'SEO', score: Number(analysis.seo?.score || 0), action: function() { showPage('analyze'); } },
+    { key: 'contenido', label: 'Contenido', score: Number(analysis.contenido?.score || 0), action: function() { showPage('strategic-plan'); } },
+    { key: 'cro', label: 'Conversión', score: Number(analysis.cro?.score || 0), action: function() { showPage('strategic-plan'); } },
+    { key: 'trafico', label: 'Tráfico', score: Number(analysis.trafico?.score || 0), action: function() { showPage('campaigns'); } },
+    { key: 'sem', label: 'SEM', score: Number(analysis.sem?.score || 0), action: function() { showPage('campaigns'); } }
+  ];
+  return modules.sort(function(a, b) { return a.score - b.score; })[0] || null;
+}
+
+function getDiagnosisScoreSummary(analysis) {
+  if (!analysis) return [];
+  return [
+    { key: 'seo', label: 'SEO', score: Number(analysis.seo?.score || 0), page: 'analyze' },
+    { key: 'contenido', label: 'Contenido', score: Number(analysis.contenido?.score || 0), page: 'strategic-plan' },
+    { key: 'cro', label: 'CRO', score: Number(analysis.cro?.score || 0), page: 'strategic-plan' },
+    { key: 'trafico', label: 'Tráfico', score: Number(analysis.trafico?.score || 0), page: 'campaigns' },
+    { key: 'sem', label: 'SEM', score: Number(analysis.sem?.score || 0), page: 'campaigns' }
+  ];
+}
+
+function renderDashboardDiagnosisOverview(lastAnalysis) {
+  const host = document.getElementById('dash-diagnosis-overview');
+  if (!host) return;
+  clearElement(host);
+
+  if (!lastAnalysis?.report && !lastAnalysis?.url) {
+    host.style.display = 'none';
+    return;
+  }
+
+  host.style.display = 'block';
+  const analysis = lastAnalysis.report || lastAnalysis;
+  const priority = getDiagnosisPriorityFromAnalysis(analysis);
+  const route = getGrowthRouteRecommendation({
+    onboarding: getWorkspaceOnboarding(),
+    analysis: analysis,
+    hub: getWorkspaceIntegrationHub()
+  });
+  const modules = getDiagnosisScoreSummary(analysis);
+  const topFindings = []
+    .concat(Array.isArray(analysis.seo?.hallazgos) ? analysis.seo.hallazgos.slice(0, 1) : [])
+    .concat(Array.isArray(analysis.cro?.fricciones) ? analysis.cro.fricciones.slice(0, 1) : [])
+    .concat(Array.isArray(analysis.trafico?.quick_wins) ? analysis.trafico.quick_wins.slice(0, 1) : [])
+    .map(normalizeAnalysisText)
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'background:linear-gradient(135deg,rgba(255,255,255,0.9),rgba(123,167,232,0.04));border:1px solid rgba(123,167,232,0.16);border-radius:16px;padding:18px;';
+
+  const top = document.createElement('div');
+  top.style.cssText = 'display:grid;grid-template-columns:minmax(0,1.2fr) minmax(240px,0.8fr);gap:14px;align-items:start;';
+
+  const left = document.createElement('div');
+  appendTextLine(left, 'DIAGNÓSTICO ACTIVO', 'font-size:10px;font-weight:800;letter-spacing:0.8px;color:#51627f;margin-bottom:8px;');
+  appendTextLine(left, (analysis.siteTitle || analysis.url || 'Tu sitio') + ' · Score ' + String(analysis.globalScore || '--') + '/100', 'font-size:20px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:6px;');
+  appendTextLine(left, route.copy || 'BearAds ya detectó suficiente contexto para priorizar qué hacer primero.', 'font-size:12px;color:var(--text2);line-height:1.8;');
+
+  const right = document.createElement('div');
+  right.style.cssText = 'padding:14px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:14px;';
+  appendTextLine(right, 'Enfoque inmediato', 'font-size:10px;font-weight:800;letter-spacing:0.8px;color:#35507f;margin-bottom:6px;');
+  appendTextLine(right, priority ? (priority.label + ' necesita atención primero') : 'Base de crecimiento', 'font-size:15px;font-weight:800;color:var(--text);line-height:1.5;margin-bottom:4px;');
+  appendTextLine(right, priority ? ('Score actual: ' + priority.score + '/100') : 'Usa el análisis como guía del siguiente paso.', 'font-size:11px;color:#51627f;line-height:1.7;');
+
+  top.appendChild(left);
+  top.appendChild(right);
+  wrapper.appendChild(top);
+
+  if (modules.length) {
+    const scoreGrid = document.createElement('div');
+    scoreGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:14px;';
+    modules.forEach(function(item) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.onclick = function() { showPage(item.page); };
+      btn.style.cssText = 'padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;text-align:left;cursor:pointer;';
+      btn.innerHTML = ''
+        + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:var(--muted);margin-bottom:4px;">' + esc(item.label) + '</div>'
+        + '<div style="font-size:20px;font-weight:800;color:' + scoreColor(item.score) + ';">' + esc(String(item.score)) + '</div>'
+        + '<div style="font-size:10px;color:var(--text2);margin-top:4px;">Abrir módulo</div>';
+      scoreGrid.appendChild(btn);
+    });
+    wrapper.appendChild(scoreGrid);
+  }
+
+  if (topFindings.length) {
+    const findings = document.createElement('div');
+    findings.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px;';
+    topFindings.forEach(function(item) {
+      var card = document.createElement('div');
+      card.style.cssText = 'padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--text2);line-height:1.7;';
+      appendTextLine(card, item, 'font-size:11px;color:var(--text2);line-height:1.7;');
+      findings.appendChild(card);
+    });
+    wrapper.appendChild(findings);
+  }
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;';
+  actions.appendChild(createActionButton('🗺️ Convertir en plan', function() {
+    saveStrategicPlanDraft(buildStrategicDraftFromAnalysis(analysis));
+    showPage('strategic-plan');
+  }, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('🔁 Abrir diagnóstico', function() {
+    loadAnalysisFromHistory(lastAnalysis.id);
+  }, 'padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+  if (priority?.action) {
+    actions.appendChild(createActionButton('⚡ Mover siguiente paso', priority.action, 'padding:10px 14px;background:rgba(255,255,255,0.9);border:1px solid rgba(123,167,232,0.18);border-radius:10px;color:#35507f;font-size:12px;font-weight:800;cursor:pointer;'));
+  }
+  wrapper.appendChild(actions);
+  host.appendChild(wrapper);
 }
 
 function loadAnalysisFromHistory(id) {
@@ -5847,9 +6084,10 @@ async function generateStrategy() {
       actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
       actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestStrategy(); }));
       actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        var button = ev.currentTarget;
         navigator.clipboard.writeText(reply);
-        ev.currentTarget.textContent = '✓';
-        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+        if (button) button.textContent = '✓';
+        setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
       }));
       header.appendChild(actions);
       renderTextCard(resultEl, {
@@ -5880,7 +6118,15 @@ async function generateStrategy() {
 }
 
 function saveStrategy(name, preview, content) {
-  stSavedStrategies.unshift({ name, preview, content, date: new Date().toLocaleDateString('es') });
+  var draft = getStrategicPlanDraft();
+  stSavedStrategies.unshift({
+    name,
+    preview,
+    content,
+    date: new Date().toLocaleDateString('es'),
+    goal: draft?.goal || spGoal || '',
+    duration: draft?.duration || document.getElementById('sp-duration')?.value || '90'
+  });
   DB.set('saved_strategies', stSavedStrategies);
   renderSavedStrategies();
   showToast('Estrategia guardada');
@@ -5889,6 +6135,33 @@ function saveStrategy(name, preview, content) {
 function saveLatestStrategy() {
   if (!latestGeneratedStrategy) return;
   saveStrategy(latestGeneratedStrategy.name, latestGeneratedStrategy.preview, latestGeneratedStrategy.content);
+}
+
+function openSavedStrategy(index) {
+  var item = stSavedStrategies[index];
+  var emptyEl = document.getElementById('st-empty');
+  var loadEl = document.getElementById('st-loading');
+  var resultEl = document.getElementById('st-result');
+  if (!item || !resultEl) return;
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (loadEl) loadEl.style.display = 'none';
+  resultEl.style.display = 'block';
+  window._lastStrategicPlan = item.content || '';
+  latestGeneratedStrategy = {
+    name: item.name || 'Estrategia',
+    preview: item.preview || '',
+    content: item.content || ''
+  };
+  saveStrategicPlanDraft({
+    content: item.content || '',
+    goal: item.goal || getStrategicPlanDraft()?.goal || spGoal || '',
+    duration: item.duration || getStrategicPlanDraft()?.duration || document.getElementById('sp-duration')?.value || '90'
+  });
+  renderStrategicPlanResult(resultEl, item.content || '', deriveStrategicPlanContext(), {
+    duration: item.duration || '90',
+    goal: item.goal || spGoal
+  });
+  showToast('Estrategia abierta desde guardadas');
 }
 
 function renderSavedStrategies() {
@@ -5901,14 +6174,38 @@ function renderSavedStrategies() {
     return;
   }
   if (section) section.style.display='block';
-  stSavedStrategies.forEach(function(s) {
+  stSavedStrategies.forEach(function(s, index) {
     var card = createInfoCard({ style: 'padding:14px;' });
+    card.style.cursor = 'pointer';
+    card.style.transition = 'all 0.15s';
+    card.addEventListener('click', function() { openSavedStrategy(index); });
     var header = document.createElement('div');
-    header.style.cssText = 'display:flex;justify-content:space-between;margin-bottom:6px;gap:8px;';
+    header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px;';
+    var left = document.createElement('div');
     appendTextLine(header, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
-    appendTextLine(header, s.date, 'font-size:11px;color:var(--muted);');
+    clearElement(header);
+    appendTextLine(left, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
+    if (s.goal || s.duration) {
+      appendTextLine(left, [s.goal, s.duration ? (s.duration + ' días') : ''].filter(Boolean).join(' · '), 'font-size:10px;color:var(--muted);margin-top:3px;');
+    }
+    header.appendChild(left);
+    var right = document.createElement('div');
+    right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;';
+    appendTextLine(right, s.date, 'font-size:11px;color:var(--muted);');
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;';
+    actions.appendChild(createUtilityButton('⬇ Descargar', function(ev) {
+      ev.stopPropagation();
+      downloadTextFile((s.name || 'Plan-Estrategico').replace(/\s+/g, '-') + '.txt', s.content || '');
+    }, 'font-size:10px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
+    actions.appendChild(createUtilityButton('👁 Abrir', function(ev) {
+      ev.stopPropagation();
+      openSavedStrategy(index);
+    }, 'font-size:10px;padding:4px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.18);border-radius:5px;color:var(--accent);cursor:pointer;'));
+    right.appendChild(actions);
+    header.appendChild(right);
     card.appendChild(header);
-    appendTextLine(card, (s.preview || '').substring(0,80) + '...', 'font-size:12px;color:var(--muted);');
+    appendTextLine(card, (s.preview || '').substring(0,120) + '...', 'font-size:12px;color:var(--muted);line-height:1.7;');
     list.appendChild(card);
   });
 }
@@ -5949,6 +6246,182 @@ const CAMPAIGN_TEMPLATES = {
   }
 };
 
+function getCampaignActivationContext() {
+  return DB.get('campaign_activation_context', {});
+}
+
+function saveCampaignActivationContext(payload) {
+  var nextContext = Object.assign({}, getCampaignActivationContext(), payload || {}, {
+    savedAt: new Date().toISOString()
+  });
+  DB.set('campaign_activation_context', nextContext);
+  return nextContext;
+}
+
+function clearCampaignActivationContext() {
+  DB.del('campaign_activation_context');
+}
+
+function openCampaignsFromStrategy(source) {
+  var draft = getStrategicPlanDraft();
+  var analysis = currentAnalysis || getAnalysisHistory()?.[0]?.report || null;
+  saveCampaignActivationContext({
+    source: source || 'strategy',
+    goal: draft.goal || spGoal || '',
+    product: draft.product || '',
+    audience: draft.audience || '',
+    budget: draft.budget || '',
+    url: draft.url || analysis?.url || '',
+    routeBadge: deriveStrategicPlanContext()?.routeBadge || '',
+    routeTitle: deriveStrategicPlanContext()?.routeTitle || '',
+    routeCopy: deriveStrategicPlanContext()?.routeCopy || '',
+    analysisScore: analysis?.globalScore || null,
+    analysisSite: analysis?.siteTitle || analysis?.url || ''
+  });
+  showPage('campaigns');
+}
+
+function inferCampaignPresetFromGoal(goal) {
+  var normalizedGoal = String(goal || '').toLowerCase();
+  if (normalizedGoal.includes('lead')) {
+    return {
+      templateId: 'meta-leads',
+      platform: 'meta',
+      objective: 'Generación de leads'
+    };
+  }
+  if (normalizedGoal.includes('traf')) {
+    return {
+      templateId: 'traffic-boost',
+      platform: 'meta',
+      objective: 'Tráfico al sitio web'
+    };
+  }
+  if (normalizedGoal.includes('remarketing') || normalizedGoal.includes('email')) {
+    return {
+      templateId: 'email-welcome',
+      platform: 'email',
+      objective: 'Remarketing'
+    };
+  }
+  return {
+    templateId: 'google-sales',
+    platform: 'google',
+    objective: 'Ventas / Conversiones'
+  };
+}
+
+function resolveCampaignPrefillFromStrategy() {
+  var draft = getStrategicPlanDraft();
+  var activation = getCampaignActivationContext();
+  var context = deriveStrategicPlanContext();
+  var preset = inferCampaignPresetFromGoal((activation?.goal || draft.goal || spGoal || ''));
+  return {
+    preset: preset,
+    source: activation?.source || (draft?.content ? 'strategy' : ''),
+    goal: activation?.goal || draft.goal || spGoal || '',
+    product: activation?.product || draft.product || context.product || '',
+    audience: activation?.audience || draft.audience || context.audience || '',
+    budget: activation?.budget || draft.budget || context.budget || '',
+    url: activation?.url || draft.url || context.url || '',
+    routeBadge: activation?.routeBadge || context.routeBadge || '',
+    routeTitle: activation?.routeTitle || context.routeTitle || '',
+    routeCopy: activation?.routeCopy || context.routeCopy || '',
+    analysisScore: activation?.analysisScore || context.analysisSummary?.globalScore || null,
+    analysisSite: activation?.analysisSite || currentAnalysis?.siteTitle || currentAnalysis?.url || ''
+  };
+}
+
+function prefillCampaignFromStrategy(options) {
+  var strategyContext = resolveCampaignPrefillFromStrategy();
+  if (!strategyContext.product && !strategyContext.goal && !strategyContext.preset) return false;
+  var allowOverride = !!options?.allowOverride;
+  var silent = options?.silent !== false;
+  var productEl = document.getElementById('camp-product');
+  var budgetEl = document.getElementById('camp-budget');
+  var objectiveEl = document.getElementById('camp-objective');
+
+  if (strategyContext.preset?.templateId) {
+    applyCampaignTemplate(strategyContext.preset.templateId, true);
+  }
+  if (productEl && (allowOverride || !productEl.value.trim()) && strategyContext.product) {
+    productEl.value = strategyContext.product;
+  }
+  if (budgetEl && (allowOverride || !budgetEl.value.trim()) && strategyContext.budget) {
+    budgetEl.value = strategyContext.budget;
+  }
+  if (objectiveEl && strategyContext.preset?.objective) {
+    objectiveEl.value = strategyContext.preset.objective;
+  }
+  if (strategyContext.preset?.platform) {
+    setCampaignPlatform(strategyContext.preset.platform);
+  }
+  if (!silent) showToast('Campaña preparada desde tu plan estratégico');
+  return true;
+}
+
+function renderCampaignStrategyBridge() {
+  var host = document.getElementById('camp-strategy-bridge');
+  if (!host) return;
+  clearElement(host);
+  var strategyContext = resolveCampaignPrefillFromStrategy();
+  if (!strategyContext.product && !strategyContext.goal && !strategyContext.routeTitle) {
+    host.style.display = 'none';
+    return;
+  }
+
+  host.style.display = 'block';
+  var card = document.createElement('div');
+  card.style.cssText = 'padding:16px 18px;background:linear-gradient(135deg,rgba(94,201,160,0.1),rgba(123,167,232,0.08));border:1px solid rgba(94,201,160,0.18);border-radius:14px;';
+
+  var top = document.createElement('div');
+  top.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;';
+
+  var copy = document.createElement('div');
+  copy.style.cssText = 'flex:1;min-width:240px;';
+  appendTextLine(copy, 'PLAN LISTO PARA ACTIVAR', 'font-size:10px;font-weight:800;letter-spacing:0.9px;color:#0f9f6e;margin-bottom:6px;');
+  appendTextLine(copy, strategyContext.routeTitle || 'Tu estrategia ya puede pasar a ejecución', 'font-size:18px;font-weight:800;color:var(--text);line-height:1.45;margin-bottom:6px;');
+  appendTextLine(copy, strategyContext.routeCopy || 'BearAds usará el último plan generado para proponerte una campaña base alineada con tu objetivo actual.', 'font-size:12px;color:var(--text2);line-height:1.75;');
+
+  if (strategyContext.product || strategyContext.goal || strategyContext.analysisSite) {
+    var contextLine = document.createElement('div');
+    contextLine.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
+    if (strategyContext.product) contextLine.appendChild(createBadge('Producto: ' + strategyContext.product, {
+      background: 'rgba(255,255,255,0.78)',
+      border: 'rgba(123,167,232,0.16)',
+      color: '#35507f',
+      className: ''
+    }));
+    if (strategyContext.goal) contextLine.appendChild(createBadge('Objetivo: ' + strategyContext.goal, {
+      background: 'rgba(255,255,255,0.78)',
+      border: 'rgba(94,201,160,0.16)',
+      color: '#256b55',
+      className: ''
+    }));
+    if (strategyContext.analysisScore) contextLine.appendChild(createBadge('Score: ' + strategyContext.analysisScore + '/100', {
+      background: 'rgba(255,255,255,0.78)',
+      border: 'rgba(251,191,36,0.18)',
+      color: '#9a6b00',
+      className: ''
+    }));
+    copy.appendChild(contextLine);
+  }
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+  actions.appendChild(createActionButton('⚡ Usar este plan', function() {
+    prefillCampaignFromStrategy({ allowOverride: true, silent: false });
+  }, 'padding:10px 12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('🧠 Volver al plan', function() {
+    showPage('strategy');
+  }, 'padding:10px 12px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+
+  top.appendChild(copy);
+  top.appendChild(actions);
+  card.appendChild(top);
+  host.appendChild(card);
+}
+
 function initCampaignsPage() {
   const bar = document.getElementById('camp-integrations-bar');
   if (!bar) return;
@@ -5971,7 +6444,10 @@ function initCampaignsPage() {
     className: ''
   }));
   if (hint) hint.style.display = googleOk ? 'none' : 'block';
-  if (!document.getElementById('camp-product')?.value.trim()) applyCampaignTemplate('meta-leads', true);
+  renderCampaignStrategyBridge();
+  if (!prefillCampaignFromStrategy({ silent: true })) {
+    if (!document.getElementById('camp-product')?.value.trim()) applyCampaignTemplate('meta-leads', true);
+  }
   syncCampaignAuthUI();
   refreshPlanLockedUI();
 }
@@ -6049,9 +6525,10 @@ function renderCampaignResult(resultEl, campaign) {
   actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
   actions.appendChild(createUtilityButton('💾 Guardar', function() { saveLatestCampaign(); }));
   actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+    var button = ev.currentTarget;
     navigator.clipboard.writeText(campaign.content || '');
-    ev.currentTarget.textContent = '✓';
-    setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+    if (button) button.textContent = '✓';
+    setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
   }));
   header.appendChild(actions);
   renderTextCard(resultEl, {
@@ -6100,6 +6577,7 @@ async function generateCampaign() {
   const budget = document.getElementById('camp-budget').value.trim()||'$15/día';
   const product = document.getElementById('camp-product').value.trim();
   if (!product) { document.getElementById('camp-product').style.borderColor='var(--danger)'; setTimeout(()=>document.getElementById('camp-product').style.borderColor='var(--border)',2000); showToast('Describe qué quieres promocionar para crear la campaña'); return; }
+  var strategyContext = resolveCampaignPrefillFromStrategy();
 
   const platNames = {meta:'Meta Ads (Facebook/Instagram)',google:'Google Ads',tiktok:'TikTok Ads',email:'Email Marketing'};
   const platIcons = {meta:'📘',google:'🔵',tiktok:'🎵',email:'✉️'};
@@ -6108,7 +6586,7 @@ async function generateCampaign() {
 
   try {
     const res = await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({messages:[{role:'user',content:`Crea una campaña completa de ${platNames[campPlatform]}:\n\nProducto: ${product}\nObjetivo: ${objective}\nPresupuesto: ${budget}${currentAnalysis?'\nSitio: '+currentAnalysis.url:''}\n\nIncluye: 1) Estructura 2) Audiencia detallada 3) 3 copies completos (headline+texto+CTA) 4) Estrategia de puja 5) KPIs 6) Checklist de configuración. Listo para lanzar.`}],
+      body:JSON.stringify({messages:[{role:'user',content:`Crea una campaña completa de ${platNames[campPlatform]}:\n\nProducto: ${product}\nObjetivo: ${objective}\nPresupuesto: ${budget}${currentAnalysis?'\nSitio: '+currentAnalysis.url:''}${strategyContext?.audience?'\nAudiencia objetivo: '+strategyContext.audience:''}${strategyContext?.goal?'\nMeta estratégica actual: '+strategyContext.goal:''}${strategyContext?.routeTitle?'\nRuta recomendada: '+strategyContext.routeTitle:''}${strategyContext?.analysisScore?'\nScore actual del diagnóstico: '+strategyContext.analysisScore+'/100':''}\n\nIncluye: 1) Estructura 2) Audiencia detallada 3) 3 copies completos (headline+texto+CTA) 4) Estrategia de puja 5) KPIs 6) Checklist de configuración. Listo para lanzar y coherente con el plan estratégico de BearAds.`}],
         systemPrompt:`Eres el Agente de Anuncios de BearAds. Creas campañas de ${platNames[campPlatform]} completas y listas para lanzar. Formato estructurado con emojis. Máximo 500 palabras. En español.`})});
     const data = await parseApiResponse(res);
     const reply = data.reply||'Error.';
@@ -6533,7 +7011,7 @@ function updateAnalyzeAuthStatus() {
     const authBtn = document.getElementById('auth-google-btn');
     const authStatus = document.getElementById('auth-status');
     if (!authBtn && !authStatus) return;
-    if (data.connected) {
+    if (data.googleConnected) {
       if (authStatus) {
         clearElement(authStatus);
         authStatus.appendChild(Object.assign(document.createElement('span'), {
@@ -6750,12 +7228,12 @@ function renderFindings(containerId, findings) {
 
     var dot = document.createElement('div');
     dot.className = 'finding-dot';
-    dot.style.background = getFindingColor(f.tipo);
+    dot.style.background = getFindingColor(f?.tipo);
 
     var body = document.createElement('div');
-    var title = appendTextLine(body, f.titulo || '');
+    var title = appendTextLine(body, normalizeAnalysisText(f?.titulo || f?.title || f));
     title.className = 'finding-title';
-    var detail = appendTextLine(body, f.detalle || '');
+    var detail = appendTextLine(body, normalizeAnalysisText(f?.detalle || f?.detail || ''));
     detail.className = 'finding-detail';
 
     item.appendChild(dot);
@@ -6818,10 +7296,7 @@ function renderAnalysisNextStep(data) {
   const actions = document.createElement('div');
   actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
   actions.appendChild(createActionButton('🗺️ Crear plan estratégico', function() {
-    saveStrategicPlanDraft({
-      business: userProfile?.biz || data?.siteTitle || '',
-      url: analysisUrl
-    });
+    saveStrategicPlanDraft(buildStrategicDraftFromAnalysis(data));
     showPage('strategic-plan');
   }, 'padding:10px 14px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;'));
   actions.appendChild(createActionButton('📊 Ir al dashboard', function() {
@@ -7176,13 +7651,16 @@ async function checkGoogleStatus() {
   try {
     const res = await fetch('/auth/status');
     const data = await res.json();
-    googleUser = data.connected ? data.user : null;
+    googleUser = data.googleConnected ? data.user : null;
     updateGoogleUI();
 
     // Check for ?connected=google in URL
     if (window.location.search.includes('connected=google')) {
       clearUrlParams(['connected']);
       showGoogleConnectedToast();
+    } else if (window.location.search.includes('connected=email')) {
+      clearUrlParams(['connected']);
+      showToast('Sesión iniciada con correo personal');
     }
   } catch(e) {}
 }
@@ -7254,10 +7732,14 @@ function renderRealData(trafficData) {
   document.getElementById('no-google-notice').style.display = hasRealData ? 'none' : 'block';
 
   if (!gsc?.connected) {
-    document.getElementById('gsc-period').textContent = '';
-    document.getElementById('gsc-clicks').textContent = '--';
-    document.getElementById('gsc-impressions').textContent = '--';
-    document.getElementById('gsc-position').textContent = '--';
+    const gscPeriodEl = document.getElementById('gsc-period');
+    if (gscPeriodEl) gscPeriodEl.textContent = '';
+    const gscClicksEl = document.getElementById('gsc-clicks');
+    if (gscClicksEl) gscClicksEl.textContent = '--';
+    const gscImpEl = document.getElementById('gsc-impressions');
+    if (gscImpEl) gscImpEl.textContent = '--';
+    const gscPosEl = document.getElementById('gsc-position');
+    if (gscPosEl) gscPosEl.textContent = '--';
     const kwFallback = document.getElementById('gsc-keywords');
     if (kwFallback) {
       clearElement(kwFallback);
@@ -7296,11 +7778,16 @@ function renderRealData(trafficData) {
   }
 
   if (!ga4?.connected) {
-    document.getElementById('ga4-period').textContent = '';
-    document.getElementById('ga4-sessions').textContent = '--';
-    document.getElementById('ga4-users').textContent = '--';
-    document.getElementById('ga4-bounce').textContent = '--';
-    document.getElementById('ga4-duration').textContent = '--';
+    const ga4PeriodEl = document.getElementById('ga4-period');
+    if (ga4PeriodEl) ga4PeriodEl.textContent = '';
+    const ga4SessionsEl = document.getElementById('ga4-sessions');
+    if (ga4SessionsEl) ga4SessionsEl.textContent = '--';
+    const ga4UsersEl = document.getElementById('ga4-users');
+    if (ga4UsersEl) ga4UsersEl.textContent = '--';
+    const ga4BounceEl = document.getElementById('ga4-bounce');
+    if (ga4BounceEl) ga4BounceEl.textContent = '--';
+    const ga4DurationEl = document.getElementById('ga4-duration');
+    if (ga4DurationEl) ga4DurationEl.textContent = '--';
     const chFallback = document.getElementById('ga4-channels');
     if (chFallback) {
       clearElement(chFallback);
@@ -7904,6 +8391,9 @@ const PLAN_DOWNGRADE_REASONS = {
 };
 
 function formatPlanLabel(workspace) {
+  if (!workspace) {
+    return String(userProfile?.plan || 'TRIAL').toUpperCase();
+  }
   const sub = workspace?.subscription || {};
   const commercial = workspace?.commercial || {};
   if (sub.status === 'trialing') {
@@ -7916,7 +8406,7 @@ function formatPlanLabel(workspace) {
     pro: 'PRO',
     agency: 'AGENCY'
   };
-  const base = labelMap[sub.plan || 'pro'] || (sub.plan || userProfile.plan || 'PRO').toUpperCase();
+  const base = labelMap[sub.plan || 'trial'] || (sub.plan || userProfile?.plan || 'TRIAL').toUpperCase();
   return Array.isArray(commercial.addOns) && commercial.addOns.includes('expansion')
     ? base + ' + EXP'
     : base;
@@ -8618,8 +9108,8 @@ function syncCampaignAuthUI(session = appSession) {
   clearElement(hint);
   appendTextLine(hint, 'Primero inicia sesión en BearAds para usar la IA.', 'font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px;');
   const link = document.createElement('a');
-  link.href = '/auth/google';
-  link.textContent = 'Entrar con Google →';
+  link.href = getAuthEntryHref();
+  link.textContent = 'Entrar o crear acceso →';
   link.style.cssText = 'color:var(--accent);font-weight:700;text-decoration:none;';
   hint.appendChild(link);
 }
@@ -8903,13 +9393,16 @@ function renderRuntimeState(session = appSession) {
 
 function getAssignableRoles(session = appSession) {
   if (isPrimaryRootOwner(session)) {
-    return ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
   }
-  if (isGlobalOwner(session) || session?.permissions?.isOwner) {
-    return ['admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  if (session?.permissions?.isOwner) {
+    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+  }
+  if (isGlobalOwner(session)) {
+    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
   }
   if (session?.permissions?.canManageUsers) {
-    return ['admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+    return ['admin', 'billing', 'member_trial', 'member_paid'];
   }
   return [];
 }
@@ -8918,6 +9411,31 @@ function buildRoleOptions(selectedRole) {
   return getAssignableRoles().map(function(role) {
     return '<option value="' + role + '"' + (selectedRole === role ? ' selected' : '') + '>' + formatSARole(role).toUpperCase() + '</option>';
   }).join('');
+}
+
+function buildPlanOptions(selectedPlan) {
+  const current = String(selectedPlan || 'starter').toLowerCase();
+  return ['starter', 'pro', 'agency'].map(function(plan) {
+    return '<option value="' + plan + '"' + (current === plan ? ' selected' : '') + '>' + String(plan).toUpperCase() + '</option>';
+  }).join('');
+}
+
+function toggleSAPlanSelect(containerId, role) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.style.display = role === 'member_paid' ? 'block' : 'none';
+}
+
+async function handleAdminUserRoleChange(userId, workspaceId, role, planInputId, planContainerId) {
+  toggleSAPlanSelect(planContainerId, role);
+  if (role === 'member_paid') {
+    const plan = document.getElementById(planInputId)?.value || '';
+    if (!plan) {
+      showToast('Selecciona el plan para activar usuario pago');
+      return;
+    }
+  }
+  await updateAdminUserRole(userId, role, workspaceId, planInputId);
 }
 
 function getProfileCachePayload(profile) {
@@ -8993,6 +9511,11 @@ async function refreshAppSession() {
   const session = await fetchAppSession();
   if (!session || !session.user) {
     appSession = null;
+    userProfile = Object.assign({}, userProfile, {
+      plan: 'TRIAL'
+    });
+    DB.set('user_profile_cache', getProfileCachePayload(userProfile));
+    applyProfileToUI(userProfile, null);
     syncCampaignAuthUI(null);
     renderRuntimeState(null);
     setTimeout(refreshPlanLockedUI, 0);
@@ -9041,6 +9564,19 @@ function clearUrlParams(paramNames) {
     const next = url.pathname + (url.search ? url.search : '') + (url.hash || '');
     window.history.replaceState({}, '', next);
   } catch (e) {}
+}
+
+function isGoogleCallbackPath() {
+  return window.location.pathname === '/auth/google/callback';
+}
+
+function normalizeGoogleAuthReturn(session) {
+  if (!isGoogleCallbackPath()) return;
+  if (session?.user) {
+    window.history.replaceState({}, '', '/?connected=google');
+    return;
+  }
+  window.history.replaceState({}, '', '/?error=auth');
 }
 
 async function pollBillingSync(attempts = 5, delayMs = 1500) {
@@ -9251,10 +9787,7 @@ function saveProfile() {
   saveRemote.then(async function() {
     userProfile = nextProfile;
     DB.set('user_profile_cache', getProfileCachePayload(userProfile));
-    if (userProfile.url) {
-      const urlInput = document.getElementById('analyze-url');
-      if (urlInput && !urlInput.value) urlInput.value = userProfile.url;
-    }
+    syncAnalyzeUrlPrefill(false);
     await refreshAppSession();
     closeModal('profile-modal');
     showToast('Perfil guardado');
@@ -9264,11 +9797,13 @@ function saveProfile() {
 }
 
 async function loadProfileOnStart() {
-  await refreshAppSession();
+  const session = await refreshAppSession();
+  normalizeGoogleAuthReturn(session);
   const p = userProfile;
   if (!p.name) return;
   applyProfileToUI(p, appSession?.workspace || null);
   renderRuntimeState(appSession);
+  syncAnalyzeUrlPrefill(false);
   maybeOpenOnboarding();
 }
 
@@ -9752,16 +10287,27 @@ function openPlanPanel() {
                   ? 'BearAds Starter'
                   : (needsExpansion ? 'BearAds Pro + Expansion' : 'BearAds Pro'));
     const upgradeConfig = isAgencyMode
-      ? {
-          title: 'Tu siguiente paso natural es Agency',
-          copy: 'Ya operas varios clientes o proyectos. Aquí el valor está en ordenar cartera, permisos, plantillas y operación repetible.',
-          cta: '🚀 Activar Agency',
-          triggers: [
-            'Manejas varias marcas o clientes separados',
-            'Necesitas varios usuarios operando al tiempo',
-            'Quieres reutilizar procesos y entregables por cartera'
-          ]
-        }
+      ? (currentCode === 'trial' || currentCode === 'starter'
+          ? {
+              title: 'Tu siguiente paso natural es Pro',
+              copy: 'Aunque operes como agencia, antes de subir a Agency te conviene destrabar la capa de ejecución: campañas, creativos, imágenes y reportes dentro del mismo flujo.',
+              cta: '🚀 Activar Pro',
+              triggers: [
+                'Ya trabajas varias cuentas pero aún necesitas ejecutar mejor',
+                'Quieres campañas, creativos y reportes antes de ordenar cartera completa',
+                'Todavía no necesitas operación multi-cliente avanzada en todos los frentes'
+              ]
+            }
+          : {
+              title: 'Tu siguiente paso natural es Agency',
+              copy: 'Ya operas varios clientes o proyectos. Aquí el valor está en ordenar cartera, permisos, plantillas y operación repetible.',
+              cta: '🚀 Activar Agency',
+              triggers: [
+                'Manejas varias marcas o clientes separados',
+                'Necesitas varios usuarios operando al tiempo',
+                'Quieres reutilizar procesos y entregables por cartera'
+              ]
+            })
       : needsExpansion
         ? {
             title: 'Tu siguiente paso natural es Pro + Expansion',
@@ -9844,7 +10390,11 @@ function openPlanPanel() {
         }
       });
     }
-    planModalSelection = commercial.targetPlan || (isAgencyMode ? 'agency' : (currentCode === 'trial' ? 'starter' : 'pro'));
+    planModalSelection = commercial.targetPlan || (
+      isAgencyMode
+        ? ((currentCode === 'trial' || currentCode === 'starter') ? 'pro' : 'agency')
+        : (currentCode === 'trial' ? 'starter' : 'pro')
+    );
     if (cancelBtn) {
       cancelBtn.onclick = handlePlanCancellation;
     }
@@ -10190,6 +10740,11 @@ let saCurrentTab = 'platform';
 let saGlobalUsersData = [];
 let saBillingOverviewData = null;
 let saBillingSearchQuery = '';
+let saBillingFilter = 'all';
+let saBillingSelectedUserId = '';
+let saBillingSelectedWorkspaceId = '';
+let saBillingUserDetail = null;
+let saManualPaymentProof = null;
 
 function getSAUserSearchQuery() {
   return document.getElementById('sa-user-search')?.value.trim().toLowerCase() || '';
@@ -10215,18 +10770,72 @@ function getSABillingSearchQuery() {
   return saBillingSearchQuery;
 }
 
-function matchesSABillingSearch(member) {
+function getSABillingFilter() {
+  const liveValue = document.getElementById('sa-billing-filter')?.value;
+  if (typeof liveValue === 'string' && liveValue) return liveValue;
+  return saBillingFilter;
+}
+
+function getSABillingUsers() {
+  const data = saBillingOverviewData || {};
+  if (Array.isArray(data.billingUsers) && data.billingUsers.length) return data.billingUsers;
+  const workspace = data.workspace || {};
+  const subscription = workspace.subscription || {};
+  return (Array.isArray(data.members) ? data.members : []).map(function(member) {
+    const user = member.user || {};
+    const memberTrial = member.role === 'member_trial';
+    return {
+      ...member,
+      user,
+      plan: subscription.plan || 'trial',
+      commercialStatus: subscription.status || 'trialing',
+      paymentState: user.status === 'suspended' ? 'suspended' : (memberTrial ? 'trial' : 'paid')
+    };
+  });
+}
+
+function resolveSABillingPaymentState(item) {
+  const user = item?.user || {};
+  if (user.status === 'suspended') return 'suspended';
+  if (item?.paymentState === 'trial' || item?.paymentState === 'paid' || item?.paymentState === 'suspended') return item.paymentState;
+  const plan = String(item?.plan || '').toLowerCase();
+  const status = String(item?.commercialStatus || '').toLowerCase();
+  if (status === 'trialing' || plan === 'trial' || item?.role === 'member_trial') return 'trial';
+  return 'paid';
+}
+
+function matchesSABillingSearch(item) {
   const query = getSABillingSearchQuery();
+  const filter = getSABillingFilter();
+  const user = item?.user || {};
+  const paymentState = resolveSABillingPaymentState(item);
+  const memberships = Array.isArray(item?.memberships) ? item.memberships : [];
+  if (filter === 'trial' && paymentState !== 'trial') return false;
+  if (filter === 'paid' && paymentState !== 'paid') return false;
+  if (filter === 'suspended' && paymentState !== 'suspended') return false;
+  if (filter === 'admin' && !memberships.some(function(membership) {
+    return ['owner', 'admin', 'billing', 'developer'].includes(membership?.role || item?.role);
+  })) return false;
   if (!query) return true;
-  const user = member?.user || {};
   const haystack = [
     user?.id,
     user?.email,
     user?.name,
-    member?.userId,
-    member?.workspaceId,
-    member?.role
-  ].filter(Boolean).map(function(value) {
+    item?.userId,
+    item?.workspaceId,
+    item?.role,
+    item?.plan,
+    paymentState
+  ].concat(memberships.flatMap(function(membership) {
+    return [
+      membership?.workspaceName,
+      membership?.workspaceId,
+      membership?.role,
+      membership?.plan,
+      membership?.commercialStatus,
+      membership?.paymentState
+    ];
+  })).filter(Boolean).map(function(value) {
     return String(value).toLowerCase();
   });
   return haystack.some(function(value) { return value.includes(query); });
@@ -10234,6 +10843,11 @@ function matchesSABillingSearch(member) {
 
 function setSABillingSearch(value) {
   saBillingSearchQuery = String(value || '').trim().toLowerCase();
+  renderSABillingOverview();
+}
+
+function setSABillingFilter(value) {
+  saBillingFilter = String(value || 'all').trim().toLowerCase() || 'all';
   renderSABillingOverview();
 }
 
@@ -10289,6 +10903,65 @@ async function loadSAPlatformStats() {
     }
     if (ta) ta.textContent = getAnalysisHistory().length;
     if (td) td.textContent = getDeliverables().length;
+
+    // AI usage cards (owner/admin only)
+    const aiUsage = data.aiUsage;
+    if (aiUsage) {
+      // Top stat cards
+      const costCard = document.getElementById('sa-ai-cost-card');
+      const lastCard = document.getElementById('sa-ai-last-card');
+      if (costCard) {
+        costCard.style.display = '';
+        const el = document.getElementById('sa-ai-cost-month');
+        const lbl = document.getElementById('sa-ai-cost-month-label');
+        if (el) el.textContent = '$' + (aiUsage.currentMonthCostUsd || 0).toFixed(4);
+        if (lbl) lbl.textContent = aiUsage.currentMonth || '';
+      }
+      if (lastCard && aiUsage.lastAnalysis) {
+        lastCard.style.display = '';
+        const costEl = document.getElementById('sa-ai-last-cost');
+        const urlEl = document.getElementById('sa-ai-last-url');
+        if (costEl) costEl.textContent = '$' + (aiUsage.lastAnalysis.costUsd || 0).toFixed(5);
+        if (urlEl) urlEl.textContent = aiUsage.lastAnalysis.url || '—';
+      }
+
+      // AI tab costs section
+      const costsSection = document.getElementById('sa-ai-costs-section');
+      if (costsSection) {
+        costsSection.style.display = '';
+        // All-time cost
+        const allTimeEl = document.getElementById('sa-ai-alltime-cost');
+        if (allTimeEl) allTimeEl.textContent = '$' + (aiUsage.allTimeCostUsd || 0).toFixed(6);
+        // Monthly history
+        const histEl = document.getElementById('sa-ai-cost-history');
+        if (histEl && aiUsage.history && aiUsage.history.length) {
+          histEl.innerHTML = aiUsage.history.map(function(h) {
+            return '<div style="background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.18);border-radius:8px;padding:8px 10px;text-align:center;">'
+              + '<div style="font-size:10px;color:#64748b;margin-bottom:3px;">' + esc(h.month) + '</div>'
+              + '<div style="font-size:13px;font-weight:800;color:#0f172a;">$' + (h.cost || 0).toFixed(4) + '</div>'
+              + '</div>';
+          }).join('');
+        }
+        // Last analysis detail
+        if (aiUsage.lastAnalysis) {
+          const detailDiv = document.getElementById('sa-ai-last-analysis-detail');
+          if (detailDiv) {
+            detailDiv.style.display = '';
+            const urlD = document.getElementById('sa-ai-last-detail-url');
+            const dateD = document.getElementById('sa-ai-last-detail-date');
+            const costD = document.getElementById('sa-ai-last-detail-cost');
+            const seoD = document.getElementById('sa-ai-last-score-seo');
+            const croD = document.getElementById('sa-ai-last-score-cro');
+            if (urlD) urlD.textContent = aiUsage.lastAnalysis.url || '—';
+            if (dateD) dateD.textContent = (aiUsage.lastAnalysis.date || '').slice(0, 10);
+            if (costD) costD.textContent = '$' + (aiUsage.lastAnalysis.costUsd || 0).toFixed(5);
+            if (seoD) seoD.textContent = aiUsage.lastAnalysis.scores?.seo != null ? aiUsage.lastAnalysis.scores.seo + '/100' : '—';
+            if (croD) croD.textContent = aiUsage.lastAnalysis.scores?.cro != null ? aiUsage.lastAnalysis.scores.cro + '/100' : '—';
+          }
+        }
+      }
+    }
+
     renderSAAccess();
     await loadSAGlobalUsers();
     renderSAUsers();
@@ -10321,13 +10994,20 @@ function renderSAUsers() {
         ? memberships.map(function(membership) {
             const roleOptions = buildRoleOptions(membership.role);
             const isOwnerMembership = membership.role === 'owner';
+            const defaultPlan = ['starter', 'pro', 'agency'].includes(String(membership.plan || '').toLowerCase()) ? String(membership.plan).toLowerCase() : 'starter';
+            const planInputId = 'sa-global-plan-' + user.id + '-' + membership.workspaceId;
+            const planContainerId = 'sa-global-plan-wrap-' + user.id + '-' + membership.workspaceId;
             return '<div style="padding:8px 10px;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:8px;">'
               + '<div style="font-size:11px;font-weight:700;color:#0f172a;">' + esc(membership.workspaceName || 'Workspace') + '</div>'
               + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Plan: ' + esc(String(membership.plan || 'trial').toUpperCase()) + '</div>'
               + '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">ID dependencia: ' + esc(membership.workspaceId || '') + '</div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'
-              + '<select onchange="updateGlobalAdminUserRole(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value)" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
+              + '<select onchange="handleAdminUserRoleChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\')" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
               + '<button onclick="resetAdminUserTrial(\'' + user.id + '\', \'' + membership.workspaceId + '\')" ' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
+              + '</div>'
+              + '<div id="' + planContainerId + '" style="margin-top:8px;' + (membership.role === 'member_paid' ? '' : 'display:none;') + '">'
+              + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Plan del usuario pago</div>'
+              + '<select id="' + planInputId + '" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
               + '</div>'
               + '</div>';
           }).join('')
@@ -10362,11 +11042,20 @@ function renderSAUsers() {
     const isDannyProtected = isDannyProtectedUser(user);
     const isProtectedOwner = member.role === 'owner' && !isGlobalOwner();
     const roleOptions = buildRoleOptions(member.role);
+    const defaultPlan = ['starter', 'pro', 'agency'].includes(String(member.plan || '').toLowerCase()) ? String(member.plan).toLowerCase() : 'starter';
+    const planInputId = 'sa-user-plan-' + member.userId;
+    const planContainerId = 'sa-user-plan-wrap-' + member.userId;
     const status = user.status === 'suspended' ? 'Suspendido' : 'Activo';
     return '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
       + '<div><div style="font-size:12px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
       + '<div style="font-size:11px;color:#64748b;"><div>' + esc(formatSARole(member.role)) + '</div><div style="margin-top:4px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;">' + esc(status) + '</div></div>'
-      + '<select onchange="updateAdminUserRole(\'' + member.userId + '\', this.value)" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
+      + '<div>'
+      + '<select onchange="handleAdminUserRoleChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\')" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
+      + '<div id="' + planContainerId + '" style="margin-top:6px;' + (member.role === 'member_paid' ? '' : 'display:none;') + '">'
+      + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Plan del usuario pago</div>'
+      + '<select id="' + planInputId + '" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
+      + '</div>'
+      + '</div>'
       + (isDannyProtected
         ? '<div style="padding:6px 8px;border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#7f1d1d;background:rgba(224,112,112,0.06);text-align:center;font-weight:700;">Protegido</div>'
         : '<div style="display:flex;gap:6px;align-items:center;">'
@@ -10411,30 +11100,28 @@ async function inviteAdminUser() {
   showToast(data.attachedExistingUser ? 'Usuario agregado al workspace' : 'Invitación creada');
 }
 
-async function updateAdminUserRole(userId, role) {
+async function updateAdminUserRole(userId, role, workspaceId, planInputId) {
   if (!role) return;
+  const payload = { role: role };
+  if (workspaceId) payload.workspaceId = workspaceId;
+  if (role === 'member_paid') {
+    const selectedPlan = document.getElementById(planInputId || '')?.value || '';
+    if (!selectedPlan) {
+      showToast('Selecciona el plan para activar usuario pago');
+      return;
+    }
+    payload.plan = selectedPlan;
+  }
   const res = await fetch('/api/admin/users/' + userId, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'same-origin',
-    body: JSON.stringify({ role: role })
+    body: JSON.stringify(payload)
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error || 'No se pudo actualizar el rol'); return; }
   await loadSAPlatformStats();
-}
-
-async function updateGlobalAdminUserRole(userId, workspaceId, role) {
-  const res = await fetch('/api/admin/users/' + userId, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ role: role, workspaceId: workspaceId })
-  });
-  const data = await res.json();
-  if (!res.ok) { showToast(data.error || 'No se pudo actualizar el rol'); return; }
-  await loadSAPlatformStats();
-  showToast('Rol actualizado');
+  showToast(role === 'member_paid' ? 'Usuario pago activado con plan' : 'Rol actualizado');
 }
 
 async function toggleAdminUserStatus(userId, status) {
@@ -10526,9 +11213,295 @@ async function loadSABillingOverview() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo cargar billing');
     saBillingOverviewData = data;
+    const availableUsers = getSABillingUsers();
+    const stillExists = availableUsers.some(function(item) {
+      return item.userId === saBillingSelectedUserId;
+    });
+    if (!stillExists) {
+      saBillingSelectedUserId = '';
+      saBillingSelectedWorkspaceId = '';
+      saBillingUserDetail = null;
+    }
     renderSABillingOverview();
   } catch (e) {
     box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
+  }
+}
+
+function getSelectedSABillingUser(filteredUsers) {
+  const list = Array.isArray(filteredUsers) ? filteredUsers : [];
+  if (!list.length) return null;
+  return list.find(function(item) {
+    return item.userId === saBillingSelectedUserId;
+  }) || list[0];
+}
+
+function formatSABillingMoney(value, currency) {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return '—';
+  return amount.toLocaleString('es-CO', {
+    style: 'currency',
+    currency: String(currency || 'USD').toUpperCase()
+  });
+}
+
+function resetSAManualPaymentProof() {
+  saManualPaymentProof = null;
+  const status = document.getElementById('sa-manual-payment-proof-status');
+  if (status) status.textContent = 'Sin comprobante adjunto';
+  const input = document.getElementById('sa-manual-payment-proof');
+  if (input) input.value = '';
+}
+
+function handleSAManualPaymentProof(event) {
+  const file = event?.target?.files?.[0];
+  const status = document.getElementById('sa-manual-payment-proof-status');
+  if (!file) {
+    saManualPaymentProof = null;
+    if (status) status.textContent = 'Sin comprobante adjunto';
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    saManualPaymentProof = null;
+    if (status) status.textContent = 'Adjunta una imagen válida';
+    showToast('El comprobante debe ser una imagen');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(loadEvent) {
+    saManualPaymentProof = {
+      name: file.name,
+      dataUrl: String(loadEvent?.target?.result || '')
+    };
+    if (status) status.textContent = 'Comprobante listo: ' + file.name;
+  };
+  reader.onerror = function() {
+    saManualPaymentProof = null;
+    if (status) status.textContent = 'No se pudo leer el comprobante';
+  };
+  reader.readAsDataURL(file);
+}
+
+function toggleSABillingManualPaymentPanel() {
+  const panel = document.getElementById('sa-manual-payment-panel');
+  const icon = document.getElementById('sa-manual-payment-toggle-icon');
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.textContent = isOpen ? '＋' : '−';
+}
+
+function renderSABillingUserList(items, selectedUser) {
+  if (!items.length) {
+    return '<div style="font-size:11px;color:#64748b;">No encontré usuarios con ese filtro.</div>';
+  }
+  return items.map(function(item) {
+    const user = item.user || {};
+    const memberships = Array.isArray(item.memberships) ? item.memberships : [];
+    const trialDependencies = memberships.filter(function(membership) { return membership.paymentState === 'trial'; }).length;
+    const paidDependencies = memberships.filter(function(membership) { return membership.paymentState === 'paid'; }).length;
+    const isSelected = selectedUser && selectedUser.userId === item.userId;
+    const paymentState = resolveSABillingPaymentState(item);
+    const stateColor = paymentState === 'paid' ? '#0f9f6e' : paymentState === 'trial' ? '#35507f' : '#e07070';
+    return '<button type="button" onclick="selectSABillingUser(\'' + escapeInlineArg(item.userId || '') + '\', \'' + escapeInlineArg(item.workspaceId || '') + '\')" style="width:100%;text-align:left;padding:12px;border-radius:12px;border:1px solid ' + (isSelected ? 'rgba(123,167,232,0.3)' : 'rgba(224,112,112,0.12)') + ';background:' + (isSelected ? 'rgba(123,167,232,0.08)' : '#fff') + ';cursor:pointer;">'
+      + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
+      + '<div style="min-width:0;">'
+      + '<div style="font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(user.name || user.email || 'Usuario') + '</div>'
+      + '<div style="margin-top:3px;font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(user.email || '') + '</div>'
+      + '<div style="margin-top:4px;font-size:10px;color:#94a3b8;">ID perfil: ' + esc(user.id || item.userId || '') + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0;">'
+      + '<div style="font-size:10px;font-weight:800;color:' + stateColor + ';text-transform:uppercase;">' + esc(paymentState) + '</div>'
+      + '<div style="margin-top:4px;font-size:10px;color:#64748b;">' + esc(String(item.plan || 'trial').toUpperCase()) + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'
+      + '<span style="display:inline-flex;padding:3px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.1);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(item.role)) + '</span>'
+      + '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(String(memberships.length || 1)) + ' dependencias</span>'
+      + (paidDependencies ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.14);border-radius:999px;font-size:10px;color:#256b55;">Pago: ' + esc(String(paidDependencies)) + '</span>' : '')
+      + (trialDependencies ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">Trial: ' + esc(String(trialDependencies)) + '</span>' : '')
+      + '</div>'
+      + '</button>';
+  }).join('');
+}
+
+function renderSABillingUserDetailContent() {
+  const detail = saBillingUserDetail;
+  if (!detail) {
+    return '<div style="font-size:12px;color:#64748b;">Selecciona un usuario para ver su detalle de facturación, planes e historial de pagos.</div>';
+  }
+  const user = detail.user || {};
+  const membership = detail.membership || {};
+  const workspace = detail.workspace || {};
+  const stripe = detail.stripe || {};
+  const paymentStatus = detail.paymentStatus || {};
+  const paymentHistory = Array.isArray(detail.paymentHistory) ? detail.paymentHistory : [];
+  const memberships = Array.isArray(detail.memberships) ? detail.memberships : [];
+  const stats = detail.stats || {};
+  const stripeOwnerKnown = Boolean(stripe.billingUserId);
+  const stripeBelongsToSelectedUser = Boolean(stripe.hasDirectStripeBilling);
+  const stripeOwnershipCopy = stripeBelongsToSelectedUser
+    ? 'Este perfil está asociado directamente a la suscripción Stripe del workspace.'
+    : (stripe.customerId
+        ? (stripeOwnerKnown
+            ? 'Este perfil tiene acceso al plan del workspace, pero la facturación Stripe pertenece a otro usuario.'
+            : 'Este workspace tiene Stripe activo, pero todavía no hay un perfil comprador asociado a la suscripción.')
+        : 'Este perfil no tiene una suscripción Stripe asociada.');
+  const historyHtml = paymentHistory.length
+    ? paymentHistory.slice(0, 12).map(function(item) {
+        const sourceColor = item.source === 'stripe' ? '#0f9f6e' : '#35507f';
+        const actionLink = item.source === 'stripe' && item.hostedInvoiceUrl
+          ? '<a href="' + esc(item.hostedInvoiceUrl) + '" target="_blank" rel="noopener" style="font-size:10px;color:#35507f;text-decoration:none;font-weight:700;">Abrir</a>'
+          : (item.source === 'manual' && item.proofImageDataUrl
+              ? '<a href="' + esc(item.proofImageDataUrl) + '" target="_blank" rel="noopener" style="font-size:10px;color:#35507f;text-decoration:none;font-weight:700;">Ver comprobante</a>'
+              : '');
+        const metaBits = [
+          item.reference || '',
+          item.planPaid ? ('Plan ' + String(item.planPaid).toUpperCase()) : '',
+          item.paymentMethodType ? ('Cobro ' + item.paymentMethodType) : '',
+          item.gateway ? ('Pasarela ' + item.gateway) : '',
+          item.confirmationCode ? ('Confirmación ' + item.confirmationCode) : '',
+          item.note || ''
+        ].filter(Boolean).join(' · ');
+        return '<div style="padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
+          + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
+          + '<div style="min-width:0;">'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"><span style="display:inline-flex;padding:3px 7px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:' + sourceColor + ';font-weight:800;text-transform:uppercase;">' + esc(item.source) + '</span><span style="font-size:11px;font-weight:700;color:#0f172a;">' + esc(item.label || 'Pago') + '</span></div>'
+          + '<div style="margin-top:4px;font-size:11px;color:#64748b;">' + esc(metaBits || 'Sin referencia') + '</div>'
+          + '<div style="margin-top:4px;font-size:10px;color:#94a3b8;">' + esc(new Date(item.paidAt || item.createdAt || Date.now()).toLocaleString('es-CO')) + '</div>'
+          + '</div>'
+          + '<div style="text-align:right;flex-shrink:0;"><div style="font-size:12px;font-weight:800;color:#0f172a;">' + esc(item.amountLabel || formatSABillingMoney(item.amount, item.currency)) + '</div><div style="margin-top:3px;font-size:10px;color:#64748b;text-transform:uppercase;">' + esc(item.status || '') + '</div>' + actionLink + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:11px;color:#64748b;">Todavía no hay pagos registrados para este usuario.</div>';
+  const membershipsHtml = memberships.length
+    ? memberships.map(function(item) {
+        const itemStateColor = item.paymentState === 'paid' ? '#0f9f6e' : item.paymentState === 'trial' ? '#35507f' : '#e07070';
+        const stripeBadge = item.stripe?.hasDirectStripeBilling
+          ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.14);border-radius:999px;font-size:10px;color:#256b55;">Comprador Stripe</span>'
+          : '';
+        return '<div style="padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
+          + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
+          + '<div style="min-width:0;">'
+          + '<div style="font-size:11px;font-weight:800;color:#0f172a;overflow-wrap:anywhere;">' + esc(item.workspaceName || item.workspaceId || 'Workspace') + '</div>'
+          + '<div style="margin-top:4px;font-size:10px;color:#64748b;overflow-wrap:anywhere;">' + esc(item.workspaceId || '') + '</div>'
+          + '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">'
+          + '<span style="display:inline-flex;padding:3px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.1);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(item.role || 'member_trial')) + '</span>'
+          + '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(String(item.plan || 'trial').toUpperCase()) + '</span>'
+          + stripeBadge
+          + '</div>'
+          + '</div>'
+          + '<div style="text-align:right;flex-shrink:0;">'
+          + '<div style="font-size:10px;font-weight:800;color:' + itemStateColor + ';text-transform:uppercase;">' + esc(item.paymentState || 'trial') + '</div>'
+          + '<div style="margin-top:4px;font-size:10px;color:#64748b;text-transform:uppercase;">' + esc(item.commercialStatus || 'trialing') + '</div>'
+          + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('')
+    : '<div style="font-size:11px;color:#64748b;">Este usuario no tiene dependencias activas visibles en el alcance actual.</div>';
+
+  return ''
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px;">'
+    + '<div style="min-width:0;padding:12px;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:12px;">'
+    + '<div style="font-size:14px;font-weight:800;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div>'
+    + '<div style="margin-top:4px;font-size:11px;color:#64748b;overflow-wrap:anywhere;">' + esc(user.email || '') + '</div>'
+    + '<div style="margin-top:4px;font-size:10px;color:#94a3b8;overflow-wrap:anywhere;">ID perfil: ' + esc(user.id || '') + '</div>'
+    + '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">'
+    + '<span style="display:inline-flex;padding:4px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(membership.role || 'member_trial')) + '</span>'
+    + '<span style="display:inline-flex;padding:4px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">Plan ' + esc(String(membership.plan || workspace.subscription?.plan || 'trial').toUpperCase()) + '</span>'
+    + '<span style="display:inline-flex;padding:4px 8px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.14);border-radius:999px;font-size:10px;color:#256b55;">Estado ' + esc(membership.commercialStatus || workspace.subscription?.status || 'trialing') + '</span>'
+    + '</div>'
+    + '<div style="margin-top:10px;font-size:11px;color:#64748b;line-height:1.7;overflow-wrap:anywhere;">Workspace: <strong style="color:#0f172a;">' + esc(workspace.name || membership.workspaceId || '') + '</strong><br/>Estado comercial: <strong style="color:#0f172a;">' + esc(paymentStatus.status || workspace.subscription?.status || 'trialing') + '</strong><br/>Motivo actual: <strong style="color:#0f172a;">' + esc(paymentStatus.reason || 'Sin novedad') + '</strong></div>'
+    + '</div>'
+    + '<div style="min-width:0;padding:12px;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:12px;">'
+    + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;">RESUMEN DE PAGOS</div>'
+    + '<div style="margin-top:8px;font-size:11px;color:#334155;line-height:1.8;overflow-wrap:anywhere;">'
+    + '<div><strong>Total historial:</strong> ' + esc(String(stats.totalPayments || 0)) + '</div>'
+    + '<div><strong>Stripe:</strong> ' + esc(String(stats.stripePayments || 0)) + '</div>'
+    + '<div><strong>Manual:</strong> ' + esc(String(stats.manualPayments || 0)) + '</div>'
+    + '<div><strong>Total registrado:</strong> ' + esc(formatSABillingMoney(stats.totalPaid || 0, 'USD')) + '</div>'
+    + '<div><strong>Stripe customer:</strong> ' + esc(stripe.customerId || 'No conectado') + '</div>'
+    + '<div><strong>Stripe subscription:</strong> ' + esc(stripe.subscriptionId || 'No conectado') + '</div>'
+    + '<div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(224,112,112,0.08);color:#64748b;">' + esc(stripeOwnershipCopy) + '</div>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+    + '<div style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:12px;padding:12px;margin-bottom:12px;">'
+    + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">DEPENDENCIAS Y PLANES DEL USUARIO</div>'
+    + membershipsHtml
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;">'
+    + '<div style="min-width:0;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:12px;padding:12px;max-height:420px;overflow:auto;">'
+    + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">HISTORIAL DE PAGOS</div>'
+    + historyHtml
+    + '</div>'
+    + '<div style="min-width:0;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:12px;padding:12px;">'
+    + '<button type="button" onclick="toggleSABillingManualPaymentPanel()" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid rgba(224,112,112,0.14);border-radius:10px;padding:10px 12px;cursor:pointer;">'
+    + '<span style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;">REGISTRAR PAGO MANUAL / EXTERNO</span>'
+    + '<span id="sa-manual-payment-toggle-icon" style="font-size:16px;font-weight:800;color:#e07070;line-height:1;">＋</span>'
+    + '</button>'
+    + '<div id="sa-manual-payment-panel" style="display:none;margin-top:10px;">'
+    + '<input id="sa-manual-payment-label" type="text" placeholder="Concepto del pago" style="width:100%;margin-bottom:8px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px;">'
+    + '<input id="sa-manual-payment-provider" type="text" placeholder="Proveedor" value="transferencia" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '<input id="sa-manual-payment-amount" type="number" min="0" step="0.01" placeholder="Monto" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px;">'
+    + '<input id="sa-manual-payment-currency" type="text" value="USD" maxlength="3" style="text-transform:uppercase;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '<input id="sa-manual-payment-reference" type="text" placeholder="Referencia externa" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px;">'
+    + '<select id="sa-manual-payment-plan" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;"><option value="">Plan pagado</option><option value="trial">TRIAL</option><option value="starter">STARTER</option><option value="pro">PRO</option><option value="agency">AGENCY</option></select>'
+    + '<select id="sa-manual-payment-method-type" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;"><option value="">Tipo de cobro</option><option value="fisico">Físico</option><option value="link">Por link</option><option value="transferencia">Transferencia</option><option value="otro">Otro</option></select>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px;">'
+    + '<input id="sa-manual-payment-gateway" type="text" placeholder="Pasarela usada" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '<input id="sa-manual-payment-confirmation-code" type="text" placeholder="Código de confirmación" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:8px;">'
+    + '<select id="sa-manual-payment-status" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;"><option value="paid">PAID</option><option value="pending">PENDING</option><option value="failed">FAILED</option><option value="refunded">REFUNDED</option></select>'
+    + '<input id="sa-manual-payment-date" type="datetime-local" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;"/>'
+    + '</div>'
+    + '<div style="margin-bottom:8px;padding:10px;background:#fff;border:1px dashed rgba(224,112,112,0.18);border-radius:10px;">'
+    + '<div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:6px;">Comprobante opcional</div>'
+    + '<input id="sa-manual-payment-proof" type="file" accept="image/*" onchange="handleSAManualPaymentProof(event)" style="display:block;width:100%;font-size:11px;color:#64748b;"/>'
+    + '<div id="sa-manual-payment-proof-status" style="margin-top:6px;font-size:10px;color:#94a3b8;">Sin comprobante adjunto</div>'
+    + '</div>'
+    + '<textarea id="sa-manual-payment-note" rows="3" placeholder="Nota interna del pago manual" style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;box-sizing:border-box;resize:vertical;"></textarea>'
+    + '<button onclick="saveSABillingManualPayment()" style="width:100%;margin-top:10px;padding:10px 12px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">Registrar pago manual</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+async function selectSABillingUser(userId, workspaceId) {
+  saBillingSelectedUserId = userId;
+  saBillingSelectedWorkspaceId = workspaceId;
+  saBillingUserDetail = null;
+  resetSAManualPaymentProof();
+  renderSABillingOverview();
+  await loadSABillingUserDetail(userId, workspaceId);
+}
+
+async function loadSABillingUserDetail(userId, workspaceId) {
+  const detailBox = document.getElementById('sa-billing-user-detail');
+  if (detailBox) {
+    detailBox.innerHTML = '<div style="font-size:12px;color:#64748b;">⏳ Cargando detalle del usuario...</div>';
+  }
+  try {
+    const res = await fetch('/api/admin/billing-users/' + encodeURIComponent(userId) + '?workspaceId=' + encodeURIComponent(workspaceId || ''), {
+      credentials: 'same-origin'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo cargar el detalle del usuario');
+    saBillingUserDetail = data.detail || null;
+    renderSABillingOverview();
+  } catch (e) {
+    if (detailBox) {
+      detailBox.innerHTML = '<div style="font-size:12px;color:#e07070;">' + esc(e.message || 'Error') + '</div>';
+    }
   }
 }
 
@@ -10537,11 +11510,16 @@ function renderSABillingOverview() {
   if (!box) return;
   const data = saBillingOverviewData || {};
   const workspace = data.workspace || {};
-  const stats = data.stats || {};
   const subscription = workspace.subscription || {};
   const paymentStatus = data.paymentStatus || {};
   const billingNotes = Array.isArray(data.billingNotes) ? data.billingNotes : [];
-  const members = Array.isArray(data.members) ? data.members : [];
+  const users = getSABillingUsers();
+  const stats = {
+    trialUsers: users.filter(function(item) { return resolveSABillingPaymentState(item) === 'trial'; }).length,
+    paidUsers: users.filter(function(item) { return resolveSABillingPaymentState(item) === 'paid'; }).length,
+    suspendedUsers: users.filter(function(item) { return resolveSABillingPaymentState(item) === 'suspended'; }).length,
+    totalMembers: users.length
+  };
   const stripe = data.stripe || {};
   const stripeConfigured = !!data.stripeConfigured;
   const stripeLinked = Boolean(stripe.customerId || stripe.subscriptionId || stripe.priceId);
@@ -10556,7 +11534,13 @@ function renderSABillingOverview() {
             ? 'Modo interno de pruebas. Stripe todavía no está configurado en este servidor.'
             : (stripeLinked ? 'Stripe activo y vinculado' : 'Stripe configurado, pero este workspace todavía no ha completado checkout'));
   const stripeColor = stripeIssue === 'invalid_secret_key_type' ? '#e07070' : (stripeConfigured ? '#0f9f6e' : '#7f1d1d');
-  const filteredMembers = members.filter(matchesSABillingSearch);
+  const filteredUsers = users.filter(matchesSABillingSearch);
+  const selectedUser = getSelectedSABillingUser(filteredUsers);
+  if (selectedUser && (!saBillingSelectedUserId || selectedUser.userId !== saBillingSelectedUserId || selectedUser.workspaceId !== saBillingSelectedWorkspaceId)) {
+    saBillingSelectedUserId = selectedUser.userId;
+    saBillingSelectedWorkspaceId = selectedUser.workspaceId;
+    saBillingUserDetail = null;
+  }
   box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;">'
       + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">ETAPA ACTUAL</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(formatPlanLabel(workspace)) + '</div></div>'
       + '<div style="padding:12px;background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.12);border-radius:10px;"><div style="font-size:10px;font-weight:700;color:#7f1d1d;">USUARIOS TRIAL</div><div style="font-size:20px;font-weight:800;color:#0f172a;margin-top:4px;">' + esc(String(stats.trialUsers || 0)) + '</div></div>'
@@ -10598,24 +11582,16 @@ function renderSABillingOverview() {
       + '<button onclick="resetWorkspaceTrialFromBilling()" style="width:100%;margin-top:8px;padding:10px 12px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:8px;color:#35507f;font-size:12px;font-weight:800;cursor:pointer;">Reiniciar trial del workspace</button>'
       + '<button onclick="resetOnboardingForTesting()" style="width:100%;margin-top:8px;padding:10px 12px;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;color:#7f1d1d;font-size:12px;font-weight:800;cursor:pointer;">Reabrir onboarding desde cero</button>'
       + '<div style="margin-top:12px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">'
-      + '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;margin-bottom:10px;">'
+      + '<div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:10px;">'
       + '<input id="sa-billing-search" type="text" placeholder="Buscar por correo, nombre o ID de perfil..." oninput="setSABillingSearch(this.value)" value="' + esc(getSABillingSearchQuery()) + '" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 12px;font-size:12px;color:#0f172a;outline:none;"/>'
-      + '<div style="padding:9px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;white-space:nowrap;">Usuarios del workspace</div>'
+      + '<select id="sa-billing-filter" onchange="setSABillingFilter(this.value)" style="background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:8px;padding:9px 10px;font-size:12px;color:#0f172a;"><option value="all"' + (getSABillingFilter() === 'all' ? ' selected' : '') + '>Todos</option><option value="paid"' + (getSABillingFilter() === 'paid' ? ' selected' : '') + '>Pago</option><option value="trial"' + (getSABillingFilter() === 'trial' ? ' selected' : '') + '>Trial</option><option value="suspended"' + (getSABillingFilter() === 'suspended' ? ' selected' : '') + '>Suspendidos</option><option value="admin"' + (getSABillingFilter() === 'admin' ? ' selected' : '') + '>Admins</option></select>'
+      + '<div style="padding:9px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;white-space:nowrap;">Gestión por usuario</div>'
       + '</div>'
-      + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">USUARIOS Y ETAPA</div>'
-      + (filteredMembers.length
-          ? filteredMembers.map(function(member) {
-              const user = member.user || {};
-              const memberTrial = member.role === 'member_trial';
-              const memberStatus = user.status === 'suspended' ? 'Suspendido' : (memberTrial ? 'Trial' : 'Pago');
-              return '<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);font-size:11px;color:#334155;">'
-                + '<div><div style="font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="margin-top:3px;color:#64748b;">' + esc(user.email || '') + '</div><div style="margin-top:3px;color:#94a3b8;">ID perfil: ' + esc(user.id || member.userId || '') + '</div></div>'
-                + '<div><div style="font-weight:700;color:#0f172a;">' + esc(formatSARole(member.role)) + '</div><div style="margin-top:3px;color:#64748b;">' + esc((subscription.plan || 'trial').toUpperCase()) + '</div></div>'
-                + '<div><div style="font-weight:700;color:' + (user.status === 'suspended' ? '#e07070' : '#0f172a') + ';">' + esc(memberStatus) + '</div><div style="margin-top:3px;color:#64748b;">Workspace: ' + esc(member.workspaceId || workspace.id || '') + '</div></div>'
-                + '<button onclick="resetAdminUserTrial(\'' + escapeInlineArg(member.userId || user.id || '') + '\', \'' + escapeInlineArg(member.workspaceId || workspace.id || '') + '\')" ' + (canResetTrialsFromAdmin() ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + (canResetTrialsFromAdmin() ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
-                + '</div>';
-            }).join('')
-          : '<div style="font-size:11px;color:#64748b;">No encontré usuarios con ese correo, nombre o ID.</div>')
+      + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">USUARIOS, PLANES Y PAGOS</div>'
+      + '<div style="display:grid;grid-template-columns:minmax(240px,320px) minmax(0,1fr);gap:12px;align-items:start;">'
+      + '<div style="display:flex;flex-direction:column;gap:8px;max-height:560px;overflow:auto;padding-right:2px;">' + renderSABillingUserList(filteredUsers, selectedUser) + '</div>'
+      + '<div id="sa-billing-user-detail" style="min-width:0;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:12px;padding:12px;min-height:240px;overflow:hidden;">' + renderSABillingUserDetailContent() + '</div>'
+      + '</div>'
       + '</div>'
       + '<div style="margin-top:12px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">'
       + '<div style="font-size:10px;font-weight:800;letter-spacing:0.6px;color:#7f1d1d;margin-bottom:8px;">NOTAS RECIENTES</div>'
@@ -10629,6 +11605,50 @@ function renderSABillingOverview() {
             }).join('')
           : '<div style="font-size:11px;color:#64748b;">Sin notas todavia.</div>')
       + '</div>';
+
+  if (selectedUser && (!saBillingUserDetail || saBillingUserDetail?.user?.id !== selectedUser.userId || saBillingSelectedWorkspaceId !== selectedUser.workspaceId)) {
+    loadSABillingUserDetail(selectedUser.userId, selectedUser.workspaceId);
+  }
+}
+
+async function saveSABillingManualPayment() {
+  if (!saBillingSelectedUserId || !saBillingSelectedWorkspaceId) {
+    showToast('Selecciona un usuario antes de registrar un pago manual');
+    return;
+  }
+  const payload = {
+    workspaceId: saBillingSelectedWorkspaceId,
+    label: document.getElementById('sa-manual-payment-label')?.value.trim() || '',
+    provider: document.getElementById('sa-manual-payment-provider')?.value.trim() || '',
+    amount: document.getElementById('sa-manual-payment-amount')?.value || '',
+    currency: document.getElementById('sa-manual-payment-currency')?.value.trim() || 'USD',
+    reference: document.getElementById('sa-manual-payment-reference')?.value.trim() || '',
+    planPaid: document.getElementById('sa-manual-payment-plan')?.value || '',
+    paymentMethodType: document.getElementById('sa-manual-payment-method-type')?.value || '',
+    gateway: document.getElementById('sa-manual-payment-gateway')?.value.trim() || '',
+    confirmationCode: document.getElementById('sa-manual-payment-confirmation-code')?.value.trim() || '',
+    status: document.getElementById('sa-manual-payment-status')?.value || 'paid',
+    paidAt: document.getElementById('sa-manual-payment-date')?.value || '',
+    note: document.getElementById('sa-manual-payment-note')?.value.trim() || '',
+    proofImageDataUrl: saManualPaymentProof?.dataUrl || '',
+    proofImageName: saManualPaymentProof?.name || ''
+  };
+  try {
+    const res = await fetch('/api/admin/billing-users/' + encodeURIComponent(saBillingSelectedUserId) + '/manual-payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo registrar el pago manual');
+    saBillingUserDetail = data.detail || saBillingUserDetail;
+    resetSAManualPaymentProof();
+    showToast('Pago manual registrado');
+    await loadSABillingOverview();
+  } catch (e) {
+    showToast(e.message || 'No se pudo registrar el pago manual');
+  }
 }
 
 async function saveBillingOverview() {
@@ -10647,6 +11667,7 @@ async function saveBillingOverview() {
   showToast('Etapa comercial guardada');
   await refreshAppSession();
   await loadSAPlatformStats();
+  await loadSABillingOverview();
 }
 
 async function refreshSABillingStatus() {
@@ -11243,7 +12264,7 @@ async function ensureGoogleServiceSnapshot() {
   try {
     var authRes = await fetch('/auth/status');
     var authData = await authRes.json();
-    if (!authData.connected) return null;
+    if (!authData.googleConnected) return null;
     var connectionsRes = await fetch('/api/google/connections');
     googleServiceSnapshot = await connectionsRes.json();
     return googleServiceSnapshot;
@@ -11572,7 +12593,7 @@ function initIntegrationsPage() {
   }
   // Always check real Google auth status from server
   fetch('/auth/status').then(r => r.json()).then(async function(data) {
-    const googleOk = data.connected;
+    const googleOk = Boolean(data.googleConnected);
     const statusEl = document.getElementById('intg-google-status');
     const btnArea = document.getElementById('intg-google-btn-area');
     const badge = document.getElementById('intg-google-badge');
@@ -12052,7 +13073,7 @@ async function loadGSCDashboard() {
     if (connectionsTab) connectionsTab.appendChild(dashSection);
   }
 
-  if (!authData.connected) {
+  if (!authData.googleConnected) {
     clearElement(dashSection);
     var authCard = document.createElement('div');
     authCard.style.cssText = 'margin-top:16px;padding:20px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);';
@@ -13386,15 +14407,19 @@ function renderStrategicPlanResult(resultEl, planText, strategicContext, options
   window._lastStrategicPlan = planText;
   clearElement(resultEl);
   renderStrategicPlanRouteCard(resultEl, strategicContext);
+  var shell = document.createElement('div');
+  shell.className = 'card';
+  shell.style.cssText = 'margin-bottom:16px;';
   var header = document.createElement('div');
   header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap;';
   appendTextLine(header, '🗺️ Plan Estratégico — ' + (options?.duration || '90') + ' días', 'font-size:15px;font-weight:800;');
   var actions = document.createElement('div');
   actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
   actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+    var button = ev.currentTarget;
     navigator.clipboard.writeText(planText);
-    ev.currentTarget.textContent = '✓';
-    setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+    if (button) button.textContent = '✓';
+    setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
   }, 'font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;'));
   actions.appendChild(createUtilityButton('⬇ Descargar', function() {
     downloadTextFile('Plan-Estrategico', window._lastStrategicPlan || '');
@@ -13403,18 +14428,169 @@ function renderStrategicPlanResult(resultEl, planText, strategicContext, options
     saveLastReply('Director Estratégico', '🗺️', 'Plan Estratégico');
   }));
   header.appendChild(actions);
-  renderTextCard(resultEl, {
-    header: header,
-    contentStyle: 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;',
-    content: planText
-  });
+  shell.appendChild(header);
+
+  var parsedSections = parseStrategicPlanSections(planText);
+  if (parsedSections.length) {
+    var timelineSections = buildStrategicTimelineSections(parsedSections);
+    if (timelineSections.length) {
+      var timelineWrap = document.createElement('div');
+      timelineWrap.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px;';
+      timelineSections.forEach(function(item) {
+        var firstBullet = item.section?.bullets?.[0] || item.section?.body?.split('\n')[0] || 'BearAds priorizó esta etapa del plan.';
+        var card = document.createElement('div');
+        card.style.cssText = 'padding:14px;background:linear-gradient(135deg,rgba(123,167,232,0.08),rgba(94,201,160,0.06));border:1px solid rgba(123,167,232,0.14);border-radius:14px;';
+        appendTextLine(card, item.stage === '30' || item.stage === '60' || item.stage === '90' ? ('Días ' + item.stage) : ('Paso ' + item.stage), 'font-size:10px;font-weight:800;letter-spacing:0.8px;color:#35507f;margin-bottom:6px;');
+        appendTextLine(card, item.title, 'font-size:13px;font-weight:800;color:var(--text);line-height:1.5;margin-bottom:6px;');
+        appendTextLine(card, firstBullet, 'font-size:11px;color:var(--text2);line-height:1.7;');
+        timelineWrap.appendChild(card);
+      });
+      shell.appendChild(timelineWrap);
+    }
+
+    var intro = parsedSections.find(function(section) { return /^0\./.test(section.title) || /ruta recomendada/i.test(section.title); });
+    if (intro) {
+      var introCard = document.createElement('div');
+      introCard.style.cssText = 'margin-bottom:14px;padding:16px;background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(123,167,232,0.05));border:1px solid rgba(251,191,36,0.16);border-radius:14px;';
+      appendTextLine(introCard, intro.title, 'font-size:11px;font-weight:800;letter-spacing:0.8px;color:#d4a843;margin-bottom:6px;');
+      appendTextLine(introCard, intro.body, 'font-size:12px;color:var(--text2);line-height:1.8;white-space:pre-wrap;');
+      shell.appendChild(introCard);
+    }
+
+    parsedSections.filter(function(section) { return section !== intro; }).forEach(function(section) {
+      var sectionCard = document.createElement('div');
+      sectionCard.style.cssText = 'padding:14px 16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;margin-bottom:12px;';
+      appendTextLine(sectionCard, section.title, 'font-size:12px;font-weight:800;letter-spacing:0.7px;color:var(--text);margin-bottom:8px;');
+      if (section.bullets.length) {
+        var bullets = document.createElement('div');
+        bullets.style.cssText = 'display:grid;gap:8px;';
+        section.bullets.forEach(function(item) {
+          var row = document.createElement('div');
+          row.style.cssText = 'display:flex;gap:8px;font-size:12px;color:var(--text2);line-height:1.8;';
+          appendTextLine(row, '•', 'color:var(--accent);font-weight:800;flex-shrink:0;');
+          appendTextLine(row, item, 'font-size:12px;color:var(--text2);line-height:1.8;');
+          bullets.appendChild(row);
+        });
+        sectionCard.appendChild(bullets);
+      }
+      if (section.body) {
+        var body = document.createElement('div');
+        body.style.cssText = 'font-size:12px;color:var(--text2);line-height:1.85;white-space:pre-wrap;';
+        body.textContent = section.body;
+        if (section.bullets.length) body.style.marginTop = '10px';
+        sectionCard.appendChild(body);
+      }
+      shell.appendChild(sectionCard);
+    });
+  } else {
+    var fallback = document.createElement('div');
+    fallback.style.cssText = 'font-size:13px;color:var(--text2);line-height:1.9;white-space:pre-wrap;';
+    fallback.textContent = planText;
+    shell.appendChild(fallback);
+  }
+
+  resultEl.appendChild(shell);
   renderStrategicPlanNextStep(resultEl, {
     goal: options?.goal
   });
 }
 
+function parseStrategicPlanSections(planText) {
+  var text = String(planText || '').trim();
+  if (!text) return [];
+  var parts = text.split(/\n(?=##\s+)/g).map(function(part) { return part.trim(); }).filter(Boolean);
+  return parts.map(function(part) {
+    var lines = part.split('\n').map(function(line) { return line.trim(); }).filter(Boolean);
+    var titleLine = lines[0] || '';
+    var title = titleLine.replace(/^##\s*/, '').trim() || 'Sección';
+    var rest = lines.slice(1);
+    var bullets = rest
+      .filter(function(line) { return /^[-*•]/.test(line) || /^\d+\./.test(line) || /^\*\*/.test(line); })
+      .map(function(line) {
+        return line
+          .replace(/^[-*•]\s*/, '')
+          .replace(/^\d+\.\s*/, '')
+          .replace(/\*\*/g, '')
+          .trim();
+      })
+      .filter(Boolean);
+    var body = rest
+      .filter(function(line) { return !(/^[-*•]/.test(line) || /^\d+\./.test(line)); })
+      .map(function(line) { return line.replace(/\*\*/g, '').trim(); })
+      .filter(Boolean)
+      .join('\n');
+    return { title: title, bullets: bullets, body: body };
+  });
+}
+
+function buildStrategicTimelineSections(parsedSections) {
+  var timeline = [];
+  parsedSections.forEach(function(section) {
+    var title = String(section.title || '');
+    if (/30/.test(title) && !timeline.find(function(item) { return item.stage === '30'; })) {
+      timeline.push({ stage: '30', title: title, section: section });
+      return;
+    }
+    if (/60/.test(title) && !timeline.find(function(item) { return item.stage === '60'; })) {
+      timeline.push({ stage: '60', title: title, section: section });
+      return;
+    }
+    if (/90/.test(title) && !timeline.find(function(item) { return item.stage === '90'; })) {
+      timeline.push({ stage: '90', title: title, section: section });
+    }
+  });
+
+  if (!timeline.length) {
+    parsedSections.slice(0, 3).forEach(function(section, index) {
+      timeline.push({
+        stage: String(index + 1),
+        title: section.title,
+        section: section
+      });
+    });
+  }
+
+  return timeline.slice(0, 3);
+}
+
+function renderStrategicAnalysisBridge() {
+  var host = document.getElementById('sp-analysis-bridge');
+  if (!host) return;
+  clearElement(host);
+  var analysis = currentAnalysis || getAnalysisHistory()?.[0]?.report || null;
+  if (!analysis) {
+    host.style.display = 'none';
+    return;
+  }
+
+  host.style.display = 'block';
+  var priority = getDiagnosisPriorityFromAnalysis(analysis);
+  var card = document.createElement('div');
+  card.style.cssText = 'padding:14px 16px;background:linear-gradient(135deg,rgba(123,167,232,0.08),rgba(94,201,160,0.06));border:1px solid rgba(123,167,232,0.16);border-radius:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;';
+
+  var copy = document.createElement('div');
+  copy.style.cssText = 'flex:1;min-width:240px;';
+  appendTextLine(copy, 'Diagnóstico listo para convertir en plan', 'font-size:10px;font-weight:800;letter-spacing:0.8px;color:#35507f;margin-bottom:6px;');
+  appendTextLine(copy, (analysis.siteTitle || analysis.url || 'Tu sitio') + ' · Score ' + String(analysis.globalScore || '--') + '/100', 'font-size:15px;font-weight:800;color:var(--text);line-height:1.5;margin-bottom:4px;');
+  appendTextLine(copy, priority ? ('La prioridad más débil hoy es ' + priority.label + '. BearAds usará ese foco para ordenar el plan.') : 'BearAds usará este diagnóstico como base para ordenar tu siguiente etapa.', 'font-size:12px;color:var(--text2);line-height:1.7;');
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+  actions.appendChild(createActionButton('🔎 Volver al análisis', function() {
+    showPage('analyze');
+  }, 'padding:10px 12px;background:rgba(255,255,255,0.92);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:12px;font-weight:800;cursor:pointer;'));
+  actions.appendChild(createActionButton('📣 Ir a campañas', function() {
+    openCampaignsFromStrategy('analysis-bridge');
+  }, 'padding:10px 12px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.18);border-radius:10px;color:#35507f;font-size:12px;font-weight:800;cursor:pointer;'));
+
+  card.appendChild(copy);
+  card.appendChild(actions);
+  host.appendChild(card);
+}
+
 function initStrategicPlanPage() {
   refreshPlanLockedUI();
+  renderStrategicAnalysisBridge();
   var ctx = deriveStrategicPlanContext();
   var draft = getStrategicPlanDraft();
   var onboarding = getWorkspaceOnboarding();
@@ -13511,7 +14687,7 @@ function getStrategicPlanActivationRecommendation(goal, onboarding) {
       title: 'Activa captacion de leads',
       copy: 'Tu siguiente paso natural es convertir este plan en una campaña guiada y un entregable de apoyo para captar interesados.',
       primaryLabel: '📣 Crear campaña',
-      primaryAction: function() { showPage('campaigns'); },
+      primaryAction: function() { openCampaignsFromStrategy('strategy-leads'); },
       secondaryLabel: '🤖 Abrir agentes',
       secondaryAction: function() { showPage('agents'); }
     };
@@ -13532,7 +14708,7 @@ function getStrategicPlanActivationRecommendation(goal, onboarding) {
     title: 'Activa tu ejecucion comercial',
     copy: 'Ya tienes un plan base. Ahora conviertelo en una campaña o en tareas accionables para no dejarlo solo como documento.',
     primaryLabel: '📣 Crear campaña',
-    primaryAction: function() { showPage('campaigns'); },
+    primaryAction: function() { openCampaignsFromStrategy('strategy-general'); },
     secondaryLabel: '🎨 Ir a creativos',
     secondaryAction: function() { showPage('creatives'); }
   };
@@ -13926,8 +15102,8 @@ function syncCreativeAuthUI(session) {
     clearElement(hint);
     appendTextLine(hint, 'Necesitas una sesión activa en BearAds para crear anuncios con IA.', 'font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px;');
     var link = document.createElement('a');
-    link.href = '/auth/google';
-    link.textContent = 'Entrar con Google';
+      link.href = getAuthEntryHref();
+      link.textContent = 'Entrar o crear acceso';
     link.style.cssText = 'color:var(--accent);font-weight:700;text-decoration:none;font-size:12px;';
     hint.appendChild(link);
   }
@@ -14028,9 +15204,10 @@ async function generateCreative() {
       var actions = document.createElement('div');
       actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
       actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+        var button = ev.currentTarget;
         navigator.clipboard.writeText(data.copy);
-        ev.currentTarget.textContent = '✓';
-        setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+        if (button) button.textContent = '✓';
+        setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
       }, 'font-size:11px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
       actions.appendChild(createUtilityButton('⬇ TXT', function() {
         downloadTextFile('Creativos-' + crPlatform, window._lastCreative || '');
@@ -14219,7 +15396,7 @@ function checkGAdsAuthStatus() {
     var statusEl = document.getElementById('gads-google-status');
     if (!statusEl) return;
     clearElement(statusEl);
-    if (data.connected) {
+    if (data.googleConnected) {
       appendTextLine(statusEl, '✓ ' + data.user.name + ' (' + data.user.email + ')', 'color:#5ec9a0;font-weight:600;');
     } else {
       appendTextLine(statusEl, '✗ No conectado', 'color:#e07070;display:inline-block;margin-right:6px;');
@@ -14347,9 +15524,10 @@ async function callGAdsAI(prompt, title) {
     var actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
     actions.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      var button = ev.currentTarget;
       navigator.clipboard.writeText(data.reply || '');
-      ev.currentTarget.textContent = '✓';
-      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      if (button) button.textContent = '✓';
+      setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
     }, 'font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;'));
     actions.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
       saveLastReply('SEM/Paid Media', '📢', title);
@@ -14458,9 +15636,10 @@ async function optimizeGAdsWithAI() {
     var footer = document.createElement('div');
     footer.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
     footer.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      var button = ev.currentTarget;
       navigator.clipboard.writeText(data.reply || '');
-      ev.currentTarget.textContent = '✓';
-      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      if (button) button.textContent = '✓';
+      setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
     }, 'font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;'));
     footer.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
       saveLastReply('SEM/Paid Media', '📢', 'Optimización Google Ads');
@@ -14598,9 +15777,10 @@ async function optimizeMetaWithAI() {
     var footer = document.createElement('div');
     footer.style.cssText = 'margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;';
     footer.appendChild(createUtilityButton('📋 Copiar', function(ev) {
+      var button = ev.currentTarget;
       navigator.clipboard.writeText(data.reply || '');
-      ev.currentTarget.textContent = '✓';
-      setTimeout(function() { ev.currentTarget.textContent = '📋 Copiar'; }, 2000);
+      if (button) button.textContent = '✓';
+      setTimeout(function() { if (button) button.textContent = '📋 Copiar'; }, 2000);
     }, 'font-size:10px;padding:4px 9px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;'));
     footer.appendChild(createPrimaryUtilityButton('💾 Guardar', function() {
       saveLastReply('Meta Ads', '📘', 'Optimización Meta');
@@ -14853,8 +16033,11 @@ async function generateKeywordsWithAI() {
 // PWA — Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js')
-      .then(function(reg) { console.log('SW registered:', reg.scope); })
+    navigator.serviceWorker.register('/sw.js?v=20260423-2')
+      .then(function(reg) {
+        reg.update();
+        console.log('SW registered:', reg.scope);
+      })
       .catch(function(err) { console.log('SW error:', err); });
   });
 }
@@ -15315,6 +16498,7 @@ async function runQACustom() {
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;">
         <button onclick="saveProfile()" style="flex:1;padding:11px;background:var(--accent);border:none;border-radius:8px;color:#ffffff;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+        <button onclick="window.location.href='/auth/logout'" style="padding:11px 16px;background:rgba(224,112,112,0.08);border:1px solid rgba(224,112,112,0.18);border-radius:8px;color:#7f1d1d;font-size:13px;font-weight:700;cursor:pointer;">Salir</button>
         <button onclick="document.getElementById('profile-modal').style.display='none'" style="padding:11px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;">Cancelar</button>
       </div>
     </div>
@@ -15500,6 +16684,16 @@ async function runQACustom() {
           <div style="font-size:10px;font-weight:700;color:#7f1d1d;letter-spacing:0.6px;">ENTREGABLES LOCALES</div>
           <div id="sa-total-deliverables" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;">0</div>
         </div>
+        <div id="sa-ai-cost-card" style="background:rgba(94,201,160,0.05);border:1px solid rgba(94,201,160,0.18);border-radius:10px;padding:12px;display:none;">
+          <div style="font-size:10px;font-weight:700;color:#14532d;letter-spacing:0.6px;">COSTO IA ESTE MES</div>
+          <div id="sa-ai-cost-month" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;">$0.00</div>
+          <div id="sa-ai-cost-month-label" style="font-size:10px;color:#64748b;margin-top:2px;"></div>
+        </div>
+        <div id="sa-ai-last-card" style="background:rgba(94,201,160,0.05);border:1px solid rgba(94,201,160,0.18);border-radius:10px;padding:12px;display:none;">
+          <div style="font-size:10px;font-weight:700;color:#14532d;letter-spacing:0.6px;">ÚLTIMO ANÁLISIS IA</div>
+          <div id="sa-ai-last-cost" style="font-size:22px;font-weight:800;color:#0f172a;margin-top:4px;">—</div>
+          <div id="sa-ai-last-url" style="font-size:10px;color:#64748b;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+        </div>
       </div>
 
       <!-- TAB: Audit -->
@@ -15540,6 +16734,33 @@ async function runQACustom() {
 
       <!-- TAB: AI Estratégicas -->
       <div id="sa-panel-ai" style="display:none;">
+        <!-- AI Cost Summary -->
+        <div id="sa-ai-costs-section" style="display:none;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:#14532d;letter-spacing:0.5px;margin-bottom:8px;">💰 COSTOS DE IA</div>
+          <div style="background:rgba(94,201,160,0.05);border:1px solid rgba(94,201,160,0.18);border-radius:10px;padding:12px;">
+            <!-- Last analysis detail -->
+            <div id="sa-ai-last-analysis-detail" style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(94,201,160,0.15);display:none;">
+              <div style="font-size:10px;font-weight:700;color:#14532d;letter-spacing:0.5px;margin-bottom:4px;">ÚLTIMO ANÁLISIS</div>
+              <div id="sa-ai-last-detail-url" style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:2px;"></div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;">
+                <div><span style="font-size:10px;color:#64748b;">Fecha: </span><span id="sa-ai-last-detail-date" style="font-size:11px;color:#0f172a;font-weight:600;"></span></div>
+                <div><span style="font-size:10px;color:#64748b;">Costo: </span><span id="sa-ai-last-detail-cost" style="font-size:11px;color:#0f172a;font-weight:600;"></span></div>
+                <div><span style="font-size:10px;color:#64748b;">SEO: </span><span id="sa-ai-last-score-seo" style="font-size:11px;color:#0f172a;font-weight:600;"></span></div>
+                <div><span style="font-size:10px;color:#64748b;">CRO: </span><span id="sa-ai-last-score-cro" style="font-size:11px;color:#0f172a;font-weight:600;"></span></div>
+              </div>
+            </div>
+            <!-- Monthly history -->
+            <div style="font-size:10px;font-weight:700;color:#14532d;letter-spacing:0.5px;margin-bottom:6px;">HISTORIAL MENSUAL</div>
+            <div id="sa-ai-cost-history" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;">
+              <div style="font-size:11px;color:#64748b;">Sin datos aún.</div>
+            </div>
+            <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(94,201,160,0.15);display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:#64748b;">Total acumulado</span>
+              <span id="sa-ai-alltime-cost" style="font-size:13px;font-weight:800;color:#14532d;">$0.000000</span>
+            </div>
+          </div>
+        </div>
+        <!-- AI Chat -->
         <div style="margin-bottom:10px;display:flex;gap:8px;">
           <input id="sa-ai-input" type="text" placeholder="Pregunta estratégica para las IAs..." onkeydown="if(event.key==='Enter')saAskAI()" style="flex:1;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <button onclick="saAskAI()" style="padding:9px 14px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:13px;cursor:pointer;font-weight:700;">→</button>
@@ -15548,6 +16769,13 @@ async function runQACustom() {
       </div>
 
       <div id="sa-panel-users" style="display:none;">
+        <div style="padding:11px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:10px;font-size:11px;color:#7f1d1d;line-height:1.8;margin-bottom:10px;">
+          <strong style="display:block;font-size:11px;color:#0f172a;margin-bottom:6px;">Reglas de perfiles</strong>
+          <div><strong>Dueño:</strong> puede crear dueños, administradores, facturación y usuarios.</div>
+          <div><strong>Administrador:</strong> puede crear administradores, facturación y usuarios.</div>
+          <div><strong>Facturación:</strong> puede invitar usuarios, enviar links de pago y suspender perfiles, pero no escalar a dueño o administrador.</div>
+          <div><strong>Usuarios Trial y Pago:</strong> entran a la plataforma, pero no al panel de control.</div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:10px;">
           <input id="sa-user-search" type="text" placeholder="Buscar por correo, nombre, ID o dependencia..." oninput="renderSAUsers()" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <div style="padding:9px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;white-space:nowrap;">Busca usuarios rápido</div>

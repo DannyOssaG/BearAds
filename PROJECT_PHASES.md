@@ -19,10 +19,13 @@ BearAds convierte datos reales del negocio en diagnostico, estrategia y activaci
 
 ### Decision operativa de acceso
 
-- El acceso actual por Google OAuth es temporal y controlado.
-- Se usa como barrera de proteccion mientras la app sigue en modo desarrollador y solo el equipo interno debe entrar.
-- La finalidad de este esquema es poder subir al servidor y hacer pruebas reales antes de abrir acceso general.
-- La opcion de login o registro con correo debe permanecer visible en producto, pero desactivada temporalmente hasta completar ese flujo.
+- El acceso ya no depende solo de Google OAuth.
+- BearAds ahora tiene una puerta unica `/auth` con:
+  - Google personal o negocio
+  - correo personal
+  - Meta visible como proxima opcion
+- Google sigue siendo la via ideal para conectar Search Console, GA4 y Google Ads.
+- El login por correo ya no debe marcar falsamente "Google conectado" dentro del producto.
 
 ### Lo que ya esta fuerte
 
@@ -88,6 +91,14 @@ Criterio de cierre:
 - Dashboard mostrando valor del analisis sin pasos rotos.
 - Mensajeria del producto enfocada en "diagnostico con datos reales".
 
+Avance reciente:
+
+- acceso unificado `/auth` con Google + correo personal + Meta proximamente
+- separacion real entre `sesion BearAds` y `Google conectado`
+- precarga de URL en `Analizar` usando perfil, workspace o ultimo analisis
+- el dashboard ya resume el diagnostico activo con foco inmediato, hallazgos y CTA al siguiente modulo
+- el diagnostico ahora expone mejor los scores por modulo desde el dashboard
+
 Pendientes para cerrar:
 
 - eliminar o ocultar modulos que distraen del flujo principal,
@@ -114,6 +125,19 @@ Criterio de cierre:
 Estado:
 parcialmente implementada, no cerrada.
 
+Avance reciente:
+
+- el plan estrategico ya no se renderiza solo como bloque de texto
+- ahora se separa por secciones y agrega una vista tipo hoja de ruta en 30/60/90 dias
+- el entregable queda mas legible para pasar de diagnostico a ejecucion
+- la pagina de estrategia ya muestra un puente directo con el ultimo diagnostico activo
+- el CTA de activacion ya no solo navega:
+  - ahora prepara un contexto real para campañas
+  - con objetivo, producto, presupuesto, ruta recomendada y score del diagnostico
+- el paso `analisis -> dashboard -> estrategia` ahora comparte un mismo draft base:
+  - toma sitio, score, ruta, objetivo sugerido y contexto del ultimo analisis
+  - evita llegar al plan con datos incompletos segun desde donde entro el usuario
+
 ### Fase 4 - Activacion de campanas
 
 Objetivo:
@@ -128,6 +152,13 @@ Criterio de cierre:
 
 Estado:
 parcialmente implementada, no cerrada.
+
+Avance reciente:
+
+- campañas ya puede recibir el contexto del ultimo plan estrategico activo
+- muestra un bloque de "plan listo para activar"
+- precarga plataforma, objetivo, producto y presupuesto sugeridos
+- el prompt de campana usa tambien audiencia, meta estrategica y ruta recomendada
 
 ### Fase 5 - Operacion del workspace
 
@@ -158,7 +189,7 @@ Criterio de cierre:
 - Salud tecnica minima validada.
 
 Estado:
-iniciada.
+cierre operativo completado para web.
 
 Bloque activo:
 
@@ -180,24 +211,24 @@ Criterio de cierre:
 - Priorizacion clara de features avanzadas.
 
 Estado:
-futura.
+operativa en web para billing y suscripción; pendiente endurecimiento y evolución.
 
 ## Ubicacion actual estimada
 
-BearAds hoy esta entre Fase 2 y Fase 4:
+BearAds hoy ya dejó atrás la estabilización base y está cerrando el frente comercial/web:
 
 - Fase 1: cerrada.
 - Fase 2: avanzada pero no cerrada.
 - Fase 3: implementada a nivel funcional, no cerrada.
 - Fase 4: implementada de forma parcial.
 - Fase 5: muy avanzada.
-- Fase 6: iniciada.
-- Fase 7: futura.
+- Fase 6: cerrada operativamente para web.
+- Fase 7: iniciada y operativa para billing real en web.
 
 La conclusion practica es:
 
 no debemos abrir nuevas lineas de producto.
-Debemos cerrar primero el flujo principal:
+Debemos rematar QA y hardening del flujo principal:
 
 URL + Google -> analisis -> estrategia -> campanas.
 
@@ -548,6 +579,37 @@ Estado:
 Estado:
 - operativo para QA y soporte interno.
 
+### Hallazgo visual adicional de cierre
+
+- Se detectó un problema de hidratación/carga en navegador al volver de Google OAuth:
+  - la pestaña podía quedarse en `/auth/google/callback?...`
+  - la UI mostraba `Sesión no detectada`
+  - pero al mismo tiempo dejaba visibles restos de plan/cache (`PRO`) en sidebar, dashboard y modal de plan.
+- Causa probable:
+  - mezcla de cache frontend + service worker + fallback visual cuando no hay `workspace` cargado.
+- Fix aplicado:
+  - `formatPlanLabel()` ya no cae por defecto en `PRO` cuando no hay workspace;
+  - el frontend ahora intenta normalizar el retorno desde `/auth/google/callback`;
+  - el service worker ya no intercepta `/auth/*`;
+  - el registro del SW quedó versionado para forzar actualización de cache.
+
+Estado:
+- corregido en código;
+- validado visualmente en navegador limpio con sesión real, plan visible correcto y modal de plan consistente.
+
+### Cierre visual final de billing, facturas y cancelación
+
+- Validado visualmente con sesión real en `Starter`.
+- Confirmado:
+  - el dashboard muestra plan y rol coherentes;
+  - el modal `⚡ Plan` muestra `Stripe activo: STARTER · ACTIVE`;
+  - el acceso `💳 Pagos y facturas` queda visible para el usuario final;
+  - el downgrade a `Trial` abre primero el modal de retención, no ejecuta el cambio de golpe;
+  - en modo agencia, si el workspace sigue en `Trial` o `Starter`, el siguiente paso recomendado ya no empuja directo a `Agency`; ahora recomienda `Pro` primero.
+
+Estado:
+- cierre visual completado para web.
+
 ## Primera lista de trabajo para cerrar Fase 2
 
 - Unificar branding legado (`MIRTHOS`, `nexusai`) a `BearAds`.
@@ -695,6 +757,18 @@ Objetivo:
 usar este archivo como memoria operativa del proyecto para no depender solo del contexto del chat.
 
 ## Ultima actualizacion de trabajo
+
+### 2026-04-24 — Fase 2: branding visible + posicionamiento de TikTok
+
+- Se continuó el cierre de `Fase 2` sin ocultar `TikTok`.
+- Se mantuvo `TikTok` visible en landing, ayudas y narrativa de campañas como canal disponible dentro del producto.
+- Se limpió branding visible legado en piezas de soporte/legal:
+  - `public/privacy.html`
+  - `env.example`
+- Se evitó seguir empujando una historia mezclada entre `BearAds` y `Mirthos` en la capa pública visible.
+- Decisión vigente:
+  - `TikTok` sigue presente en producto,
+  - pero la historia principal de BearAds sigue enfocada en `diagnóstico -> estrategia -> activación`.
 
 Fecha:
 2026-04-11

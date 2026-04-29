@@ -1,4 +1,99 @@
 // BEARADS-SERVER-BUILD-20260318-V3
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROJECT_PHASES — Historial de desarrollo de BearAds
+// Formato: [Fecha] [Autor] Descripción
+// Autores: Danny = Danny Ossa González (dueño del producto)
+//          Claude = Claude Sonnet (IA asistente de Anthropic)
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// FASE 1 — Fundación del servidor
+// [2026-03-18] [Danny + Claude] Arquitectura base de Express. Autenticación
+// local con email/código OTP y Google OAuth. Sesiones persistentes en JSON.
+// Sistema de workspaces y membresías con roles (owner, admin, billing,
+// member_paid, member_trial). Invitaciones por email. Panel superadmin inicial.
+//
+// FASE 2 — Diagnóstico IA (agentes especialistas)
+// [2026-03-18] [Danny + Claude] Endpoint /api/analyze con 5 agentes paralelos:
+// SEO, SEM, Contenido, CRO y Tráfico. Cada agente produce JSON estructurado
+// con score, acciones y quick wins. Integración con Google Search Console (GSC)
+// y Google Analytics 4 (GA4) para contexto real del sitio analizado.
+//
+// FASE 3 — Integración Google Ads y Meta Ads
+// [2026-03-xx] [Danny + Claude] Conexión con Google Ads API (reportes de
+// campañas, keywords, CPA). Integración Meta Ads via Graph API (campañas,
+// conjuntos, creativos). Agentes reciben datos reales de pauta pagada como
+// contexto adicional para el análisis.
+//
+// FASE 4 — Planes y Stripe Billing
+// [2026-03-xx] [Danny + Claude] Sistema de planes: Trial (gratis), Starter,
+// Pro, Agency. Checkout y webhooks de Stripe. Límites de uso por plan
+// (análisis diarios, miembros, integraciones). Modal de planes con comparativa.
+// Flujo de upgrade/downgrade con confirmación.
+//
+// FASE 5 — Router multi-proveedor de IA
+// [2026-04-xx] [Danny + Claude] Reemplazo del fetch directo a un proveedor fijo
+// por callAI() con cadena de fallback automático. Proveedores:
+//   • Gemini 2.0 Flash Lite (gratis, primero para Trial)
+//   • Groq Llama 3.3 70B (gratis, fallback Trial)
+//   • Claude Haiku 4.5 (Starter/batch)
+//   • Claude Sonnet 4.6 (Pro/Agency)
+// PROVIDER_CHAINS por tipo de plan. Si el proveedor no tiene key configurada
+// o falla, el router salta automáticamente al siguiente — sin código extra.
+// Prompt caching Anthropic vía SDK (cache_control: ephemeral) para reducir
+// costos en prompts de sistema repetidos.
+//
+// FASE 6 — Agentes más efectivos (bloque completo)
+// [2026-04-29] [Claude] Cuatro mejoras implementadas en una sola sesión:
+//
+//   6A. Routing por ruta del cliente (ROUTE_AGENTS)
+//       Solo corren los agentes relevantes según el modo del cliente:
+//       arranque → [contenido, cro, trafico]  (ahorra ~40% tokens)
+//       organico → [seo, contenido, cro]
+//       ads      → [sem, trafico, cro]
+//       agencia  → todos los 5 agentes
+//       /api/analyze acepta routeMode en el body.
+//
+//   6B. Agente Sintetizador (synthesis)
+//       6° agente que corre después de los especialistas. Recibe los outputs
+//       de todos los agentes activos y produce: prioridades rankeadas por
+//       impacto/esfuerzo, conflictos entre agentes y resumen ejecutivo.
+//       Se agrega como campo synthesis en la respuesta del endpoint.
+//
+//   6C. Memoria delta entre análisis
+//       workspace.lastAnalysis guarda scores y fecha tras cada análisis.
+//       En el siguiente análisis de la misma URL, los scores anteriores se
+//       inyectan en fullContext para que los agentes detecten progreso o
+//       regresión y lo comenten explícitamente.
+//
+//   6D. Registro de costos estimados
+//       PROVIDER_COSTS_PER_1M con precios reales de cada proveedor.
+//       costTracker acumula el costo estimado de cada llamada (chars/4 tokens).
+//       Log por llamada: proveedor, feature, tokens in/out, costo estimado.
+//       workspace.usage.aiCosts[YYYY-MM] acumula el gasto mensual real.
+//       workspace.lastAnalysis.analysisCostUsd guarda el costo del último run.
+//
+// FASE 6E — Caché de análisis 24h
+// [2026-04-29] [Claude] analysisCache Map en memoria con TTL de 24h.
+// Clave: workspaceId:url:dayKey. Si el mismo workspace analiza la misma URL
+// el mismo día, retorna el resultado cacheado con fromCache:true sin llamar
+// a ningún proveedor de IA.
+//
+// FASE 6F — Costos IA en panel admin
+// [2026-04-29] [Claude] /api/admin/overview ahora incluye aiUsage (solo para
+// roles owner/admin): costo del mes actual, total acumulado, historial de los
+// últimos 6 meses y detalle del último análisis (URL, fecha, costo, scores).
+// Frontend: 2 tarjetas nuevas en el grid del panel superadmin (Costo IA este
+// mes, Último análisis), más sección de historial mensual y detalle en la
+// pestaña "IAs Estratégicas". Invisible para roles sin permisos admin.
+//
+// ─── PENDIENTE / NEXT ────────────────────────────────────────────────────────
+// Phase 7 — Migración a base de datos real (SQLite o PostgreSQL)
+//           Cola async para análisis (evitar timeouts en planes Pro/Agency)
+//           Modularización de server.js en routers separados
+//           Acumulador mensual de costos a nivel plataforma (cross-workspace)
+// ─────────────────────────────────────────────────────────────────────────────
+
 require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
@@ -21,12 +116,24 @@ const OAUTH_USERS_FILE = path.join(DATA_DIR, 'oauth-users.json');
 const SESSION_STORE_FILE = path.join(DATA_DIR, 'sessions.json');
 const EMAIL_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, 'email-subscriptions.json');
 const APP_USERS_FILE = path.join(DATA_DIR, 'app-users.json');
+const LOCAL_AUTH_USERS_FILE = path.join(DATA_DIR, 'local-auth-users.json');
+const EMAIL_VERIFICATION_CODES_FILE = path.join(DATA_DIR, 'email-verification-codes.json');
+const PASSWORD_RESET_TOKENS_FILE = path.join(DATA_DIR, 'password-reset-tokens.json');
 const WORKSPACES_FILE = path.join(DATA_DIR, 'workspaces.json');
 const MEMBERSHIPS_FILE = path.join(DATA_DIR, 'memberships.json');
 const INVITES_FILE = path.join(DATA_DIR, 'user-invites.json');
 const TRACKING_EVENTS_FILE = path.join(DATA_DIR, 'tracking-events.json');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 function readJsonFile(filePath, fallback) {
   try {
@@ -41,6 +148,11 @@ function readJsonFile(filePath, fallback) {
 function writeJsonFile(filePath, value) {
   try {
     fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+    if ([LOCAL_AUTH_USERS_FILE, SESSION_STORE_FILE, OAUTH_USERS_FILE].includes(filePath)) {
+      try {
+        fs.chmodSync(filePath, 0o600);
+      } catch (chmodError) {}
+    }
   } catch (error) {
     console.error('Failed to write JSON store:', filePath, error.message);
   }
@@ -93,6 +205,9 @@ const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toStr
 const sessionStore = new FileSessionStore(SESSION_STORE_FILE);
 const oauthUsers = readJsonFile(OAUTH_USERS_FILE, {});
 const appUsers = readJsonFile(APP_USERS_FILE, {});
+const localAuthUsers = readJsonFile(LOCAL_AUTH_USERS_FILE, {});
+const emailVerificationCodes = readJsonFile(EMAIL_VERIFICATION_CODES_FILE, {});
+const passwordResetTokens = readJsonFile(PASSWORD_RESET_TOKENS_FILE, {});
 const workspaces = readJsonFile(WORKSPACES_FILE, {});
 const memberships = readJsonFile(MEMBERSHIPS_FILE, {});
 const userInvites = readJsonFile(INVITES_FILE, {});
@@ -121,6 +236,10 @@ const STRIPE_PRICE_ENV_MAP = {
     annual: 'STRIPE_PRICE_AGENCY_ANNUAL'
   }
 };
+const authAttempts = {};
+const requestRateBuckets = {};
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_MAX_ATTEMPTS = 10;
 
 if (!process.env.SESSION_SECRET) {
   console.warn('SESSION_SECRET not set. Generated an ephemeral secret for this process.');
@@ -132,6 +251,18 @@ function saveOAuthUsers() {
 
 function saveAppUsers() {
   writeJsonFile(APP_USERS_FILE, appUsers);
+}
+
+function saveLocalAuthUsers() {
+  writeJsonFile(LOCAL_AUTH_USERS_FILE, localAuthUsers);
+}
+
+function saveEmailVerificationCodes() {
+  writeJsonFile(EMAIL_VERIFICATION_CODES_FILE, emailVerificationCodes);
+}
+
+function savePasswordResetTokens() {
+  writeJsonFile(PASSWORD_RESET_TOKENS_FILE, passwordResetTokens);
 }
 
 function saveWorkspaces() {
@@ -227,6 +358,7 @@ function syncWorkspaceStripeSubscription(workspace, details) {
     stripeSubscriptionId: details.subscriptionId || current.subscription?.stripeSubscriptionId || null,
     stripePriceId: details.priceId || current.subscription?.stripePriceId || null,
     stripeCheckoutSessionId: details.checkoutSessionId || current.subscription?.stripeCheckoutSessionId || null,
+    billingUserId: details.billingUserId || current.subscription?.billingUserId || null,
     activatedAt: nextStatus === 'trialing' ? current.subscription?.activatedAt || null : (current.subscription?.activatedAt || nowIso()),
     canceledAt: nextStatus === 'canceled' ? nowIso() : (current.subscription?.canceledAt || null),
     source: details.source || current.subscription?.source || 'stripe'
@@ -253,6 +385,66 @@ function syncWorkspaceStripeSubscription(workspace, details) {
   syncWorkspaceMembershipPlanRoles(current);
   saveWorkspaces();
   return current;
+}
+
+function archiveConflictingTrialMembershipsForUser(userId, keepWorkspaceId, actorUserId = null) {
+  if (!userId || !keepWorkspaceId) return;
+  let membershipsChanged = false;
+  let workspacesChanged = false;
+  Object.values(memberships).forEach(function(membership) {
+    if (!membership || membership.userId !== userId) return;
+    if (membership.workspaceId === keepWorkspaceId) return;
+    if (membership.status === 'removed') return;
+    const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    const isTrialWorkspace = !workspace?.subscription || workspace.subscription.status === 'trialing' || resolveWorkspacePlanCode(workspace) === 'trial';
+    if (!isTrialWorkspace) return;
+    membership.status = 'removed';
+    membership.removedAt = nowIso();
+    membership.removedBy = actorUserId;
+    membership.removalReason = 'consolidated_into_paid_workspace';
+    membership.updatedAt = nowIso();
+    membershipsChanged = true;
+    if (workspace) {
+      workspace.updatedAt = nowIso();
+      workspace.billingNotes = Array.isArray(workspace.billingNotes) ? workspace.billingNotes : [];
+      workspace.billingNotes.unshift({
+        id: crypto.randomUUID(),
+        reason: 'Dependencia trial consolidada',
+        note: `La dependencia trial fue consolidada al activar un plan pago para este perfil en otro workspace.`,
+        createdAt: nowIso(),
+        createdBy: actorUserId || userId
+      });
+      workspace.billingNotes = workspace.billingNotes.slice(0, 20);
+      workspacesChanged = true;
+    }
+  });
+  if (membershipsChanged) saveMemberships();
+  if (workspacesChanged) saveWorkspaces();
+}
+
+function enforceSingleActivePlanForUser(userId, actorUserId = null) {
+  if (!userId) return false;
+  const activeMemberships = getUserMemberships(userId);
+  const paidMemberships = activeMemberships.filter(function(membership) {
+    const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    return workspace?.subscription?.status && workspace.subscription.status !== 'trialing';
+  });
+  if (!paidMemberships.length) return false;
+  let changed = false;
+  activeMemberships.forEach(function(membership) {
+    if (paidMemberships.some(function(item) { return item.workspaceId === membership.workspaceId; })) return;
+    const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    const isTrialWorkspace = !workspace?.subscription || workspace.subscription.status === 'trialing' || resolveWorkspacePlanCode(workspace) === 'trial';
+    if (!isTrialWorkspace) return;
+    membership.status = 'removed';
+    membership.removedAt = nowIso();
+    membership.removedBy = actorUserId;
+    membership.removalReason = 'single_active_plan_enforced';
+    membership.updatedAt = nowIso();
+    changed = true;
+  });
+  if (changed) saveMemberships();
+  return changed;
 }
 
 async function ensureStripeCustomerForWorkspace(workspace, user) {
@@ -316,6 +508,7 @@ async function trySyncStripeCheckoutForWorkspace(workspace) {
         customerId: session.customer || subscriptionObject.customer || current.subscription?.stripeCustomerId || null,
         subscriptionId: subscriptionObject.id,
         priceId: priceId || subscriptionObject.items?.data?.[0]?.price?.id || null,
+        billingUserId: session.metadata?.userId || subscriptionObject.metadata?.userId || current.subscription?.billingUserId || null,
         checkoutSessionId: session.id,
         source: 'stripe-checkout-recovery',
         updatedBy: 'billing-status-sync',
@@ -329,6 +522,7 @@ async function trySyncStripeCheckoutForWorkspace(workspace) {
       customerId: session.customer || current.subscription?.stripeCustomerId || null,
       subscriptionId: session.subscription || null,
       priceId: priceId || null,
+      billingUserId: session.metadata?.userId || current.subscription?.billingUserId || null,
       checkoutSessionId: session.id,
       source: 'stripe-checkout-recovery',
       updatedBy: 'billing-status-sync',
@@ -369,10 +563,14 @@ function normalizeOwnerEmail(email) {
 function refreshPersistentState() {
   replaceJsonStore(oauthUsers, readJsonFile(OAUTH_USERS_FILE, {}));
   replaceJsonStore(appUsers, readJsonFile(APP_USERS_FILE, {}));
+  replaceJsonStore(localAuthUsers, readJsonFile(LOCAL_AUTH_USERS_FILE, {}));
+  replaceJsonStore(emailVerificationCodes, readJsonFile(EMAIL_VERIFICATION_CODES_FILE, {}));
+  replaceJsonStore(passwordResetTokens, readJsonFile(PASSWORD_RESET_TOKENS_FILE, {}));
   replaceJsonStore(workspaces, readJsonFile(WORKSPACES_FILE, {}));
   replaceJsonStore(memberships, readJsonFile(MEMBERSHIPS_FILE, {}));
   replaceJsonStore(userInvites, readJsonFile(INVITES_FILE, {}));
   syncPlatformOwners();
+  normalizeOwnerMemberships();
 }
 
 function syncPlatformOwners() {
@@ -385,8 +583,32 @@ function syncPlatformOwners() {
       user.updatedAt = nowIso();
       changed = true;
     }
+    if (!shouldBeOwner && user.platformRole === 'owner') {
+      user.platformRole = 'member';
+      user.updatedAt = nowIso();
+      changed = true;
+    }
   });
   if (changed) saveAppUsers();
+}
+
+function normalizeOwnerMemberships() {
+  let changed = false;
+  Object.values(memberships).forEach(membership => {
+    if (membership.status === 'removed' || membership.role !== 'owner') return;
+    const user = appUsers[membership.userId];
+    const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    const normalizedEmail = normalizeEmail(user?.email);
+    const isAllowedOwner = Boolean(
+      user &&
+      (PLATFORM_OWNER_EMAILS.includes(normalizedEmail) || normalizedEmail === PRIMARY_OWNER_EMAIL || user.platformRole === 'owner')
+    );
+    if (isAllowedOwner) return;
+    membership.role = defaultMemberRoleForWorkspace(workspace);
+    membership.updatedAt = nowIso();
+    changed = true;
+  });
+  if (changed) saveMemberships();
 }
 
 function nowIso() {
@@ -395,6 +617,580 @@ function nowIso() {
 
 function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function findLocalAuthRecordByEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+  return Object.values(localAuthUsers).find(record => normalizeEmail(record?.email) === normalizedEmail) || null;
+}
+
+function hashSecurityCode(code) {
+  return crypto.createHash('sha256').update(String(code || '')).digest('hex');
+}
+
+function pruneEmailVerificationCodes() {
+  const now = Date.now();
+  let changed = false;
+  Object.keys(emailVerificationCodes).forEach(function(key) {
+    const item = emailVerificationCodes[key];
+    const expiresAt = item?.expiresAt ? new Date(item.expiresAt).getTime() : 0;
+    if (!expiresAt || expiresAt <= now || item?.usedAt) {
+      delete emailVerificationCodes[key];
+      changed = true;
+    }
+  });
+  if (changed) saveEmailVerificationCodes();
+}
+
+function createEmailVerificationCodeRecord({ name, email, password }) {
+  pruneEmailVerificationCodes();
+  const normalizedEmail = normalizeEmail(email);
+  Object.keys(emailVerificationCodes).forEach(function(key) {
+    if (normalizeEmail(emailVerificationCodes[key]?.email) === normalizedEmail) {
+      delete emailVerificationCodes[key];
+    }
+  });
+  const passwordData = createPasswordHash(password);
+  const rawCode = String(Math.floor(100000 + Math.random() * 900000));
+  const recordId = crypto.randomUUID();
+  emailVerificationCodes[recordId] = {
+    id: recordId,
+    name: String(name || '').trim(),
+    email: normalizedEmail,
+    passwordHash: passwordData.hash,
+    salt: passwordData.salt,
+    codeHash: hashSecurityCode(rawCode),
+    attempts: 0,
+    createdAt: nowIso(),
+    expiresAt: new Date(Date.now() + (15 * 60 * 1000)).toISOString(),
+    usedAt: null
+  };
+  saveEmailVerificationCodes();
+  return { recordId, rawCode };
+}
+
+function getEmailVerificationRecord(recordId) {
+  pruneEmailVerificationCodes();
+  if (!recordId || !emailVerificationCodes[recordId]) return null;
+  const record = emailVerificationCodes[recordId];
+  const expiresAt = record?.expiresAt ? new Date(record.expiresAt).getTime() : 0;
+  if (!expiresAt || expiresAt <= Date.now() || record?.usedAt) {
+    delete emailVerificationCodes[recordId];
+    saveEmailVerificationCodes();
+    return null;
+  }
+  return record;
+}
+
+function markEmailVerificationUsed(recordId) {
+  if (!recordId || !emailVerificationCodes[recordId]) return;
+  emailVerificationCodes[recordId].usedAt = nowIso();
+  saveEmailVerificationCodes();
+}
+
+function registerEmailVerificationAttempt(recordId) {
+  const record = getEmailVerificationRecord(recordId);
+  if (!record) return { record: null, locked: false };
+  record.attempts = Number(record.attempts || 0) + 1;
+  if (record.attempts >= 5) {
+    delete emailVerificationCodes[recordId];
+    saveEmailVerificationCodes();
+    return { record: null, locked: true };
+  }
+  emailVerificationCodes[recordId] = record;
+  saveEmailVerificationCodes();
+  return { record, locked: false };
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+}
+
+function prunePasswordResetTokens() {
+  const now = Date.now();
+  let changed = false;
+  Object.keys(passwordResetTokens).forEach(function(key) {
+    const item = passwordResetTokens[key];
+    const expiresAt = item?.expiresAt ? new Date(item.expiresAt).getTime() : 0;
+    if (!expiresAt || expiresAt <= now || item?.usedAt) {
+      delete passwordResetTokens[key];
+      changed = true;
+    }
+  });
+  if (changed) savePasswordResetTokens();
+}
+
+function createPasswordResetToken(userId, email) {
+  prunePasswordResetTokens();
+  Object.keys(passwordResetTokens).forEach(function(key) {
+    if (passwordResetTokens[key]?.userId === userId) {
+      delete passwordResetTokens[key];
+    }
+  });
+  const rawToken = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashResetToken(rawToken);
+  passwordResetTokens[tokenHash] = {
+    userId,
+    email: normalizeEmail(email),
+    createdAt: nowIso(),
+    expiresAt: addDays(nowIso(), 1 / 24),
+    usedAt: null
+  };
+  savePasswordResetTokens();
+  return rawToken;
+}
+
+function consumePasswordResetToken(rawToken) {
+  prunePasswordResetTokens();
+  const tokenHash = hashResetToken(rawToken);
+  const tokenRecord = passwordResetTokens[tokenHash];
+  if (!tokenRecord) return null;
+  if (tokenRecord.usedAt) return null;
+  const expiresAt = tokenRecord.expiresAt ? new Date(tokenRecord.expiresAt).getTime() : 0;
+  if (!expiresAt || expiresAt <= Date.now()) {
+    delete passwordResetTokens[tokenHash];
+    savePasswordResetTokens();
+    return null;
+  }
+  return { tokenHash, ...tokenRecord };
+}
+
+function markPasswordResetTokenUsed(tokenHash) {
+  if (!tokenHash || !passwordResetTokens[tokenHash]) return;
+  passwordResetTokens[tokenHash].usedAt = nowIso();
+  savePasswordResetTokens();
+}
+
+function getAuthAttemptKey(req, email = '') {
+  const ip = String(req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || 'unknown')
+    .split(',')[0]
+    .trim();
+  return `${ip}:${normalizeEmail(email) || 'unknown'}`;
+}
+
+function pruneAuthAttemptBucket(bucket) {
+  const now = Date.now();
+  const attempts = Array.isArray(bucket?.attempts) ? bucket.attempts.filter(ts => now - ts < AUTH_WINDOW_MS) : [];
+  return { attempts, blockedUntil: bucket?.blockedUntil && bucket.blockedUntil > now ? bucket.blockedUntil : 0 };
+}
+
+function isAuthRateLimited(req, email = '') {
+  const key = getAuthAttemptKey(req, email);
+  const next = pruneAuthAttemptBucket(authAttempts[key]);
+  authAttempts[key] = next;
+  if (next.blockedUntil && next.blockedUntil > Date.now()) {
+    return { limited: true, retryAfterMs: next.blockedUntil - Date.now() };
+  }
+  return { limited: false, retryAfterMs: 0 };
+}
+
+function registerAuthFailure(req, email = '') {
+  const key = getAuthAttemptKey(req, email);
+  const bucket = pruneAuthAttemptBucket(authAttempts[key]);
+  bucket.attempts.push(Date.now());
+  if (bucket.attempts.length >= AUTH_MAX_ATTEMPTS) {
+    bucket.blockedUntil = Date.now() + AUTH_WINDOW_MS;
+  }
+  authAttempts[key] = bucket;
+}
+
+function clearAuthFailures(req, email = '') {
+  const key = getAuthAttemptKey(req, email);
+  delete authAttempts[key];
+}
+
+function getRequestRateKey(req, prefix = 'generic') {
+  const ip = String(req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || 'unknown')
+    .split(',')[0]
+    .trim();
+  const identity = String(req.user?.id || req.sessionID || ip || 'unknown').trim();
+  return `${prefix}:${identity}`;
+}
+
+function pruneRequestRateBucket(bucket, windowMs) {
+  const now = Date.now();
+  const hits = Array.isArray(bucket?.hits) ? bucket.hits.filter(ts => now - ts < windowMs) : [];
+  const blockedUntil = bucket?.blockedUntil && bucket.blockedUntil > now ? bucket.blockedUntil : 0;
+  return { hits, blockedUntil };
+}
+
+function createRequestRateLimiter({ prefix = 'generic', windowMs = 15 * 60 * 1000, max = 180, error = 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' } = {}) {
+  return function requestRateLimiter(req, res, next) {
+    const key = getRequestRateKey(req, prefix);
+    const bucket = pruneRequestRateBucket(requestRateBuckets[key], windowMs);
+    requestRateBuckets[key] = bucket;
+    if (bucket.blockedUntil && bucket.blockedUntil > Date.now()) {
+      return res.status(429).json({ error });
+    }
+    bucket.hits.push(Date.now());
+    if (bucket.hits.length >= max) {
+      bucket.blockedUntil = Date.now() + windowMs;
+      requestRateBuckets[key] = bucket;
+      return res.status(429).json({ error });
+    }
+    requestRateBuckets[key] = bucket;
+    return next();
+  };
+}
+
+function createPasswordHash(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(String(password || ''), salt, 64).toString('hex');
+  return { salt, hash };
+}
+
+function verifyPasswordHash(password, salt, hash) {
+  if (!password || !salt || !hash) return false;
+  try {
+    const digest = crypto.scryptSync(String(password), String(salt), 64);
+    const source = Buffer.from(String(hash), 'hex');
+    return source.length === digest.length && crypto.timingSafeEqual(source, digest);
+  } catch (error) {
+    return false;
+  }
+}
+
+function persistLocalAuthRecord(userId, email, password) {
+  return persistLocalAuthRecordData(userId, email, createPasswordHash(password));
+}
+
+function persistLocalAuthRecordData(userId, email, passwordData) {
+  const normalizedEmail = normalizeEmail(email);
+  Object.keys(localAuthUsers).forEach(function(key) {
+    if (key !== userId && normalizeEmail(localAuthUsers[key]?.email) === normalizedEmail) {
+      delete localAuthUsers[key];
+    }
+  });
+  localAuthUsers[userId] = {
+    ...(localAuthUsers[userId] || {}),
+    userId,
+    email: normalizedEmail,
+    salt: passwordData.salt,
+    passwordHash: passwordData.hash,
+    updatedAt: nowIso(),
+    createdAt: localAuthUsers[userId]?.createdAt || nowIso()
+  };
+  saveLocalAuthUsers();
+  return localAuthUsers[userId];
+}
+
+function getAuthStatusPayload(currentUser) {
+  const googleConnected = isGoogleConnectedForUser(currentUser);
+  return {
+    connected: Boolean(currentUser),
+    googleConnected,
+    authProvider: googleConnected ? 'google' : (currentUser ? 'email' : null),
+    user: currentUser ? sanitizeUser(currentUser) : null,
+    membership: currentUser?.membership || null,
+    workspace: currentUser?.workspace ? sanitizeWorkspace(currentUser.workspace) : null,
+    permissions: currentUser ? rolePermissions(currentUser.membership?.role) : null,
+    isPlatformOwner: currentUser ? isPlatformOwner(currentUser) : false
+  };
+}
+
+function isGoogleConnectedForUser(user) {
+  const oauth = user?.id ? oauthUsers[user.id] || {} : {};
+  return Boolean(oauth.accessToken || oauth.refreshToken || user?.googleId);
+}
+
+function getAuthPageErrorMessage(code) {
+  const map = {
+    auth: 'No pude iniciar sesión. Inténtalo otra vez.',
+    invalid_email: 'Ingresa un correo válido.',
+    invalid_password: 'La contraseña debe tener al menos 6 caracteres.',
+    email_mismatch: 'Los correos no coinciden. Revísalos e intenta otra vez.',
+    email_in_use: 'Ese correo ya tiene acceso o no está disponible para crear una cuenta nueva.',
+    verification_invalid: 'El código no es válido o ya expiró.',
+    verification_attempts: 'Ese código ya agotó los intentos permitidos. Pide uno nuevo.',
+    verification_delivery_failed: 'No pude enviar el código al correo. Revisa la configuración SMTP o usa el fallback local.',
+    reset_request_failed: 'No pude procesar la recuperación de contraseña.',
+    reset_invalid_token: 'El enlace de recuperación ya no es válido o expiró.',
+    reset_password_mismatch: 'Las contraseñas no coinciden.',
+    reset_password_short: 'La nueva contraseña debe tener al menos 6 caracteres.',
+    reset_password_failed: 'No pude actualizar la contraseña.',
+    register_failed: 'No pude crear tu acceso por correo.',
+    login_failed: 'No pude iniciar tu sesión.',
+    invalid_credentials: 'Correo o contraseña incorrectos.',
+    missing_credentials: 'Completa correo y contraseña para continuar.',
+    auth_rate_limited: 'Hiciste demasiados intentos. Espera unos minutos antes de volver a intentar.'
+  };
+  return map[String(code || '').trim()] || '';
+}
+
+function renderAuthPage(options = {}) {
+  const errorMessage = getAuthPageErrorMessage(options.error);
+  const noticeMessage = options.notice ? String(options.notice) : '';
+  const defaultEmail = escapeHtml(options.email || '');
+  const defaultConfirmEmail = escapeHtml(options.confirmEmail || '');
+  const defaultName = escapeHtml(options.name || '');
+  const mode = String(options.mode || '').trim();
+  const openLogin = mode === 'login' || ['invalid_credentials', 'missing_credentials', 'login_failed', 'auth_rate_limited'].includes(String(options.error || ''));
+  const openRecover = mode === 'recover' || ['reset_request_failed'].includes(String(options.error || ''));
+  const openRegister = mode === 'register' || (!openLogin && !openRecover);
+  const messageHtml = errorMessage
+    ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(224,112,112,0.08);border:1px solid rgba(224,112,112,0.2);border-radius:12px;font-size:13px;color:#7f1d1d;">${escapeHtml(errorMessage)}</div>`
+    : (noticeMessage
+      ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.2);border-radius:12px;font-size:13px;color:#256b55;">${escapeHtml(noticeMessage)}</div>`
+      : '');
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar a BearAds</title>
+  <style>
+    :root{--bg:#f7f4ef;--surface:#ffffff;--border:rgba(15,23,42,0.08);--text:#0f172a;--text2:#64748b;--accent:#7ba7e8;--accent2:#5ec9a0;--accent3:#0f172a;}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:radial-gradient(circle at top left,rgba(123,167,232,0.18),transparent 32%),radial-gradient(circle at bottom right,rgba(94,201,160,0.16),transparent 28%),linear-gradient(180deg,#f8f5ef 0%,#f5f8fc 100%);color:var(--text);}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px 18px;}
+    .shell{width:min(980px,100%);display:grid;grid-template-columns:1.02fr .98fr;gap:18px;}
+    .card{background:rgba(255,255,255,0.94);border:1px solid var(--border);border-radius:28px;padding:30px;backdrop-filter:blur(14px);box-shadow:0 24px 80px rgba(15,23,42,0.06);}
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+    .brand img{width:34px;height:34px;object-fit:contain}
+    .brand strong{font-size:20px}
+    .eyebrow{display:inline-flex;padding:6px 10px;border-radius:999px;background:rgba(123,167,232,0.12);color:#35507f;font-size:11px;font-weight:800;letter-spacing:.6px;margin-bottom:12px}
+    h1{margin:0 0 10px;font-size:34px;line-height:1.02}
+    p{margin:0;color:var(--text2);line-height:1.7}
+    .stack{display:flex;flex-direction:column;gap:12px;margin-top:22px}
+    .google-btn,.meta-btn,.submit-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 16px;border-radius:16px;font-size:14px;font-weight:800;text-decoration:none}
+    .google-btn{background:linear-gradient(90deg,#4285f4,#34a853);color:#fff;border:none;box-shadow:0 14px 30px rgba(66,133,244,0.18)}
+    .meta-btn{background:#eef2f7;color:#8b98ad;border:1px dashed rgba(15,23,42,0.12);cursor:not-allowed}
+    .provider-mark{width:26px;height:26px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0}
+    .provider-google{background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.28)}
+    .provider-meta{background:#fff;color:#7b8798;border:1px solid rgba(15,23,42,0.08)}
+    .section-title{font-size:12px;font-weight:800;letter-spacing:.8px;color:#7f1d1d;margin:0 0 10px}
+    form{display:flex;flex-direction:column;gap:10px}
+    input{width:100%;padding:12px 13px;border:1px solid rgba(15,23,42,0.12);border-radius:14px;background:#fff;font-size:14px;color:var(--text)}
+    .submit-btn{background:#0f172a;color:#fff;border:none;cursor:pointer;box-shadow:0 12px 28px rgba(15,23,42,0.12)}
+    .muted{font-size:12px;color:var(--text2)}
+    .cols{display:grid;grid-template-columns:1fr;gap:12px}
+    .help{display:grid;gap:10px;margin-top:18px}
+    .help div{padding:14px;border:1px solid rgba(15,23,42,0.08);border-radius:16px;background:#fff}
+    .help strong{display:block;font-size:12px;margin-bottom:4px}
+    .pill-note{display:inline-flex;padding:5px 9px;border-radius:999px;background:rgba(15,23,42,0.05);font-size:11px;color:#51627f;font-weight:700;margin-top:12px}
+    details{border:1px solid rgba(15,23,42,0.08);border-radius:18px;background:#fff;overflow:hidden;transition:border-color .18s ease, box-shadow .18s ease}
+    details[open]{border-color:rgba(123,167,232,0.26);box-shadow:0 14px 34px rgba(123,167,232,0.08)}
+    summary{list-style:none;cursor:pointer;padding:16px 18px;font-size:14px;font-weight:800;color:#0f172a;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    summary::-webkit-details-marker{display:none}
+    .summary-main{display:flex;align-items:center;gap:12px;min-width:0}
+    .summary-icon{width:34px;height:34px;border-radius:12px;background:rgba(123,167,232,0.12);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+    .summary-icon svg,.access-icon svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .summary-copy{min-width:0}
+    .summary-title{display:block;font-size:14px;font-weight:800;color:#0f172a}
+    .summary-note{font-size:11px;font-weight:600;color:#64748b}
+    .detail-body{padding:0 18px 18px}
+    .chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:rgba(94,201,160,0.1);color:#256b55;font-size:10px;font-weight:800;margin-top:6px}
+    .access-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+    .access-item{padding:14px;border-radius:16px;background:#fff;border:1px solid rgba(15,23,42,0.08);display:flex;gap:10px;align-items:flex-start}
+    .access-icon{width:34px;height:34px;border-radius:12px;background:rgba(123,167,232,0.1);color:#35507f;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+    .access-item strong{display:block;font-size:12px;margin-bottom:4px}
+    @media (max-width: 860px){.shell{grid-template-columns:1fr}.card{padding:22px}.cols{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="shell">
+      <section class="card">
+        <div class="brand">
+          <img src="/bearads_logo.png" alt="BearAds">
+          <strong>BearAds</strong>
+        </div>
+        <div class="eyebrow">ACCESO</div>
+        <h1>Primero entra con tu plataforma.</h1>
+        <p>Google va primero porque además de entrar te abre el camino para conectar Search Console, GA4 y Google Ads. Meta queda visible como el siguiente canal que vamos a sumar.</p>
+        <div class="stack">
+          <a class="google-btn" href="/auth/google"><span class="provider-mark provider-google">G</span>Continuar con Google personal o negocio</a>
+          <button type="button" class="meta-btn" disabled><span class="provider-mark provider-meta">M</span>Meta próximamente</button>
+        </div>
+        <div class="access-grid">
+          <div class="access-item"><span class="access-icon"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 2.3 5.7"></path><path d="M12 8v4l3 2"></path></svg></span><div><strong>Google</strong><span class="muted">Tu puerta más completa si luego vas a conectar Search Console, GA4 y Google Ads.</span></div></div>
+          <div class="access-item"><span class="access-icon"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="M5 7l7 6 7-6"></path></svg></span><div><strong>Correo personal</strong><span class="muted">Perfecto para entrar hoy mismo a BearAds sin depender todavía de Google.</span></div></div>
+          <div class="access-item"><span class="access-icon"><svg viewBox="0 0 24 24"><path d="M7 17V7l5-2 5 2v10"></path><path d="M7 11h10"></path></svg></span><div><strong>Meta</strong><span class="muted">Lo dejamos visible como el siguiente acceso que viene para la capa social.</span></div></div>
+        </div>
+        <div class="pill-note">Si ya tienes acceso, usa tu mismo correo y BearAds mantendrá el mismo perfil.</div>
+      </section>
+      <section class="card">
+        <div class="eyebrow">CORREO PERSONAL</div>
+        ${messageHtml}
+        <div class="cols">
+          <details ${openLogin ? 'open' : ''}>
+            <summary>
+              <span class="summary-main">
+                <span class="summary-icon"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5"></path><path d="M15 12H5"></path><path d="M19 19V5"></path></svg></span>
+                <span class="summary-copy">
+                  <span class="summary-title">Entrar con correo personal</span>
+                  <span class="summary-note">Despliega tus datos de acceso</span>
+                </span>
+              </span>
+              <span class="summary-note">Si ya tienes acceso</span>
+            </summary>
+            <div class="detail-body">
+              <div class="section-title">LOGIN</div>
+              <form method="POST" action="/auth/email/login">
+                <input type="hidden" name="mode" value="login">
+                <input name="email" type="email" placeholder="tu@correo.com" value="${defaultEmail}" required>
+                <input name="password" type="password" placeholder="Tu contraseña" required>
+                <button class="submit-btn" type="submit">Entrar con correo</button>
+              </form>
+            </div>
+          </details>
+          <details ${openRegister ? 'open' : ''}>
+            <summary>
+              <span class="summary-main">
+                <span class="summary-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"></path><path d="M18.5 15.5l.8 2 .2.8.8.2 2 .8-2 .8-.8.2-.2.8-.8 2-.8-2-.2-.8-.8-.2-2-.8 2-.8.8-.2.2-.8z"></path></svg></span>
+                <span class="summary-copy">
+                  <span class="summary-title">Registrarse</span>
+                  <span class="summary-note">Crea tu acceso y valida el correo</span>
+                </span>
+              </span>
+              <span class="summary-note">Se abre por defecto</span>
+            </summary>
+            <div class="detail-body">
+              <div class="section-title">REGISTRO</div>
+              <form method="POST" action="/auth/email/register">
+                <input type="hidden" name="mode" value="register">
+                <input name="name" type="text" placeholder="Tu nombre" value="${defaultName}">
+                <input name="email" type="email" placeholder="tu@correo.com" value="${defaultEmail}" required>
+                <input name="emailConfirm" type="email" placeholder="Confirma tu correo" value="${defaultConfirmEmail}" required>
+                <input name="password" type="password" placeholder="Contraseña (mínimo 6 caracteres)" required>
+                <button class="submit-btn" type="submit">Crear acceso con correo</button>
+              </form>
+            </div>
+          </details>
+          <details ${openRecover ? 'open' : ''}>
+            <summary>
+              <span class="summary-main">
+                <span class="summary-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M4 7l8 6 8-6"></path></svg></span>
+                <span class="summary-copy">
+                  <span class="summary-title">Recuperar contraseña</span>
+                  <span class="summary-note">Te enviaremos un enlace para crear una nueva</span>
+                </span>
+              </span>
+              <span class="summary-note">Si olvidaste tu clave</span>
+            </summary>
+            <div class="detail-body">
+              <div class="section-title">RECUPERACIÓN</div>
+              <form method="POST" action="/auth/email/recover">
+                <input type="hidden" name="mode" value="recover">
+                <input name="email" type="email" placeholder="tu@correo.com" value="${defaultEmail}" required>
+                <button class="submit-btn" type="submit">Enviar enlace de recuperación</button>
+              </form>
+            </div>
+          </details>
+        </div>
+        <p style="margin-top:14px" class="muted">Si más adelante conectas Google con este mismo correo, BearAds reutiliza el mismo acceso y no te crea un usuario aparte.</p>
+      </section>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderEmailVerificationPage(options = {}) {
+  const errorMessage = getAuthPageErrorMessage(options.error);
+  const noticeMessage = options.notice ? String(options.notice) : '';
+  const email = escapeHtml(options.email || '');
+  const recordId = escapeHtml(options.recordId || '');
+  const localCode = escapeHtml(options.localCode || '');
+  const messageHtml = errorMessage
+    ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(224,112,112,0.08);border:1px solid rgba(224,112,112,0.2);border-radius:12px;font-size:13px;color:#7f1d1d;">${escapeHtml(errorMessage)}</div>`
+    : (noticeMessage
+      ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.2);border-radius:12px;font-size:13px;color:#256b55;">${escapeHtml(noticeMessage)}</div>`
+      : '');
+  const localCodeHtml = localCode
+    ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:12px;font-size:13px;color:#35507f;">
+        <div style="font-weight:800;margin-bottom:6px;">Modo local de pruebas</div>
+        <div>No pude entregar el correo en este entorno. Usa este código temporal para continuar:</div>
+        <div style="margin-top:10px;font-size:28px;font-weight:900;letter-spacing:8px;color:#0f172a;">${localCode}</div>
+      </div>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validar correo — BearAds</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(180deg,#f8f5ef 0%,#f5f8fc 100%);color:#0f172a}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(460px,100%);background:#fff;border:1px solid rgba(15,23,42,0.08);border-radius:24px;padding:28px;box-shadow:0 24px 80px rgba(15,23,42,0.06)}
+    h1{margin:0 0 10px;font-size:30px;line-height:1.05}
+    p{margin:0 0 16px;color:#64748b;line-height:1.7}
+    input{width:100%;padding:12px 13px;border:1px solid rgba(15,23,42,0.12);border-radius:12px;background:#fff;font-size:16px;letter-spacing:6px;text-align:center;color:#0f172a;margin-bottom:10px}
+    button{width:100%;padding:13px 16px;border:none;border-radius:14px;background:#0f172a;color:#fff;font-size:14px;font-weight:800;cursor:pointer}
+    a{display:inline-block;margin-top:14px;color:#35507f;font-weight:700;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Valida tu correo</h1>
+      <p>Te enviamos un código de 6 dígitos a <strong>${email}</strong>. Ingrésalo aquí para activar tu acceso en BearAds.</p>
+      ${messageHtml}
+      ${localCodeHtml}
+      <form method="POST" action="/auth/email/verify">
+        <input type="hidden" name="recordId" value="${recordId}">
+        <input name="code" type="text" inputmode="numeric" maxlength="6" placeholder="000000" required>
+        <button type="submit">Validar correo</button>
+      </form>
+      <a href="/auth">Volver al acceso</a>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function renderResetPasswordPage(options = {}) {
+  const errorMessage = getAuthPageErrorMessage(options.error);
+  const token = escapeHtml(options.token || '');
+  const messageHtml = errorMessage
+    ? `<div style="margin-bottom:16px;padding:12px 14px;background:rgba(224,112,112,0.08);border:1px solid rgba(224,112,112,0.2);border-radius:12px;font-size:13px;color:#7f1d1d;">${escapeHtml(errorMessage)}</div>`
+    : '';
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva contraseña — BearAds</title>
+  <style>
+    :root{--text:#0f172a;--text2:#64748b}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:linear-gradient(180deg,#f8f5ef 0%,#f5f8fc 100%);color:var(--text)}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(480px,100%);background:#fff;border:1px solid rgba(15,23,42,0.08);border-radius:24px;padding:28px;box-shadow:0 24px 80px rgba(15,23,42,0.06)}
+    h1{margin:0 0 10px;font-size:30px;line-height:1.05}
+    p{margin:0 0 18px;color:var(--text2);line-height:1.7}
+    input{width:100%;padding:12px 13px;border:1px solid rgba(15,23,42,0.12);border-radius:12px;background:#fff;font-size:14px;color:#0f172a;margin-bottom:10px}
+    button{width:100%;padding:13px 16px;border:none;border-radius:14px;background:#0f172a;color:#fff;font-size:14px;font-weight:800;cursor:pointer}
+    a{display:inline-block;margin-top:14px;color:#35507f;font-weight:700;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Crea una nueva contraseña</h1>
+      <p>Este enlace es temporal. Si expira, vuelve a pedir recuperación desde el acceso por correo.</p>
+      ${messageHtml}
+      <form method="POST" action="/auth/email/reset">
+        <input type="hidden" name="token" value="${token}">
+        <input name="password" type="password" placeholder="Nueva contraseña" required>
+        <input name="passwordConfirm" type="password" placeholder="Confirma la nueva contraseña" required>
+        <button type="submit">Actualizar contraseña</button>
+      </form>
+      <a href="/auth">Volver al acceso</a>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 function slugify(value) {
@@ -451,7 +1247,6 @@ function defaultMemberRoleForWorkspace(workspace) {
 
 function getEffectiveMembershipRole(membership, workspace = null) {
   if (!membership) return null;
-  if (workspace?.ownerUserId && membership.userId === workspace.ownerUserId) return 'owner';
   return resolveMembershipRole(membership.role, workspace);
 }
 
@@ -460,11 +1255,11 @@ function rolePermissions(role = 'member_trial') {
   return {
     canView: true,
     canEdit: ['owner', 'admin', 'developer', 'billing', 'member_paid', 'member_trial'].includes(resolvedRole),
-    canAccessAdminPanel: ['owner', 'admin', 'developer', 'billing'].includes(resolvedRole),
-    canManageUsers: ['owner', 'admin'].includes(resolvedRole),
+    canAccessAdminPanel: ['owner', 'admin', 'billing'].includes(resolvedRole),
+    canManageUsers: ['owner', 'admin', 'billing'].includes(resolvedRole),
     canSuspendUsers: ['owner', 'admin', 'billing'].includes(resolvedRole),
     canManageBilling: ['owner', 'billing'].includes(resolvedRole),
-    canAccessTechnical: ['owner', 'developer'].includes(resolvedRole),
+    canAccessTechnical: ['owner'].includes(resolvedRole),
     canAccessGrowth: ['owner', 'admin'].includes(resolvedRole),
     canRunAutomations: ['owner', 'admin'].includes(resolvedRole),
     isOwner: resolvedRole === 'owner',
@@ -580,6 +1375,9 @@ function ensureWorkspaceState(workspace) {
     ...(workspace.usage || {}),
     dailyAnalyses: pruneDailyUsageMap((workspace.usage && workspace.usage.dailyAnalyses) || {})
   };
+  workspace.manualPayments = Array.isArray(workspace.manualPayments)
+    ? workspace.manualPayments
+    : [];
   return workspace;
 }
 
@@ -717,11 +1515,21 @@ function rehydrateRequestUser(req) {
 }
 
 function isPlatformOwner(user) {
-  return user?.platformRole === 'owner' || user?.membership?.role === 'owner';
+  return user?.platformRole === 'owner';
 }
 
 function isPrimaryPlatformOwner(user) {
   return normalizeEmail(user?.email) === PRIMARY_OWNER_EMAIL;
+}
+
+function canRoleCreateOwner(currentUser) {
+  const currentRole = getEffectiveMembershipRole(currentUser?.membership, currentUser?.workspace);
+  return isPlatformOwner(currentUser) || currentRole === 'owner';
+}
+
+function canRoleCreateAdmin(currentUser) {
+  const currentRole = getEffectiveMembershipRole(currentUser?.membership, currentUser?.workspace);
+  return isPlatformOwner(currentUser) || currentRole === 'owner' || currentRole === 'admin';
 }
 
 function sanitizeUser(user) {
@@ -759,11 +1567,377 @@ function sanitizeWorkspace(workspace) {
     integrationHub: workspace.integrationHub || defaultIntegrationHub(),
     commercial: workspace.commercial || defaultCommercialState(),
     usage: workspace.usage || defaultUsageState(),
+    manualPaymentsCount: Array.isArray(workspace.manualPayments) ? workspace.manualPayments.length : 0,
     subscription: {
       ...subscription,
       remainingTrialDays
     },
     settings: workspace.settings || {}
+  };
+}
+
+function getMembershipForUserInWorkspace(userId, workspaceId) {
+  return memberships[membershipKey(workspaceId, userId)] || null;
+}
+
+function canAccessWorkspaceBilling(currentUser, workspace) {
+  if (!currentUser || !workspace) return false;
+  if (isPlatformOwner(currentUser)) return true;
+  const membership = getMembershipForUserInWorkspace(currentUser.id, workspace.id);
+  if (!membership) return false;
+  const effectiveRole = getEffectiveMembershipRole(membership, workspace);
+  return rolePermissions(effectiveRole).canManageBilling || rolePermissions(effectiveRole).canAccessAdminPanel;
+}
+
+function resolveBillingWorkspaceForRequest(currentUser, workspaceId = null) {
+  if (workspaceId && workspaces[workspaceId]) {
+    const workspace = ensureWorkspaceState(workspaces[workspaceId]);
+    return canAccessWorkspaceBilling(currentUser, workspace) ? workspace : null;
+  }
+  return ensureWorkspaceState(currentUser?.workspace || null);
+}
+
+function sanitizeBillingMember(membership, workspace) {
+  const user = sanitizeUser(appUsers[membership.userId]);
+  const effectiveRole = getEffectiveMembershipRole(membership, workspace);
+  const paidState = workspace?.subscription?.status && workspace.subscription.status !== 'trialing';
+  return {
+    ...membership,
+    role: effectiveRole,
+    user,
+    workspaceName: workspace?.name || '',
+    plan: resolveWorkspacePlanCode(workspace),
+    commercialStatus: workspace?.subscription?.status || 'trialing',
+    paymentState: user?.status === 'suspended' ? 'suspended' : (paidState ? 'paid' : 'trial')
+  };
+}
+
+function getPlanWeight(plan) {
+  return { trial: 0, starter: 1, pro: 2, agency: 3 }[String(plan || 'trial').toLowerCase()] ?? 0;
+}
+
+function pickPrimaryBillingMembership(items) {
+  const list = Array.isArray(items) ? items.slice() : [];
+  return list.sort(function(a, b) {
+    const stateWeight = { paid: 2, trial: 1, suspended: 0 };
+    if ((stateWeight[b.paymentState] ?? -1) !== (stateWeight[a.paymentState] ?? -1)) {
+      return (stateWeight[b.paymentState] ?? -1) - (stateWeight[a.paymentState] ?? -1);
+    }
+    if (getPlanWeight(b.plan) !== getPlanWeight(a.plan)) return getPlanWeight(b.plan) - getPlanWeight(a.plan);
+    const roleWeight = { owner: 3, admin: 2, billing: 2, developer: 2, member_paid: 1, member_trial: 0 };
+    if ((roleWeight[b.role] ?? 0) !== (roleWeight[a.role] ?? 0)) return (roleWeight[b.role] ?? 0) - (roleWeight[a.role] ?? 0);
+    return String(a.workspaceName || '').localeCompare(String(b.workspaceName || ''));
+  })[0] || null;
+}
+
+function summarizeBillingUserEntries(entries) {
+  const sourceItems = Array.isArray(entries) ? entries : [];
+  const items = sourceItems.some(function(item) { return item.paymentState === 'paid'; })
+    ? sourceItems.filter(function(item) { return item.paymentState !== 'trial'; })
+    : sourceItems;
+  if (!items.length) return null;
+  const user = items[0].user || null;
+  const primary = pickPrimaryBillingMembership(items);
+  if (!user || !primary) return null;
+  const paymentState = user.status === 'suspended'
+    ? 'suspended'
+    : (items.some(item => item.paymentState === 'paid') ? 'paid' : 'trial');
+  return {
+    userId: user.id,
+    workspaceId: primary.workspaceId,
+    workspaceName: primary.workspaceName || '',
+    role: primary.role,
+    user,
+    plan: primary.plan,
+    commercialStatus: primary.commercialStatus,
+    paymentState,
+    memberships: items.map(function(item) {
+      return {
+        workspaceId: item.workspaceId,
+        workspaceName: item.workspaceName || '',
+        role: item.role,
+        plan: item.plan,
+        commercialStatus: item.commercialStatus,
+        paymentState: item.paymentState
+      };
+    })
+  };
+}
+
+function inferWorkspaceBillingUserId(workspace) {
+  const effectiveWorkspace = ensureWorkspaceState(workspace);
+  if (!effectiveWorkspace) return null;
+  const workspaceMembers = getWorkspaceMembers(effectiveWorkspace.id);
+  const paidMembers = workspaceMembers.filter(function(membership) {
+    const role = getEffectiveMembershipRole(membership, effectiveWorkspace);
+    return role === 'member_paid';
+  });
+  const explicitBillingUserId = effectiveWorkspace.subscription?.billingUserId || null;
+  if (paidMembers.length === 1) {
+    const paidUserId = paidMembers[0].userId;
+    if (!explicitBillingUserId) return paidUserId;
+    if (explicitBillingUserId === paidUserId) return paidUserId;
+    const explicitMembership = getMembershipForUserInWorkspace(explicitBillingUserId, effectiveWorkspace.id);
+    const explicitRole = explicitMembership ? getEffectiveMembershipRole(explicitMembership, effectiveWorkspace) : null;
+    if (explicitRole === 'owner' || explicitRole === 'member_trial' || explicitRole === null) {
+      return paidUserId;
+    }
+    return explicitBillingUserId;
+  }
+  if (explicitBillingUserId) return explicitBillingUserId;
+  if (paidMembers.length === 1) return paidMembers[0].userId;
+  const billingMembers = workspaceMembers.filter(function(membership) {
+    const role = getEffectiveMembershipRole(membership, effectiveWorkspace);
+    return role === 'billing';
+  });
+  if (billingMembers.length === 1) return billingMembers[0].userId;
+  if (workspaceMembers.length === 1) return workspaceMembers[0].userId;
+  return null;
+}
+
+function listBillingUsersForScope(currentUser, workspace) {
+  const permissions = rolePermissions(currentUser?.membership?.role);
+  const useAdminWideScope = isPlatformOwner(currentUser)
+    || permissions.canAccessAdminPanel
+    || permissions.canManageUsers
+    || permissions.canManageBilling;
+  const sourceMemberships = useAdminWideScope
+    ? Object.values(memberships).filter(membership => membership.status !== 'removed')
+    : getWorkspaceMembers(workspace?.id);
+
+  const membershipItems = sourceMemberships
+    .map(function(membership) {
+      const targetWorkspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+      if (!targetWorkspace) return null;
+      return sanitizeBillingMember(membership, targetWorkspace);
+    })
+    .filter(Boolean);
+
+  const grouped = membershipItems.reduce(function(acc, item) {
+    const key = item.userId || item.user?.id;
+    if (!key) return acc;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  return Object.values(grouped)
+    .map(summarizeBillingUserEntries)
+    .filter(Boolean)
+    .sort(function(a, b) {
+      const stateWeight = { paid: 2, trial: 1, suspended: 0 };
+      if ((stateWeight[b.paymentState] ?? -1) !== (stateWeight[a.paymentState] ?? -1)) {
+        return (stateWeight[b.paymentState] ?? -1) - (stateWeight[a.paymentState] ?? -1);
+      }
+      return String(a.user?.name || a.user?.email || '').localeCompare(String(b.user?.name || b.user?.email || ''));
+    });
+}
+
+function getBillingMembershipEntriesForScope(currentUser, focusWorkspace = null) {
+  const permissions = rolePermissions(currentUser?.membership?.role);
+  const useAdminWideScope = isPlatformOwner(currentUser)
+    || permissions.canAccessAdminPanel
+    || permissions.canManageUsers
+    || permissions.canManageBilling;
+  const sourceMemberships = useAdminWideScope
+    ? Object.values(memberships).filter(membership => membership.status !== 'removed')
+    : getWorkspaceMembers(focusWorkspace?.id);
+
+  return sourceMemberships
+    .map(function(membership) {
+      const targetWorkspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+      if (!targetWorkspace) return null;
+      return sanitizeBillingMember(membership, targetWorkspace);
+    })
+    .filter(Boolean);
+}
+
+function sanitizeManualPaymentEntry(payment) {
+  if (!payment) return null;
+  const amount = Number(payment.amount || 0);
+  return {
+    id: payment.id,
+    userId: payment.userId,
+    workspaceId: payment.workspaceId,
+    source: 'manual',
+    provider: payment.provider || 'manual',
+    label: payment.label || 'Pago manual',
+    status: payment.status || 'paid',
+    amount,
+    amountLabel: amount ? amount.toLocaleString('es-CO', { style: 'currency', currency: String(payment.currency || 'USD').toUpperCase() }) : 'Sin monto',
+    currency: String(payment.currency || 'USD').toUpperCase(),
+    reference: payment.reference || '',
+    planPaid: payment.planPaid || '',
+    paymentMethodType: payment.paymentMethodType || '',
+    gateway: payment.gateway || '',
+    confirmationCode: payment.confirmationCode || '',
+    paidAt: payment.paidAt || payment.createdAt || nowIso(),
+    createdAt: payment.createdAt || nowIso(),
+    note: payment.note || '',
+    createdBy: payment.createdBy || null,
+    proofImageDataUrl: payment.proofImageDataUrl || '',
+    proofImageName: payment.proofImageName || ''
+  };
+}
+
+async function listStripeInvoicesForWorkspace(workspace, limit = 12) {
+  const stripe = getStripeClient();
+  const customerId = workspace?.subscription?.stripeCustomerId;
+  if (!stripe || !customerId || getStripeConfigIssue()) return [];
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit
+    });
+    return (invoices?.data || []).map(function(invoice) {
+      const amount = Number(invoice.amount_paid || invoice.total || 0) / 100;
+      const currency = String(invoice.currency || 'usd').toUpperCase();
+      return {
+        id: invoice.id,
+        source: 'stripe',
+        provider: 'Stripe',
+        label: invoice.description || invoice.lines?.data?.[0]?.description || 'Factura Stripe',
+        status: invoice.status || 'open',
+        amount,
+        amountLabel: amount.toLocaleString('es-CO', { style: 'currency', currency }),
+        currency,
+        paidAt: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000).toISOString()
+          : (invoice.created ? new Date(invoice.created * 1000).toISOString() : nowIso()),
+        createdAt: invoice.created ? new Date(invoice.created * 1000).toISOString() : nowIso(),
+        hostedInvoiceUrl: invoice.hosted_invoice_url || '',
+        invoicePdf: invoice.invoice_pdf || '',
+        reference: invoice.number || invoice.id
+      };
+    });
+  } catch (error) {
+    console.warn('Stripe invoice list error:', error.message);
+    return [];
+  }
+}
+
+async function buildBillingUserDetail(currentUser, userId, workspace, focusWorkspaceId = null) {
+  const effectiveWorkspace = ensureWorkspaceState(workspace);
+  const user = sanitizeUser(appUsers[userId]);
+  if (!user || !effectiveWorkspace) return null;
+
+  const rawScopedMemberships = getBillingMembershipEntriesForScope(currentUser, effectiveWorkspace)
+    .filter(item => item.userId === userId);
+  if (!rawScopedMemberships.length) return null;
+
+  const scopedMemberships = rawScopedMemberships.some(function(item) { return item.paymentState === 'paid'; })
+    ? rawScopedMemberships.filter(function(item) { return item.paymentState !== 'trial'; })
+    : rawScopedMemberships;
+
+  const summary = summarizeBillingUserEntries(scopedMemberships);
+  if (!summary) return null;
+
+  const preferredWorkspaceId = focusWorkspaceId || summary.workspaceId;
+  const primaryMembership = scopedMemberships.find(function(item) {
+    return item.workspaceId === preferredWorkspaceId;
+  }) || pickPrimaryBillingMembership(scopedMemberships);
+  const primaryWorkspace = ensureWorkspaceState(workspaces[primaryMembership.workspaceId]);
+
+  const membershipsDetailed = scopedMemberships
+    .map(function(item) {
+      const itemWorkspace = ensureWorkspaceState(workspaces[item.workspaceId]);
+      const billingUserId = itemWorkspace ? inferWorkspaceBillingUserId(itemWorkspace) : null;
+      return {
+        workspaceId: item.workspaceId,
+        workspaceName: item.workspaceName || '',
+        role: item.role,
+        plan: item.plan,
+        commercialStatus: item.commercialStatus,
+        paymentState: item.paymentState,
+        paymentStatus: itemWorkspace?.paymentStatus || null,
+        stripe: {
+          customerId: itemWorkspace?.subscription?.stripeCustomerId || null,
+          subscriptionId: itemWorkspace?.subscription?.stripeSubscriptionId || null,
+          priceId: itemWorkspace?.subscription?.stripePriceId || null,
+          billingUserId,
+          hasDirectStripeBilling: Boolean(billingUserId && billingUserId === userId)
+        }
+      };
+    })
+    .sort(function(a, b) {
+      if (a.workspaceId === primaryMembership.workspaceId) return -1;
+      if (b.workspaceId === primaryMembership.workspaceId) return 1;
+      return String(a.workspaceName || '').localeCompare(String(b.workspaceName || ''));
+    });
+
+  const manualPayments = scopedMemberships
+    .flatMap(function(item) {
+      const itemWorkspace = ensureWorkspaceState(workspaces[item.workspaceId]);
+      return (itemWorkspace?.manualPayments || [])
+        .filter(payment => payment.userId === userId)
+        .map(sanitizeManualPaymentEntry)
+        .filter(Boolean)
+        .map(function(payment) {
+          return {
+            ...payment,
+            workspaceName: item.workspaceName || ''
+          };
+        });
+    })
+    .sort((a, b) => new Date(b.paidAt || b.createdAt || 0) - new Date(a.paidAt || a.createdAt || 0));
+
+  const stripeInvoiceGroups = await Promise.all(scopedMemberships.map(async function(item) {
+    const itemWorkspace = ensureWorkspaceState(workspaces[item.workspaceId]);
+    const billingUserId = itemWorkspace ? inferWorkspaceBillingUserId(itemWorkspace) : null;
+    if (!itemWorkspace || billingUserId !== userId) return [];
+    const invoices = await listStripeInvoicesForWorkspace(itemWorkspace);
+    return invoices.map(function(invoice) {
+      return {
+        ...invoice,
+        workspaceId: item.workspaceId,
+        workspaceName: item.workspaceName || ''
+      };
+    });
+  }));
+  const stripeInvoices = stripeInvoiceGroups
+    .flat()
+    .sort((a, b) => new Date(b.paidAt || b.createdAt || 0) - new Date(a.paidAt || a.createdAt || 0));
+
+  const paymentHistory = stripeInvoices
+    .concat(manualPayments)
+    .sort((a, b) => new Date(b.paidAt || b.createdAt || 0) - new Date(a.paidAt || a.createdAt || 0));
+
+  const totalManualPaid = manualPayments
+    .filter(item => item.status === 'paid')
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalStripePaid = stripeInvoices
+    .filter(item => item.status === 'paid')
+    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+  const directStripeMembership = membershipsDetailed.find(function(item) {
+    return item.stripe?.hasDirectStripeBilling;
+  }) || null;
+
+  return {
+    user,
+    membership: primaryMembership,
+    workspace: sanitizeWorkspace(primaryWorkspace),
+    summary,
+    memberships: membershipsDetailed,
+    stripe: {
+      customerId: directStripeMembership?.stripe?.customerId || null,
+      subscriptionId: directStripeMembership?.stripe?.subscriptionId || null,
+      priceId: directStripeMembership?.stripe?.priceId || null,
+      billingUserId: directStripeMembership?.stripe?.billingUserId || null,
+      hasDirectStripeBilling: Boolean(directStripeMembership)
+    },
+    paymentStatus: primaryWorkspace?.paymentStatus || null,
+    manualPayments,
+    stripeInvoices,
+    paymentHistory,
+    stats: {
+      totalPayments: paymentHistory.length,
+      stripePayments: stripeInvoices.length,
+      manualPayments: manualPayments.length,
+      totalManualPaid,
+      totalStripePaid,
+      totalPaid: totalManualPaid + totalStripePaid
+    }
   };
 }
 
@@ -867,8 +2041,7 @@ function ensureUserAccessModel(profile) {
   const email = normalizeEmail(profile?.emails?.[0]?.value);
   const displayName = profile?.displayName || email || 'Usuario BearAds';
   let user = findAppUser(profile);
-  const existingUsersCount = Object.keys(appUsers).length;
-  const platformOwner = PLATFORM_OWNER_EMAILS.includes(email) || existingUsersCount === 0;
+  const platformOwner = PLATFORM_OWNER_EMAILS.includes(email) || email === PRIMARY_OWNER_EMAIL;
 
   if (!user) {
     const userId = profile?.id || crypto.randomUUID();
@@ -910,7 +2083,12 @@ function ensureUserAccessModel(profile) {
       user.id,
       user.id
     );
-    membership = ensureMembership(workspace.id, user.id, 'owner', user.id);
+    membership = ensureMembership(
+      workspace.id,
+      user.id,
+      user.platformRole === 'owner' ? 'owner' : defaultMemberRoleForWorkspace(workspace),
+      user.id
+    );
   }
 
   const workspace = workspaces[membership.workspaceId];
@@ -1001,6 +2179,7 @@ function requireGrowthAccess(req, res, next) {
 
 migrateLegacyUsers();
 syncPlatformOwners();
+normalizeOwnerMemberships();
 
 function upsertOAuthUser(profile, accessToken, refreshToken) {
   const userId = ensureUserAccessModel(profile);
@@ -1143,6 +2322,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         customerId: sessionObject.customer,
         subscriptionId: sessionObject.subscription,
         priceId: sessionObject.metadata?.priceId || null,
+        billingUserId: sessionObject.metadata?.userId || null,
         checkoutSessionId: sessionObject.id,
         source: 'stripe-checkout',
         updatedBy: 'stripe-webhook',
@@ -1175,6 +2355,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
         customerId: subscriptionObject.customer,
         subscriptionId: subscriptionObject.id,
         priceId,
+        billingUserId: subscriptionObject.metadata?.userId || workspace?.subscription?.billingUserId || null,
         source: 'stripe-subscription',
         updatedBy: 'stripe-webhook',
         reason: 'Stripe sincronizó la suscripción'
@@ -1188,6 +2369,7 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   }
 });
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 
 app.get('/bearads-tracker.js', (req, res) => {
   res.type('application/javascript');
@@ -1271,6 +2453,30 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use('/api/admin',
+  (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  },
+  createRequestRateLimiter({
+    prefix: 'admin-surface',
+    max: 160,
+    error: 'Demasiadas solicitudes al panel de control. Espera unos minutos.'
+  })
+);
+
+app.use('/api/billing',
+  (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  },
+  createRequestRateLimiter({
+    prefix: 'billing-surface',
+    max: 120,
+    error: 'Demasiadas solicitudes al módulo de facturación. Espera unos minutos.'
+  })
+);
+
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((userId, done) => done(null, buildSessionUser(userId) || false));
 
@@ -1291,6 +2497,291 @@ passport.use(new GoogleStrategy({
 }));
 
 // ── AUTH ROUTES ──
+app.get('/auth', (req, res) => {
+  rehydrateRequestUser(req);
+  if (req.isAuthenticated()) {
+    return res.redirect('/');
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline' 'self'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; connect-src 'self'; script-src 'none'");
+  return res.status(200).send(renderAuthPage({
+    error: req.query.error,
+    notice: req.query.notice,
+    email: req.query.email,
+    confirmEmail: req.query.confirmEmail,
+    name: req.query.name
+  }));
+});
+
+app.post('/auth/email/register', async (req, res) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const email = normalizeEmail(req.body.email);
+    const emailConfirm = normalizeEmail(req.body.emailConfirm);
+    const password = String(req.body.password || '');
+    const rate = isAuthRateLimited(req, email);
+    if (rate.limited) {
+      return res.redirect(`/auth?error=auth_rate_limited&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
+    }
+    if (!email || !email.includes('@')) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=invalid_email&name=${encodeURIComponent(name)}`);
+    }
+    if (password.length < 6) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=invalid_password&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
+    }
+    if (!emailConfirm || emailConfirm !== email) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=email_mismatch&email=${encodeURIComponent(email)}&confirmEmail=${encodeURIComponent(emailConfirm)}&name=${encodeURIComponent(name)}`);
+    }
+
+    const existingRecord = findLocalAuthRecordByEmail(email);
+    if (existingRecord) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=email_in_use&email=${encodeURIComponent(email)}`);
+    }
+    const verification = createEmailVerificationCodeRecord({ name, email, password });
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      try {
+        const transporter = getEmailTransporter();
+        await transporter.sendMail({
+          from: `"BearAds" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Tu código de seguridad de BearAds',
+          html: `<div style="font-family:Arial,sans-serif;padding:24px;color:#0f172a;">
+            <h2 style="margin-top:0;">Valida tu correo</h2>
+            <p>Usa este código de seguridad para terminar tu registro en BearAds:</p>
+            <div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:14px 18px;background:#f5f8fc;border:1px solid rgba(15,23,42,0.08);border-radius:14px;display:inline-block;">${escapeHtml(verification.rawCode)}</div>
+            <p style="color:#64748b;font-size:12px;margin-top:16px;">Este código vence en 15 minutos.</p>
+          </div>`
+        });
+      } catch (deliveryError) {
+        console.error('Email verification delivery error:', deliveryError.message);
+        if (!isProduction) {
+          return res.status(200).send(renderEmailVerificationPage({
+            error: 'verification_delivery_failed',
+            notice: 'Seguimos adelante en modo local para que puedas probar el flujo.',
+            email,
+            recordId: verification.recordId,
+            localCode: verification.rawCode
+          }));
+        }
+        return res.redirect(`/auth?error=verification_delivery_failed&email=${encodeURIComponent(email)}&confirmEmail=${encodeURIComponent(emailConfirm)}&name=${encodeURIComponent(name)}&mode=register`);
+      }
+    } else {
+      console.warn('Email verification code delivery skipped: SMTP not configured.');
+      console.warn('Use this verification code for local testing:', verification.rawCode);
+      if (!isProduction) {
+        return res.status(200).send(renderEmailVerificationPage({
+          notice: 'SMTP no está configurado. Seguimos en modo local para probar el flujo.',
+          email,
+          recordId: verification.recordId,
+          localCode: verification.rawCode
+        }));
+      }
+    }
+    clearAuthFailures(req, email);
+    return res.redirect(`/auth/verify-email?record=${encodeURIComponent(verification.recordId)}&email=${encodeURIComponent(email)}&notice=${encodeURIComponent('Te enviamos un código de seguridad para validar tu correo.')}`);
+  } catch (error) {
+    console.error('Email register error:', error.message);
+    registerAuthFailure(req, req.body?.email || '');
+    return res.redirect('/auth?error=register_failed');
+  }
+});
+
+app.get('/auth/verify-email', (req, res) => {
+  const recordId = String(req.query.record || '').trim();
+  const record = getEmailVerificationRecord(recordId);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline' 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; connect-src 'self'; script-src 'none'");
+  if (!record) {
+    return res.status(400).send(renderEmailVerificationPage({ error: 'verification_invalid', email: req.query.email || '', recordId: '' }));
+  }
+  return res.status(200).send(renderEmailVerificationPage({
+    error: req.query.error,
+    notice: req.query.notice,
+    email: record.email,
+    recordId
+  }));
+});
+
+app.post('/auth/email/verify', async (req, res) => {
+  try {
+    const recordId = String(req.body.recordId || '').trim();
+    const code = String(req.body.code || '').replace(/\D/g, '').trim();
+    const record = getEmailVerificationRecord(recordId);
+    if (!record || !code) {
+      return res.status(400).send(renderEmailVerificationPage({ error: 'verification_invalid', email: record?.email || '', recordId }));
+    }
+    if (hashSecurityCode(code) !== record.codeHash) {
+      const next = registerEmailVerificationAttempt(recordId);
+      if (next.locked) {
+        return res.status(400).send(renderEmailVerificationPage({ error: 'verification_attempts', email: record.email, recordId: '' }));
+      }
+      return res.status(400).send(renderEmailVerificationPage({ error: 'verification_invalid', email: record.email, recordId }));
+    }
+
+    const userId = ensureUserAccessModel({
+      displayName: record.name || record.email,
+      emails: [{ value: record.email }],
+      photos: []
+    });
+    persistLocalAuthRecordData(userId, record.email, { salt: record.salt, hash: record.passwordHash });
+    markEmailVerificationUsed(recordId);
+    const user = appUsers[userId];
+    if (user) {
+      user.lastLoginAt = nowIso();
+      saveAppUsers();
+    }
+    req.login({ id: userId }, function(error) {
+      if (error) {
+        return res.redirect(`/auth?error=register_failed&email=${encodeURIComponent(record.email)}&mode=register`);
+      }
+      return res.redirect('/?connected=email');
+    });
+  } catch (error) {
+    console.error('Email verification error:', error.message);
+    return res.status(500).send(renderEmailVerificationPage({ error: 'register_failed', email: req.body?.email || '', recordId: String(req.body.recordId || '') }));
+  }
+});
+
+app.post('/auth/email/login', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || '');
+    const rate = isAuthRateLimited(req, email);
+    if (rate.limited) {
+      return res.redirect(`/auth?error=auth_rate_limited&email=${encodeURIComponent(email)}`);
+    }
+    if (!email || !password) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=missing_credentials&email=${encodeURIComponent(email)}`);
+    }
+
+    const record = findLocalAuthRecordByEmail(email);
+    if (!record || !verifyPasswordHash(password, record.salt, record.passwordHash)) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=invalid_credentials&email=${encodeURIComponent(email)}`);
+    }
+
+    let userId = record.userId;
+    if (!appUsers[userId]) {
+      userId = ensureUserAccessModel({
+        displayName: email,
+        emails: [{ value: email }],
+        photos: []
+      });
+      record.userId = userId;
+      localAuthUsers[userId] = {
+        ...record,
+        userId,
+        email
+      };
+      saveLocalAuthUsers();
+    }
+
+    const user = appUsers[userId];
+    if (user) {
+      user.lastLoginAt = nowIso();
+      saveAppUsers();
+    }
+
+    req.login({ id: userId }, function(error) {
+      if (error) {
+        registerAuthFailure(req, email);
+        return res.redirect(`/auth?error=login_failed&email=${encodeURIComponent(email)}`);
+      }
+      clearAuthFailures(req, email);
+      return res.redirect('/?connected=email');
+    });
+  } catch (error) {
+    console.error('Email login error:', error.message);
+    registerAuthFailure(req, req.body?.email || '');
+    return res.redirect('/auth?error=login_failed');
+  }
+});
+
+app.post('/auth/email/recover', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const mode = encodeURIComponent(String(req.body.mode || 'recover'));
+    const rate = isAuthRateLimited(req, email);
+    if (rate.limited) {
+      return res.redirect(`/auth?error=auth_rate_limited&email=${encodeURIComponent(email)}&mode=${mode}`);
+    }
+    if (!email || !email.includes('@')) {
+      registerAuthFailure(req, email);
+      return res.redirect(`/auth?error=invalid_email&mode=${mode}`);
+    }
+
+    const record = findLocalAuthRecordByEmail(email);
+    const appUser = record?.userId ? appUsers[record.userId] : null;
+    if (record && appUser) {
+      const rawToken = createPasswordResetToken(record.userId, email);
+      const resetUrl = `${getBillingBaseUrl(req)}/auth/reset-password?token=${encodeURIComponent(rawToken)}`;
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        const transporter = getEmailTransporter();
+        await transporter.sendMail({
+          from: `"BearAds" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: 'Recupera tu contraseña de BearAds',
+          html: `<div style="font-family:Arial,sans-serif;padding:24px;color:#0f172a;">
+            <h2 style="margin-top:0;">Recupera tu contraseña</h2>
+            <p>Recibimos una solicitud para cambiar tu contraseña en BearAds.</p>
+            <p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#fff;text-decoration:none;border-radius:10px;font-weight:700;">Crear nueva contraseña</a></p>
+            <p style="color:#64748b;font-size:12px;">Este enlace vence en 1 hora.</p>
+          </div>`
+        });
+      } else {
+        console.warn('Password recovery email skipped: SMTP not configured.');
+        console.warn('Use this reset link for local testing:', resetUrl);
+      }
+    }
+    clearAuthFailures(req, email);
+    return res.redirect(`/auth?notice=${encodeURIComponent('Si el correo existe en BearAds, ya preparamos la recuperación de contraseña.')}&mode=${mode}`);
+  } catch (error) {
+    console.error('Password recovery request error:', error.message);
+    registerAuthFailure(req, req.body?.email || '');
+    return res.redirect('/auth?error=reset_request_failed&mode=recover');
+  }
+});
+
+app.get('/auth/reset-password', (req, res) => {
+  const token = String(req.query.token || '').trim();
+  const tokenRecord = consumePasswordResetToken(token);
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline' 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; connect-src 'self'; script-src 'none'");
+  if (!token || !tokenRecord) {
+    return res.status(400).send(renderResetPasswordPage({ error: 'reset_invalid_token', token: '' }));
+  }
+  return res.status(200).send(renderResetPasswordPage({ token }));
+});
+
+app.post('/auth/email/reset', async (req, res) => {
+  try {
+    const rawToken = String(req.body.token || '').trim();
+    const password = String(req.body.password || '');
+    const passwordConfirm = String(req.body.passwordConfirm || '');
+    const tokenRecord = consumePasswordResetToken(rawToken);
+    if (!tokenRecord) {
+      return res.status(400).send(renderResetPasswordPage({ error: 'reset_invalid_token', token: '' }));
+    }
+    if (password.length < 6) {
+      return res.status(400).send(renderResetPasswordPage({ error: 'reset_password_short', token: rawToken }));
+    }
+    if (password !== passwordConfirm) {
+      return res.status(400).send(renderResetPasswordPage({ error: 'reset_password_mismatch', token: rawToken }));
+    }
+    persistLocalAuthRecord(tokenRecord.userId, tokenRecord.email, password);
+    markPasswordResetTokenUsed(tokenRecord.tokenHash);
+    return res.redirect(`/auth?notice=${encodeURIComponent('Tu contraseña ya fue actualizada. Ahora puedes entrar con tu correo.')}&mode=login&email=${encodeURIComponent(tokenRecord.email)}`);
+  } catch (error) {
+    console.error('Password reset error:', error.message);
+    return res.status(500).send(renderResetPasswordPage({ error: 'reset_password_failed', token: String(req.body.token || '') }));
+  }
+});
+
 app.get('/auth/google', passport.authenticate('google', {
   scope: [
     'profile', 'email',
@@ -1311,24 +2802,18 @@ app.get('/auth/logout', (req, res) => {
   req.logout(() => {
     req.session.destroy(() => {
       res.clearCookie('bearads.sid');
-      res.redirect('/');
+      res.redirect(`/auth?notice=${encodeURIComponent('Tu sesión fue cerrada correctamente.')}&mode=login`);
     });
   });
 });
 
 app.get('/auth/status', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   rehydrateRequestUser(req);
   if (req.isAuthenticated()) {
-    res.json({
-      connected: true,
-      user: sanitizeUser(req.user),
-      membership: req.user.membership || null,
-      workspace: sanitizeWorkspace(req.user.workspace),
-      permissions: rolePermissions(req.user.membership?.role),
-      isPlatformOwner: isPlatformOwner(req.user)
-    });
+    res.json(getAuthStatusPayload(req.user));
   } else {
-    res.json({ connected: false });
+    res.json(getAuthStatusPayload(null));
   }
 });
 
@@ -1611,6 +3096,9 @@ app.get('/api/tracking/summary', requireAuth, (req, res) => {
 
 app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
+  Object.keys(appUsers).forEach(function(userId) {
+    enforceSingleActivePlanForUser(userId, currentUser.id);
+  });
   const targetWorkspaceId = req.query.workspaceId && isPlatformOwner(req.user)
     ? req.query.workspaceId
     : currentUser.membership?.workspaceId;
@@ -1623,6 +3111,7 @@ app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
     return {
       ...membership,
       role: resolvedRole,
+      plan: workspace?.subscription?.plan || 'trial',
       user: sanitizeUser(appUsers[membership.userId])
     };
   });
@@ -1633,6 +3122,18 @@ app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
     acc[membership.role] = (acc[membership.role] || 0) + 1;
     return acc;
   }, {});
+
+  // AI usage block (visible to owner/admin roles)
+  const canViewAiUsage = isPlatformOwner(currentUser) || permissions.canAccessAdminPanel;
+  const monthKey = getUsageDayKey().slice(0, 7); // 'YYYY-MM'
+  const aiCosts = workspace.usage?.aiCosts || {};
+  const currentMonthCost = aiCosts[monthKey] || 0;
+  // Build last 6 months history
+  const aiCostHistory = Object.entries(aiCosts)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 6)
+    .map(([month, cost]) => ({ month, cost: Math.round(cost * 1_000_000) / 1_000_000 }));
+  const allTimeCost = Object.values(aiCosts).reduce((sum, v) => sum + (v || 0), 0);
 
   res.json({
     workspace: sanitizeWorkspace(workspace),
@@ -1647,7 +3148,19 @@ app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
       trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
       paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length
     },
-    permissions
+    permissions,
+    aiUsage: canViewAiUsage ? {
+      currentMonth: monthKey,
+      currentMonthCostUsd: Math.round(currentMonthCost * 1_000_000) / 1_000_000,
+      allTimeCostUsd: Math.round(allTimeCost * 1_000_000) / 1_000_000,
+      history: aiCostHistory,
+      lastAnalysis: workspace.lastAnalysis ? {
+        url: workspace.lastAnalysis.url,
+        date: workspace.lastAnalysis.date,
+        costUsd: workspace.lastAnalysis.analysisCostUsd || 0,
+        scores: workspace.lastAnalysis.scores || {}
+      } : null
+    } : null
   });
 });
 
@@ -1677,6 +3190,9 @@ app.get('/api/admin/users', requireUserManagement, (req, res) => {
 
 app.get('/api/admin/global-users', requirePlatformOwner, (req, res) => {
   rehydrateRequestUser(req);
+  Object.keys(appUsers).forEach(function(userId) {
+    enforceSingleActivePlanForUser(userId, req.user?.id || null);
+  });
   const query = String(req.query.q || '').trim();
   const items = Object.values(appUsers)
     .filter(user => matchesUserQuery(user, query))
@@ -1717,16 +3233,27 @@ app.post('/api/admin/invite', requireUserManagement, (req, res) => {
     req.body.role || defaultMemberRoleForWorkspace(workspace),
     workspace
   );
-  const validRoles = ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  const validRoles = ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
   if (!email) return res.status(400).json({ error: 'Email requerido' });
   if (!validRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido' });
   const requesterPermissions = rolePermissions(currentUser.membership?.role);
-  const privilegedRoles = ['owner', 'admin', 'developer', 'billing'];
-  if (role === 'owner' && !isPrimaryPlatformOwner(currentUser)) {
-    return res.status(403).json({ error: 'Solo Danny puede asignar el rol dueño' });
+  const privilegedRoles = ['owner', 'admin', 'billing'];
+  if (role === 'owner' && !canRoleCreateOwner(currentUser)) {
+    return res.status(403).json({ error: 'Solo otro dueño puede crear un dueño' });
+  }
+  if (role === 'admin' && !canRoleCreateAdmin(currentUser)) {
+    return res.status(403).json({ error: 'Solo un dueño o administrador puede crear administradores' });
+  }
+  if (role === 'billing' && !(canRoleCreateOwner(currentUser) || canRoleCreateAdmin(currentUser))) {
+    return res.status(403).json({ error: 'Solo un dueño o administrador puede crear perfiles de facturación' });
   }
   if (!isPlatformOwner(req.user) && !requesterPermissions.isOwner && privilegedRoles.includes(role)) {
-    return res.status(403).json({ error: 'Solo el owner puede asignar roles privilegiados' });
+    if (role !== 'admin') {
+      if (role === 'billing' && requesterPermissions.role === 'admin') {
+      } else {
+        return res.status(403).json({ error: 'Solo un dueño puede asignar roles privilegiados distintos de administrador y facturación' });
+      }
+    }
   }
 
   const existingUser = Object.values(appUsers).find(user => normalizeEmail(user.email) === email);
@@ -1762,8 +3289,10 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   const targetUserId = req.params.userId;
   const targetRole = req.body.role ? String(req.body.role).toLowerCase() : null;
   const targetStatus = req.body.status ? String(req.body.status).toLowerCase() : null;
-  const allowedRoles = ['owner', 'admin', 'developer', 'billing', 'member_trial', 'member_paid'];
+  const targetPlan = req.body.plan ? String(req.body.plan).toLowerCase() : null;
+  const allowedRoles = ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
   const allowedStatus = ['active', 'suspended'];
+  const allowedPlans = ['starter', 'pro', 'agency'];
 
   const requestedWorkspaceId = String(req.body.workspaceId || '').trim();
   const workspaceId = requestedWorkspaceId && isPlatformOwner(currentUser)
@@ -1776,11 +3305,12 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   if (!membership || !targetUser) return res.status(404).json({ error: 'Usuario no encontrado en este workspace' });
   if (targetRole && !allowedRoles.includes(targetRole)) return res.status(400).json({ error: 'Rol inválido' });
   if (targetStatus && !allowedStatus.includes(targetStatus)) return res.status(400).json({ error: 'Estado inválido' });
+  if (targetPlan && !allowedPlans.includes(targetPlan)) return res.status(400).json({ error: 'Plan inválido' });
   const requesterPermissions = rolePermissions(currentUser.membership?.role);
   const workspace = workspaces[workspaceId];
   const currentRole = getEffectiveMembershipRole(membership, workspace);
   const isWorkspaceOwnerMembership = workspace?.ownerUserId === targetUserId;
-  const privilegedRoles = ['owner', 'admin', 'developer', 'billing'];
+  const privilegedRoles = ['owner', 'admin', 'billing'];
   const targetIsPrimaryOwner = isPrimaryPlatformOwner(targetUser);
   const currentIsPrimaryOwner = isPrimaryPlatformOwner(currentUser);
 
@@ -1792,11 +3322,23 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
     if (!isPlatformOwner(currentUser) && !requesterPermissions.canManageUsers) {
       return res.status(403).json({ error: 'No puedes cambiar roles' });
     }
-    if (!currentIsPrimaryOwner && (targetRole === 'owner' || currentRole === 'owner')) {
-      return res.status(403).json({ error: 'Solo Danny puede asignar o quitar el rol dueño' });
+    if (targetRole === 'owner' && !canRoleCreateOwner(currentUser)) {
+      return res.status(403).json({ error: 'Solo otro dueño puede asignar el rol dueño' });
     }
-    if (!isPlatformOwner(currentUser) && targetRole === 'owner') {
-      return res.status(403).json({ error: 'Solo el owner puede asignar el rol dueño' });
+    if (targetRole === 'admin' && !canRoleCreateAdmin(currentUser)) {
+      return res.status(403).json({ error: 'Solo un dueño o administrador puede asignar administradores' });
+    }
+    if (targetRole === 'billing' && !(canRoleCreateOwner(currentUser) || canRoleCreateAdmin(currentUser))) {
+      return res.status(403).json({ error: 'Solo un dueño o administrador puede asignar perfiles de facturación' });
+    }
+    if (currentRole === 'owner' && !canRoleCreateOwner(currentUser) && currentUser.id !== targetUserId) {
+      return res.status(403).json({ error: 'Solo otro dueño puede modificar un perfil dueño' });
+    }
+    if (targetRole === 'member_paid' && !targetPlan) {
+      return res.status(400).json({ error: 'Debes elegir el plan para activar un usuario pago' });
+    }
+    if (targetRole === 'member_trial' && workspace?.subscription?.status !== 'trialing') {
+      return res.status(400).json({ error: 'Este workspace ya está en plan pago. Cambia primero el plan del workspace si quieres volver a trial.' });
     }
   }
 
@@ -1834,11 +3376,11 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
     }
   }
 
-  if (currentRole === 'owner' && currentUser.id !== targetUserId && !isPlatformOwner(currentUser)) {
-    return res.status(403).json({ error: 'No puedes modificar otro owner' });
+  if (currentRole === 'owner' && currentUser.id !== targetUserId && !canRoleCreateOwner(currentUser)) {
+    return res.status(403).json({ error: 'Solo otro dueño puede modificar a un dueño' });
   }
   if (isWorkspaceOwnerMembership && targetRole && targetRole !== 'owner') {
-    if (!currentIsPrimaryOwner) {
+    if (!canRoleCreateOwner(currentUser)) {
       return res.status(400).json({ error: 'Primero transfiere el ownership antes de quitar el rol owner' });
     }
     workspace.ownerUserId = currentUser.id;
@@ -1847,16 +3389,46 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   }
   if (!isPlatformOwner(currentUser) && !requesterPermissions.isOwner) {
     if (targetRole && targetRole === 'owner') {
-      return res.status(403).json({ error: 'Solo el owner puede modificar el rol dueño' });
+      return res.status(403).json({ error: 'Solo otro dueño puede modificar el rol dueño' });
     }
-    if (requesterPermissions.canManageUsers && privilegedRoles.includes(currentRole) && currentRole !== 'admin') {
-      return res.status(403).json({ error: 'Solo el owner puede modificar ese perfil privilegiado' });
+    if (targetRole && targetRole === 'billing' && !canRoleCreateAdmin(currentUser)) {
+      return res.status(403).json({ error: 'Solo un dueño o administrador puede modificar el rol facturación' });
+    }
+    if (requesterPermissions.canManageUsers && currentRole === 'owner') {
+      return res.status(403).json({ error: 'Solo otro dueño puede modificar ese perfil dueño' });
     }
   }
 
   if (targetRole) membership.role = targetRole;
   membership.updatedAt = nowIso();
   if (targetStatus) targetUser.status = targetStatus;
+  if (targetRole === 'member_paid' && workspace) {
+    workspace.subscription = {
+      ...(workspace.subscription || {}),
+      plan: targetPlan,
+      status: 'active',
+      activatedAt: workspace.subscription?.activatedAt || nowIso(),
+      billingUserId: targetUserId
+    };
+    workspace.commercial = {
+      ...defaultCommercialState(),
+      ...(workspace.commercial || {}),
+      targetPlan,
+      agencyLead: targetPlan === 'agency',
+      lastIntentAt: nowIso(),
+      lastIntentSource: 'admin-user-role'
+    };
+    workspace.paymentStatus = {
+      status: 'active',
+      reason: `Acceso pago asignado a ${targetUser.email || targetUser.name || targetUserId}`,
+      updatedAt: nowIso(),
+      updatedBy: currentUser.id
+    };
+    workspace.updatedAt = nowIso();
+    syncWorkspaceMembershipPlanRoles(workspace);
+    archiveConflictingTrialMembershipsForUser(targetUserId, workspaceId, currentUser.id);
+    saveWorkspaces();
+  }
   if (targetRole === 'owner' && workspaces[workspaceId]) {
     workspaces[workspaceId].ownerUserId = targetUserId;
     workspaces[workspaceId].updatedAt = nowIso();
@@ -1983,7 +3555,11 @@ Responde en español, máximo 250 palabras, con:
 });
 
 app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
-  const workspace = req.user.workspace;
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  Object.keys(appUsers).forEach(function(userId) {
+    enforceSingleActivePlanForUser(userId, currentUser.id);
+  });
+  const workspace = resolveBillingWorkspaceForRequest(currentUser, req.query.workspaceId);
   if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
   Promise.resolve(trySyncStripeCheckoutForWorkspace(workspace)).then(function(syncedWorkspace) {
     const effectiveWorkspace = syncedWorkspace || workspace;
@@ -1994,6 +3570,13 @@ app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
       role: getEffectiveMembershipRole(membership, effectiveWorkspace),
       user: sanitizeUser(appUsers[membership.userId])
     }));
+    const billingUsers = listBillingUsersForScope(currentUser, effectiveWorkspace);
+    const stats = {
+      trialUsers: billingUsers.filter(item => item.paymentState === 'trial').length,
+      paidUsers: billingUsers.filter(item => item.paymentState === 'paid').length,
+      suspendedUsers: billingUsers.filter(item => item.paymentState === 'suspended').length,
+      totalMembers: billingUsers.length
+    };
     res.json({
       workspace: sanitizeWorkspace(effectiveWorkspace),
       stripeConfigured: isStripeConfigured(),
@@ -2004,12 +3587,9 @@ app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
         priceId: effectiveWorkspace.subscription?.stripePriceId || null,
         checkoutSessionId: effectiveWorkspace.subscription?.stripeCheckoutSessionId || null
       },
+      billingUsers,
       members: workspaceMembers,
-      stats: {
-        trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
-        paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length,
-        totalMembers: workspaceMembers.length
-      },
+      stats,
       billingNotes: effectiveWorkspace.billingNotes || [],
       paymentStatus: effectiveWorkspace.paymentStatus || {
         status: effectiveWorkspace.subscription?.status === 'trialing' ? 'trialing' : 'active',
@@ -2019,6 +3599,18 @@ app.get('/api/admin/billing-overview', requireBillingAccess, (req, res) => {
     });
   }).catch(function(error) {
     res.status(500).json({ error: error.message || 'No se pudo cargar billing' });
+  });
+});
+
+app.get('/api/admin/billing-users/:userId', requireBillingAccess, async (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = resolveBillingWorkspaceForRequest(currentUser, req.query.workspaceId);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  const detail = await buildBillingUserDetail(currentUser, req.params.userId, workspace, req.query.workspaceId);
+  if (!detail) return res.status(404).json({ error: 'Usuario no encontrado dentro de este workspace' });
+  res.json({
+    success: true,
+    detail
   });
 });
 
@@ -2121,6 +3713,80 @@ app.post('/api/admin/billing-overview/reset-trial', requireBillingAccess, (req, 
   });
 });
 
+app.post('/api/admin/billing-users/:userId/manual-payment', requireBillingAccess, async (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace = resolveBillingWorkspaceForRequest(currentUser, req.body.workspaceId || req.query.workspaceId);
+  if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
+  const membership = getMembershipForUserInWorkspace(req.params.userId, workspace.id);
+  if (!membership) return res.status(404).json({ error: 'Usuario no encontrado dentro de este workspace' });
+
+  const label = String(req.body.label || '').trim();
+  const provider = String(req.body.provider || 'manual').trim();
+  const reference = String(req.body.reference || '').trim();
+  const note = String(req.body.note || '').trim();
+  const currency = String(req.body.currency || 'USD').trim().toUpperCase();
+  const status = String(req.body.status || 'paid').trim().toLowerCase();
+  const planPaid = String(req.body.planPaid || '').trim().toLowerCase();
+  const paymentMethodType = String(req.body.paymentMethodType || '').trim().toLowerCase();
+  const gateway = String(req.body.gateway || '').trim();
+  const confirmationCode = String(req.body.confirmationCode || '').trim();
+  const proofImageDataUrl = String(req.body.proofImageDataUrl || '').trim();
+  const proofImageName = String(req.body.proofImageName || '').trim();
+  const amount = Number(req.body.amount || 0);
+  const paidAt = req.body.paidAt ? new Date(req.body.paidAt).toISOString() : nowIso();
+
+  if (!label) return res.status(400).json({ error: 'Debes indicar un concepto para el pago manual' });
+  if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'El monto del pago manual es inválido' });
+  if (!['paid', 'pending', 'failed', 'refunded'].includes(status)) return res.status(400).json({ error: 'Estado de pago manual inválido' });
+  if (planPaid && !['trial', 'starter', 'pro', 'agency'].includes(planPaid)) return res.status(400).json({ error: 'Plan pagado inválido' });
+  if (paymentMethodType && !['fisico', 'link', 'transferencia', 'otro'].includes(paymentMethodType)) return res.status(400).json({ error: 'Tipo de pago inválido' });
+  if (proofImageDataUrl && !/^data:image\//.test(proofImageDataUrl)) return res.status(400).json({ error: 'El comprobante debe ser una imagen válida' });
+
+  workspace.manualPayments = Array.isArray(workspace.manualPayments) ? workspace.manualPayments : [];
+  const payment = {
+    id: crypto.randomUUID(),
+    workspaceId: workspace.id,
+    userId: req.params.userId,
+    label,
+    provider,
+    reference,
+    note,
+    planPaid,
+    paymentMethodType,
+    gateway,
+    confirmationCode,
+    currency,
+    amount: Number(amount.toFixed(2)),
+    status,
+    paidAt,
+    createdAt: nowIso(),
+    createdBy: currentUser.id,
+    proofImageDataUrl: proofImageDataUrl || '',
+    proofImageName: proofImageName || ''
+  };
+  workspace.manualPayments.unshift(payment);
+  workspace.manualPayments = workspace.manualPayments.slice(0, 100);
+
+  workspace.billingNotes = Array.isArray(workspace.billingNotes) ? workspace.billingNotes : [];
+  workspace.billingNotes.unshift({
+    id: crypto.randomUUID(),
+    reason: 'Pago manual registrado',
+    note: `${label} · ${payment.amount} ${currency}${planPaid ? ` · Plan: ${planPaid}` : ''}${gateway ? ` · Pasarela: ${gateway}` : ''}${reference ? ` · Ref: ${reference}` : ''}${confirmationCode ? ` · Confirmación: ${confirmationCode}` : ''}${note ? ` · ${note}` : ''}`,
+    createdAt: nowIso(),
+    createdBy: currentUser.id
+  });
+  workspace.billingNotes = workspace.billingNotes.slice(0, 20);
+  workspace.updatedAt = nowIso();
+  saveWorkspaces();
+
+  const detail = await buildBillingUserDetail(currentUser, req.params.userId, workspace, req.body.workspaceId || req.query.workspaceId);
+  res.json({
+    success: true,
+    payment: sanitizeManualPaymentEntry(payment),
+    detail
+  });
+});
+
 app.get('/api/billing/status', requireAuth, async (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
   const workspace = await trySyncStripeCheckoutForWorkspace(currentUser.workspace);
@@ -2206,7 +3872,8 @@ app.post('/api/billing/create-checkout', requireAuth, async (req, res) => {
     workspace.subscription = {
       ...(workspace.subscription || {}),
       stripeCustomerId: customerId,
-      stripeCheckoutSessionId: session.id
+      stripeCheckoutSessionId: session.id,
+      billingUserId: currentUser.id
     };
     workspace.commercial = {
       ...defaultCommercialState(),
@@ -2682,14 +4349,101 @@ async function getGA4Data(source, propertyId) {
 
 
 
-// ── HELPER: CLAUDE ──
-async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    const error = new Error('El servicio de análisis IA no está configurado.');
-    error.statusCode = 503;
-    throw error;
+// ── AI PROVIDERS ──
+const AI_PROVIDERS = {
+  gemini_flash: {
+    name: 'Gemini 2.0 Flash Lite',
+    envKey: 'GEMINI_API_KEY',
+    async call(systemPrompt, userMessage, maxTokens) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+            generationConfig: { temperature: 0.2, maxOutputTokens: maxTokens }
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+      const data = await res.json();
+      return data.candidates[0].content.parts[0].text;
+    }
+  },
+
+  groq_llama: {
+    name: 'Groq Llama 3.3',
+    envKey: 'GROQ_API_KEY',
+    async call(systemPrompt, userMessage, maxTokens) {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.2
+        })
+      });
+      if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+      const data = await res.json();
+      return data.choices[0].message.content;
+    }
+  },
+
+  claude_haiku: {
+    name: 'Claude Haiku 4.5',
+    envKey: 'ANTHROPIC_API_KEY',
+    async call(systemPrompt, userMessage, maxTokens) {
+      return callAnthropicModel('claude-haiku-4-5-20251001', systemPrompt, userMessage, maxTokens);
+    }
+  },
+
+  claude_sonnet: {
+    name: 'Claude Sonnet 4.6',
+    envKey: 'ANTHROPIC_API_KEY',
+    async call(systemPrompt, userMessage, maxTokens) {
+      return callAnthropicModel('claude-sonnet-4-6', systemPrompt, userMessage, maxTokens);
+    }
   }
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+};
+
+let _anthropicSdk = null;
+try { _anthropicSdk = require('@anthropic-ai/sdk'); } catch(e) { /* SDK no disponible, usará fetch */ }
+let _anthropicClient = null;
+function getAnthropicClient() {
+  if (!_anthropicClient && _anthropicSdk && process.env.ANTHROPIC_API_KEY) {
+    const AnthropicClass = _anthropicSdk.default || _anthropicSdk.Anthropic || _anthropicSdk;
+    _anthropicClient = new AnthropicClass({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return _anthropicClient;
+}
+
+async function callAnthropicModel(model, systemPrompt, userMessage, maxTokens) {
+  const client = getAnthropicClient();
+  if (client) {
+    try {
+      const response = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: userMessage }]
+      }, { headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' } });
+      return response.content[0].text;
+    } catch(sdkErr) {
+      // Si el SDK falla (ej. versión incompatible), cae a fetch
+      console.warn('⚠️ Anthropic SDK error, usando fetch:', sdkErr.message.substring(0, 80));
+    }
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -2697,20 +4451,71 @@ async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5',
+      model,
       max_tokens: maxTokens,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }]
     })
   });
-  if (!response.ok) {
-    const err = await response.json();
-    const error = new Error(err.error?.message || 'Error API Anthropic');
-    error.statusCode = response.status || 502;
-    throw error;
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error?.message || `Anthropic ${res.status}`);
   }
-  const data = await response.json();
+  const data = await res.json();
   return data.content[0].text;
+}
+
+const PROVIDER_CHAINS = {
+  trial:       ['gemini_flash', 'groq_llama', 'claude_haiku'], // llamadas individuales: gratis primero
+  trial_batch: ['claude_haiku', 'gemini_flash', 'groq_llama'], // 5 agentes en paralelo: estable primero
+  starter:     ['claude_haiku', 'gemini_flash', 'groq_llama'],
+  pro:         ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
+  agency:      ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
+};
+
+const PROVIDER_COSTS_PER_1M = {
+  gemini_flash:  { input: 0.075, output: 0.30  },
+  groq_llama:    { input: 0,     output: 0      },
+  claude_haiku:  { input: 0.80,  output: 4.00  },
+  claude_sonnet: { input: 3.00,  output: 15.00 },
+};
+
+// Cache de análisis en memoria (TTL: 24h)
+const analysisCache = new Map();
+const ANALYSIS_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+async function callAI(systemPrompt, userMessage, options = {}) {
+  const { planCode = 'trial', maxTokens = 1024, feature = 'default', costTracker = null } = options;
+  const chain = PROVIDER_CHAINS[planCode] || PROVIDER_CHAINS.trial;
+
+  let lastError;
+  for (const key of chain) {
+    const provider = AI_PROVIDERS[key];
+    if (!process.env[provider.envKey]) continue;
+    try {
+      const result = await provider.call(systemPrompt, userMessage, maxTokens);
+      const inputEst  = Math.ceil((systemPrompt.length + userMessage.length) / 4);
+      const outputEst = Math.ceil(result.length / 4);
+      const pricing   = PROVIDER_COSTS_PER_1M[key] || { input: 0, output: 0 };
+      const costUsd   = ((inputEst * pricing.input) + (outputEst * pricing.output)) / 1_000_000;
+      if (costTracker) costTracker.total += costUsd;
+      console.log(`✅ AI [${provider.name}] feature=${feature} plan=${planCode} ~${inputEst}in/${outputEst}out est.$${costUsd.toFixed(5)}`);
+      return result;
+    } catch (err) {
+      const short = err.message.split('\n')[0].substring(0, 120);
+      console.warn(`⚠️ AI [${provider.name}] falló (${short}), intentando siguiente...`);
+      lastError = err;
+    }
+  }
+
+  const error = new Error(lastError?.message?.split('\n')[0] || 'Servicio de IA no disponible');
+  error.statusCode = 503;
+  throw error;
+}
+
+// callClaude delega a callAI — retrocompatibilidad para endpoints Pro/Agency
+async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
+  return callAI(systemPrompt, userMessage, { planCode: 'pro', maxTokens, feature: 'legacy' });
 }
 
 
@@ -2733,15 +4538,26 @@ Ejemplo de respuesta: {"score":45,"resumen":"El funnel de conversión tiene fric
 REGLAS: resumen max 180 chars. razon max 80 chars. Max 3 canales. Max 4 bearads_puede (max 80 chars cada uno). Max 3 quick_wins (max 80 chars cada uno).
 {"score":15,"resumen":"Sin tráfico orgánico ni pagado. Sin analítica. Urgente implementar medición y canales de adquisición.","canales_recomendados":[{"canal":"Meta Ads","potencial":"muy_alto","razon":"Productos visuales ideales para feed ads. ROI medible desde día 1."},{"canal":"Google Shopping","potencial":"alto","razon":"Intención de compra alta. Feed de productos directo."}],"bearads_puede":["Configurar FB Pixel y Conversions API","Crear campañas de catálogo en Meta Ads","Configurar Google Merchant Center y Shopping"],"quick_wins":["Instalar FB Pixel hoy - 1 hora","Lanzar campaña Meta $10/día con best sellers"],"datos_reales":false}`,
 
+  synthesis: `Eres el Agente Sintetizador de BearAds. Recibes los outputs JSON de los agentes especialistas y produces una síntesis ejecutiva con prioridades accionables. RESPONDE SOLO JSON. Sin markdown. Sin texto extra.
+REGLAS: max 5 prioridades. accion max 80 chars. razon max 100 chars. max 2 conflictos. resumen_ejecutivo max 200 chars. siguiente_paso_bearads max 80 chars.
+{"prioridades":[{"rank":1,"agente":"seo","accion":"Agregar H1 con keyword principal en homepage","impacto":"alto","esfuerzo":"bajo","razon":"Sin H1 Google no identifica el tema. Solución de 30 min con impacto inmediato en indexación."},{"rank":2,"agente":"cro","accion":"Habilitar compra como invitado en checkout","impacto":"alto","esfuerzo":"medio","razon":"Registro obligatorio genera abandono del 40%. Cambio de configuración en plataforma."},{"rank":3,"agente":"trafico","accion":"Instalar FB Pixel y configurar eventos de conversión","impacto":"alto","esfuerzo":"bajo","razon":"Sin pixel no hay remarketing ni optimización de campañas posible."}],"conflictos":["SEM recomienda escalar ads pero Traffic detecta que sin pixel activo el gasto sería ineficiente"],"resumen_ejecutivo":"Base técnica presente pero sin medición ni propuesta de valor clara. Prioridad: analytics y SEO básico antes de invertir en ads.","siguiente_paso_bearads":"Crear plan estratégico orgánico"}`,
+
 };
 
+
+const ROUTE_AGENTS = {
+  arranque: ['contenido', 'cro', 'trafico'],
+  organico: ['seo', 'contenido', 'cro'],
+  ads:      ['sem', 'trafico', 'cro'],
+  agencia:  ['seo', 'sem', 'contenido', 'cro', 'trafico'],
+};
 
 // ── AGENT PROMPTS ──
 
 
 // ── ENDPOINT: ANÁLISIS COMPLETO ──
 app.post('/api/analyze', async (req, res) => {
-  const { url, ga4PropertyId } = req.body;
+  const { url, ga4PropertyId, routeMode } = req.body;
   if (!url) return res.status(400).json({ error: 'URL requerida' });
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({
@@ -2770,6 +4586,16 @@ app.post('/api/analyze', async (req, res) => {
           dailyLimit
         });
       }
+    }
+  }
+
+  // Cache hit: mismo workspace + misma URL + mismo día → resultado sin llamar a IA
+  if (workspace) {
+    const cacheKey = `${workspace.id}:${cleanUrl}:${getUsageDayKey()}`;
+    const cached = analysisCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < ANALYSIS_CACHE_TTL) {
+      console.log(`\n⚡ Cache hit: ${cleanUrl} (workspace ${workspace.id})`);
+      return res.json({ ...cached.result, fromCache: true });
     }
   }
 
@@ -2821,32 +4647,33 @@ Top páginas: ${(traffic.gsc.topPages || []).slice(0,5).map(p => `${p.page} (${p
 Sesiones: ${traffic.ga4.sessions} | Usuarios: ${traffic.ga4.users} | Rebote: ${traffic.ga4.bounceRate} | Duración media: ${traffic.ga4.avgSessionDuration}
 Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`).join(', ')}` : '\nSin datos de GA4 conectados.';
 
-    const fullContext = siteContext + trafficContext + ga4Context;
+    // Delta context: si el workspace tiene un análisis anterior de esta misma URL, inyectarlo
+    const deltaContext = (workspace?.lastAnalysis?.url === cleanUrl && workspace.lastAnalysis.scores)
+      ? `\nCOMPARATIVO CON ANÁLISIS ANTERIOR (${workspace.lastAnalysis.date?.slice(0, 10)}):
+Scores previos — SEO:${workspace.lastAnalysis.scores.seo ?? '--'} SEM:${workspace.lastAnalysis.scores.sem ?? '--'} Content:${workspace.lastAnalysis.scores.contenido ?? '--'} CRO:${workspace.lastAnalysis.scores.cro ?? '--'} Traffic:${workspace.lastAnalysis.scores.trafico ?? '--'}
+Evalúa si hubo progreso respecto a esos scores. Si mejoró, reconócelo. Si empeoró, explica posible causa.`
+      : '';
 
-    // 3. Análisis paralelo con 5 agentes
-    console.log('  → Lanzando agentes...');
-    const [seoR, semR, contR, croR, trafR] = await Promise.all([
-      callClaude(AGENT_PROMPTS.seo, fullContext, 4000),
-      callClaude(AGENT_PROMPTS.sem, fullContext, 2000),
-      callClaude(AGENT_PROMPTS.contenido, fullContext, 2000),
-      callClaude(AGENT_PROMPTS.cro, fullContext, 2000),
-      callClaude(AGENT_PROMPTS.trafico, fullContext, 4000)
-    ]);
+    const fullContext = siteContext + trafficContext + ga4Context + deltaContext;
+
+    // 3. Análisis paralelo — solo agentes relevantes según ruta
+    const planCode = resolveWorkspacePlanCode(workspace);
+    const batchPlanCode = planCode === 'trial' ? 'trial_batch' : planCode;
+    const activeAgents = ROUTE_AGENTS[routeMode] || ['seo', 'sem', 'contenido', 'cro', 'trafico'];
+    const costTracker = { total: 0 };
+    console.log(`  → Lanzando agentes: [${activeAgents.join(', ')}] ruta=${routeMode || 'completa'}`);
 
     function parse(raw, agentName) {
+      if (!raw) return null;
       try {
         const cleaned = raw.replace(/```json|```/g, '').trim();
         return JSON.parse(cleaned);
       } catch(e) {
-        // Try to repair truncated JSON by closing open structures
         try {
           let text = raw.replace(/```json|```/g, '').trim();
-          // Count open braces/brackets and close them
           let opens = (text.match(/{/g)||[]).length - (text.match(/}/g)||[]).length;
           let openArr = (text.match(/\[/g)||[]).length - (text.match(/\]/g)||[]).length;
-          // Remove trailing incomplete string/field
           text = text.replace(/,?\s*"[^"]*$/, '').replace(/,?\s*"[^"]*":\s*"[^"]*$/, '');
-          // Close arrays then objects
           for(let i=0;i<openArr;i++) text += ']';
           for(let i=0;i<opens;i++) text += '}';
           const repaired = JSON.parse(text);
@@ -2854,26 +4681,67 @@ Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`
           return repaired;
         } catch(e2) {
           console.error('❌ Parse error [' + agentName + ']:', e.message);
-          console.error('Raw (first 800):', raw.substring(0, 800));
           return { score: 50, resumen: 'Análisis completado.', hallazgos: [], acciones: [] };
         }
       }
+    }
+
+    const agentPromises = {};
+    for (const key of activeAgents) {
+      agentPromises[key] = callAI(AGENT_PROMPTS[key], fullContext, {
+        planCode: batchPlanCode,
+        maxTokens: (key === 'seo' || key === 'trafico') ? 4000 : 2000,
+        feature: key,
+        costTracker
+      });
+    }
+    const settled = await Promise.allSettled(Object.values(agentPromises));
+    const agentResults = {};
+    Object.keys(agentPromises).forEach((key, i) => {
+      agentResults[key] = settled[i].status === 'fulfilled' ? parse(settled[i].value, key) : null;
+    });
+
+    const seoR  = agentResults.seo       ?? null;
+    const semR  = agentResults.sem       ?? null;
+    const contR = agentResults.contenido ?? null;
+    const croR  = agentResults.cro       ?? null;
+    const trafR = agentResults.trafico   ?? null;
+
+    // 4. Agente Sintetizador — prioridades unificadas entre agentes activos
+    let synthesisResult = null;
+    try {
+      const synthesisInput = JSON.stringify({
+        ruta: routeMode || 'general',
+        agentes: {
+          seo:       seoR  ? { score: seoR.score,  acciones: seoR.acciones }  : null,
+          sem:       semR  ? { score: semR.score,  acciones: semR.acciones }  : null,
+          contenido: contR ? { score: contR.score, acciones: contR.acciones } : null,
+          cro:       croR  ? { score: croR.score,  acciones: croR.acciones }  : null,
+          trafico:   trafR ? { score: trafR.score, acciones: trafR.bearads_puede || trafR.acciones } : null,
+        }
+      });
+      const synthRaw = await callAI(AGENT_PROMPTS.synthesis, synthesisInput, {
+        planCode: batchPlanCode, maxTokens: 1500, feature: 'synthesis', costTracker
+      });
+      synthesisResult = parse(synthRaw, 'synthesis');
+    } catch (e) {
+      console.warn('⚠️ Synthesis agent falló:', e.message);
     }
 
     const results = {
       url: cleanUrl,
       siteTitle: site.title,
       analyzedAt: new Date().toISOString(),
-      googleConnected: req.isAuthenticated(),
-      seo: parse(seoR,'seo'),
-      sem: parse(semR,'sem'),
-      contenido: parse(contR,'contenido'),
-      cro: parse(croR,'cro'),
-      trafico: parse(trafR,'trafico'),
-      trafficData: {
-        gsc: traffic.gsc,
-        ga4: traffic.ga4
-      },
+      googleConnected: isGoogleConnectedForUser(req.user),
+      routeMode: routeMode || null,
+      activeAgents,
+      seo:       seoR,
+      sem:       semR,
+      contenido: contR,
+      cro:       croR,
+      trafico:   trafR,
+      synthesis: synthesisResult,
+      trafficData: { gsc: traffic.gsc, ga4: traffic.ga4 },
       siteData: {
         hasSSL: site.hasSSL, hasGA: site.hasGA, hasGTM: site.hasGTM,
         hasFBPixel: site.hasFBPixel, hasSchema: site.hasSchema,
@@ -2882,34 +4750,59 @@ Canales: ${traffic.ga4.channels?.map(c => `${c.channel}: ${c.sessions} sesiones`
       }
     };
 
-    // Expose GSC/GA4 at top level for frontend compatibility
     results.gscData = traffic.gsc?.connected ? traffic.gsc : null;
     results.ga4Data  = traffic.ga4?.connected ? traffic.ga4 : null;
 
-    results.globalScore = Math.round(
-      (results.seo.score + results.sem.score + results.contenido.score + results.cro.score + results.trafico.score) / 5
-    );
+    const runScores = [seoR?.score, semR?.score, contR?.score, croR?.score, trafR?.score].filter(s => s != null);
+    results.globalScore = runScores.length > 0
+      ? Math.round(runScores.reduce((a, b) => a + b, 0) / runScores.length)
+      : 0;
 
     if (workspace) {
       const todayKey = getUsageDayKey();
       const nextCount = getTodayAnalysisUsage(workspace) + 1;
+      const monthKey = todayKey.slice(0, 7); // 'YYYY-MM'
+      const prevMonthCost = workspace.usage?.aiCosts?.[monthKey] || 0;
       workspace.usage = {
         ...defaultUsageState(),
         ...(workspace.usage || {}),
         dailyAnalyses: {
           ...pruneDailyUsageMap((workspace.usage && workspace.usage.dailyAnalyses) || {}),
           [todayKey]: nextCount
+        },
+        aiCosts: {
+          ...(workspace.usage?.aiCosts || {}),
+          [monthKey]: Math.round((prevMonthCost + costTracker.total) * 1_000_000) / 1_000_000
         }
+      };
+      workspace.lastAnalysis = {
+        url: cleanUrl,
+        date: nowIso(),
+        scores: {
+          seo:       seoR?.score  ?? null,
+          sem:       semR?.score  ?? null,
+          contenido: contR?.score ?? null,
+          cro:       croR?.score  ?? null,
+          trafico:   trafR?.score ?? null,
+        },
+        topActions: synthesisResult?.prioridades?.slice(0, 3) || [],
+        analysisCostUsd: Math.round(costTracker.total * 1_000_000) / 1_000_000,
       };
       workspace.updatedAt = nowIso();
       saveWorkspaces();
+
+      // Guardar en cache para la misma URL+día
+      const cacheKey = `${workspace.id}:${cleanUrl}:${todayKey}`;
+      analysisCache.set(cacheKey, { result: results, ts: Date.now() });
+
       results.usage = {
         usedToday: nextCount,
-        dailyLimit: getDailyAnalysisLimitForWorkspace(workspace)
+        dailyLimit: getDailyAnalysisLimitForWorkspace(workspace),
+        analysisCostUsd: Math.round(costTracker.total * 100000) / 100000
       };
     }
 
-    console.log(`  ✅ Score: ${results.globalScore}/100 | Google: ${results.googleConnected}`);
+    console.log(`  ✅ Score: ${results.globalScore}/100 | Costo: $${costTracker.total.toFixed(5)} | Google: ${results.googleConnected}`);
     res.json(results);
 
   } catch (error) {
@@ -3467,9 +5360,12 @@ Semana a semana: qué lanzar, cuándo y con qué presupuesto
 Sé muy específico con números reales para LATAM. En español.`;
 
   try {
-    const reply = await callClaude(
+    const planUser = req.isAuthenticated() ? (rehydrateRequestUser(req) || req.user) : null;
+    const planWorkspace = planUser ? ensureWorkspaceState(planUser?.workspace || null) : null;
+    const planCode = resolveWorkspacePlanCode(planWorkspace);
+    const reply = await callAI(
       'Eres el Director Estratégico de BearAds. Creas planes de marketing completos, específicos y ejecutables para PyMEs latinoamericanas. Siempre incluyes números reales, no rangos vagos.',
-      prompt, 4000
+      prompt, { planCode, maxTokens: 4000, feature: 'strategic-plan' }
     );
     res.json({ plan: reply, generatedAt: new Date().toISOString() });
   } catch(err) {
@@ -3746,30 +5642,19 @@ app.post('/api/traffic-data', async (req, res) => {
 // ── CHAT ──
 app.post('/api/chat', async (req, res) => {
   const { messages, systemPrompt } = req.body;
-  if (!process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: 'API Key no configurada' });
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 1500,
-        system: systemPrompt || 'Eres el Director Estratégico de BearAds. Respondes en español, estratégico y conciso.',
-        messages
-      })
-    });
-    if (!response.ok) {
-      const err = await response.json();
-      return res.status(response.status).json({ error: err });
-    }
-    const data = await response.json();
-    res.json({ reply: data.content[0].text });
+    const chatUser = req.isAuthenticated() ? (rehydrateRequestUser(req) || req.user) : null;
+    const chatWorkspace = chatUser ? ensureWorkspaceState(chatUser?.workspace || null) : null;
+    const planCode = resolveWorkspacePlanCode(chatWorkspace);
+    const lastMsg = Array.isArray(messages) ? messages[messages.length - 1]?.content : messages;
+    const historyContext = Array.isArray(messages) && messages.length > 1
+      ? '\n\nHistorial de conversación:\n' + messages.slice(0, -1).map(m => `${m.role}: ${m.content}`).join('\n')
+      : '';
+    const sys = (systemPrompt || 'Eres el Director Estratégico de BearAds. Respondes en español, estratégico y conciso.') + historyContext;
+    const reply = await callAI(sys, lastMsg || '', { planCode, maxTokens: 1500, feature: 'chat' });
+    res.json({ reply });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -3865,7 +5750,7 @@ app.post('/admin/clear-session', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok', port: PORT,
-    googleConnected: req.isAuthenticated(),
+    googleConnected: isGoogleConnectedForUser(req.user),
     anthropic: !!process.env.ANTHROPIC_API_KEY,
     openai: !!process.env.OPENAI_API_KEY,
     googleAds: !!process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
