@@ -462,22 +462,27 @@ router.get('/api/analyze/jobs', requireAuth, (req, res) => {
 // ── POST /api/strategic-plan (síncrono, rápido) ───────────────────────────────
 router.post('/api/strategic-plan', requireAuth, async (req, res) => {
   try {
-    const { analysisData, goal, budget, timeframe } = req.body;
-    if (!analysisData) return res.status(400).json({ error: 'analysisData requerido' });
+    if (typeof global.handleStrategicPlan === 'function') {
+      return global.handleStrategicPlan(req, res);
+    }
+
+    const { analysisData, goal, budget, timeframe, business, product, audience, duration } = req.body || {};
     const currentUser = rehydrateRequestUser(req) || req.user;
     const workspace   = ensureWorkspaceState(currentUser?.workspace || null);
     const planCode    = resolveWorkspacePlanCode(workspace);
 
-    // Use global strategicPlanPrompt / handlers from server.js (still global-scoped)
-    // This route delegates to the original handler via callAIText
-    // eslint-disable-next-line no-undef
-    if (typeof handleStrategicPlan === 'function') {
-      return handleStrategicPlan(req, res);
-    }
+    const fallbackAnalysis = analysisData || {
+      business: business || product || '',
+      audience: audience || '',
+      budget: budget || '',
+      duration: duration || timeframe || '',
+      goal: goal || ''
+    };
+
     // Fallback: direct callAI
     const prompt = `Eres un estratega de marketing digital para LATAM. Crea un plan estratégico basado en este análisis de sitio web.
-Análisis: ${JSON.stringify(analysisData).slice(0, 3000)}
-Objetivo: ${goal || 'maximizar conversiones'} | Presupuesto: ${budget || 'no especificado'} | Plazo: ${timeframe || '3 meses'}
+Análisis: ${JSON.stringify(fallbackAnalysis).slice(0, 3000)}
+Objetivo: ${goal || 'maximizar conversiones'} | Presupuesto: ${budget || 'no especificado'} | Plazo: ${duration || timeframe || '3 meses'}
 RESPONDE en español con: resumen ejecutivo, 3 estrategias prioritarias con KPIs, cronograma 90 días, inversión sugerida por canal.`;
     const result = await callAIText(prompt, 'Genera el plan estratégico ahora.', { planCode, maxTokens: 3000, feature: 'strategic-plan' });
     res.json({ plan: result });
@@ -505,12 +510,38 @@ router.post('/api/chat', requireAuth, async (req, res) => {
 // ── POST /api/traffic-data ────────────────────────────────────────────────────
 router.post('/api/traffic-data', requireAuth, async (req, res) => {
   try {
-    // Delegate to server.js global handler if available
-    // eslint-disable-next-line no-undef
-    if (typeof handleTrafficData === 'function') return handleTrafficData(req, res);
-    res.status(501).json({ error: 'Traffic data endpoint not yet modularized' });
+    if (typeof global.handleTrafficData === 'function') {
+      return global.handleTrafficData(req, res);
+    }
+
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({
+        gsc: { connected: false },
+        ga4: { connected: false },
+        reason: 'not_authenticated'
+      });
+    }
+
+    const { siteUrl, ga4PropertyId } = req.body || {};
+    const currentUser = rehydrateRequestUser(req) || req.user;
+    const getGSC = typeof global.getGSCData === 'function' ? global.getGSCData : null;
+    const getGA4 = typeof global.getGA4Data === 'function' ? global.getGA4Data : null;
+
+    const [gsc, ga4] = await Promise.allSettled([
+      siteUrl && getGSC ? getGSC(currentUser, siteUrl) : Promise.resolve({ connected: false, reason: 'no_url' }),
+      ga4PropertyId && getGA4 ? getGA4(currentUser, ga4PropertyId) : Promise.resolve({ connected: false, reason: 'no_property_id' })
+    ]);
+
+    return res.status(200).json({
+      gsc: gsc.status === 'fulfilled' ? gsc.value : { connected: false, error: gsc.reason?.message || 'No pude leer Search Console' },
+      ga4: ga4.status === 'fulfilled' ? ga4.value : { connected: false, error: ga4.reason?.message || 'No pude leer Google Analytics 4' }
+    });
   } catch(err) {
-    res.status(500).json({ error: err.message });
+    res.status(200).json({
+      gsc: { connected: false, error: err.message || 'No pude leer Search Console' },
+      ga4: { connected: false, error: err.message || 'No pude leer Google Analytics 4' },
+      fatal: true
+    });
   }
 });
 

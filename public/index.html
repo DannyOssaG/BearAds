@@ -1996,8 +1996,204 @@ tr:hover td { background: var(--surface2); }
      DASHBOARD
 ════════════════════════════════════════ -->
 <div class="page active" id="page-dashboard">
-  <div class="page-title">Dashboard</div>
-  <div class="page-sub">Empieza por la base y avanza hasta estrategia, activación y escalamiento</div>
+  <div class="page-title" id="dash-page-title">Dashboard</div>
+  <div class="page-sub" id="dash-page-sub">Empieza por la base y avanza hasta estrategia, activación y escalamiento</div>
+
+  <!-- ══ EMPLOYEE DASHBOARD WIDGET — shown only for internal staff/partners ══ -->
+  <div id="employee-dash-widget" style="display:none;margin-bottom:4px;">
+
+    <!-- Hero header -->
+    <div id="edw-hero" style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-radius:16px;padding:20px 22px;margin-bottom:16px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(123,167,232,0.18),transparent 60%),radial-gradient(ellipse at bottom left,rgba(94,201,160,0.12),transparent 55%);pointer-events:none;"></div>
+      <div style="position:relative;z-index:1;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="min-width:0;flex:1;">
+          <div id="edw-welcome" style="font-size:20px;font-weight:800;color:#f1f5f9;line-height:1.2;margin-bottom:8px;">Bienvenido 👋</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span id="edw-role-badge" style="font-size:10px;font-weight:800;letter-spacing:0.8px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.1);color:#cbd5e1;border:1px solid rgba(255,255,255,0.12);">EMPLEADO</span>
+            <span id="edw-jobrole-badge" style="display:none;font-size:10px;font-weight:800;letter-spacing:0.8px;padding:4px 10px;border-radius:999px;background:rgba(123,167,232,0.2);color:#7ba7e8;border:1px solid rgba(123,167,232,0.3);">ROL</span>
+            <span id="edw-access-badge" style="display:none;font-size:10px;color:#64748b;padding:4px 0;">·</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap;">
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:0.5px;">ESTE MES</div>
+            <div id="edw-stat-total" style="font-size:28px;font-weight:800;color:#f1f5f9;line-height:1.1;">0</div>
+            <div style="font-size:10px;color:#64748b;">actividades</div>
+          </div>
+          <button onclick="openEmpRegisterModal()" style="padding:11px 18px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 12px rgba(123,167,232,0.35);">⚡ Registrar actividad</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BILLING PANEL -->
+    <div id="edw-billing-panel" style="display:none;margin-bottom:16px;">
+
+      <!-- Función del rol: contexto para el empleado -->
+      <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.18);border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:20px;flex-shrink:0;">💳</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#a78bfa;margin-bottom:2px;">Tu función: Gestión de Facturación</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;">Monitorea los pagos activos, da seguimiento a clientes en prueba y atiende alertas de pago vencido o problemas de suscripción.</div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px;">
+        <div style="background:var(--surface);border:1px solid rgba(94,201,160,0.25);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.7px;margin-bottom:6px;">PAGANDO</div>
+          <div id="edw-bill-active" style="font-size:26px;font-weight:800;color:#5ec9a0;font-family:'Plus Jakarta Sans',sans-serif;line-height:1;">—</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;">clientes activos</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(123,167,232,0.2);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.7px;margin-bottom:6px;">EN TRIAL</div>
+          <div id="edw-bill-trial" style="font-size:26px;font-weight:800;color:var(--accent);font-family:'Plus Jakarta Sans',sans-serif;line-height:1;">—</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;">workspaces</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(248,113,113,0.22);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.7px;margin-bottom:6px;">PROBLEMAS</div>
+          <div id="edw-bill-alerts" style="font-size:26px;font-weight:800;color:#f87171;font-family:'Plus Jakarta Sans',sans-serif;line-height:1;">—</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;">requieren atención</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(167,139,250,0.22);border-radius:12px;padding:14px;text-align:center;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.7px;margin-bottom:6px;">MRR EST.</div>
+          <div id="edw-bill-mrr" style="font-size:26px;font-weight:800;color:#a78bfa;font-family:'Plus Jakarta Sans',sans-serif;line-height:1;">—</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;">mensual</div>
+        </div>
+      </div>
+
+      <!-- Tres secciones de listas -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Problemas / Alertas -->
+        <div id="edw-bill-problems-section">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#f87171;flex-shrink:0;"></div>
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:#f87171;">REQUIEREN ATENCIÓN</span>
+            <span id="edw-bill-prob-count" style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:rgba(248,113,113,0.12);color:#f87171;margin-left:2px;">0</span>
+          </div>
+          <div id="edw-bill-problems-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+        <!-- Clientes pagando -->
+        <div id="edw-bill-paying-section">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#5ec9a0;flex-shrink:0;"></div>
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:#5ec9a0;">CLIENTES ACTIVOS</span>
+            <span id="edw-bill-pay-count" style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:rgba(94,201,160,0.12);color:#5ec9a0;margin-left:2px;">0</span>
+          </div>
+          <div id="edw-bill-paying-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+        <!-- En trial -->
+        <div id="edw-bill-trial-section">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+            <span style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:var(--accent);">EN PERÍODO DE PRUEBA</span>
+            <span id="edw-bill-trial-count" style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px;background:rgba(123,167,232,0.12);color:var(--accent);margin-left:2px;">0</span>
+          </div>
+          <div id="edw-bill-trial-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DEVELOPER PANEL -->
+    <div id="edw-dev-panel" style="display:none;margin-bottom:16px;">
+
+      <!-- Función del rol -->
+      <div style="background:rgba(94,201,160,0.06);border:1px solid rgba(94,201,160,0.18);border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;">
+        <span style="font-size:20px;flex-shrink:0;">⚙️</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#5ec9a0;margin-bottom:2px;">Tu función: Monitoreo Técnico</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.5;">Verifica el estado del servidor, memoria y entorno de ejecución. Usa el panel admin para acceder a logs y configuración avanzada.</div>
+        </div>
+      </div>
+
+      <!-- Estado del servidor -->
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:var(--muted);margin-bottom:8px;">SERVIDOR</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">NODE.JS</div>
+          <div id="edw-dev-node" style="font-size:14px;font-weight:800;color:var(--accent);font-family:monospace;">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">UPTIME</div>
+          <div id="edw-dev-uptime" style="font-size:14px;font-weight:800;color:#5ec9a0;">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">MEMORIA HEAP</div>
+          <div id="edw-dev-mem" style="font-size:14px;font-weight:800;color:#f59e0b;">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">ENTORNO</div>
+          <div id="edw-dev-env" style="font-size:14px;font-weight:800;color:#a78bfa;font-family:monospace;">—</div>
+        </div>
+      </div>
+
+      <!-- Datos de la plataforma -->
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:var(--muted);margin-bottom:8px;">PLATAFORMA</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">WORKSPACES</div>
+          <div id="edw-dev-workspaces" style="font-size:20px;font-weight:800;color:var(--text);">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">USUARIOS</div>
+          <div id="edw-dev-users" style="font-size:20px;font-weight:800;color:var(--text);">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">MEMBRESÍAS</div>
+          <div id="edw-dev-members" style="font-size:20px;font-weight:800;color:var(--text);">—</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px;">
+          <div style="font-size:9px;color:var(--muted);font-weight:800;letter-spacing:0.5px;margin-bottom:5px;">PLANES</div>
+          <div id="edw-dev-plans" style="font-size:11px;font-weight:700;color:var(--text2);line-height:1.5;">—</div>
+        </div>
+      </div>
+
+      <!-- Actualizado hace -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div style="font-size:10px;color:var(--muted);">Actualizado: <span id="edw-dev-checked">—</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="openSuperAdmin()" style="padding:8px 14px;background:rgba(239,68,68,0.07);border:1px solid rgba(224,112,112,0.22);border-radius:8px;color:#e07070;font-size:11px;font-weight:700;cursor:pointer;">🔐 Panel Admin</button>
+          <button onclick="edwRefreshSystemStatus()" style="padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;">🔄 Actualizar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTES (partners y cualquier rol con assignedClients) -->
+    <div id="edw-clients-panel" style="display:none;margin-bottom:16px;">
+
+      <!-- Función del rol — se rellena dinámicamente en initEmployeeDashWidget -->
+      <div id="edw-clients-function-banner" style="border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;"></div>
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:0.7px;color:var(--muted);margin-bottom:8px;">MIS CLIENTES ASIGNADOS</div>
+      <div id="edw-clients-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+
+    <!-- SHARED: Tareas pendientes + Actividades recientes -->
+    <div id="edw-shared-panel" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:4px;">
+      <div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">TAREAS PENDIENTES</div>
+        <div id="edw-tasks-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="edw-tasks-empty" style="display:none;text-align:center;padding:24px 16px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;color:var(--muted);">
+          <div style="font-size:22px;margin-bottom:6px;">✅</div>
+          <div style="font-size:12px;">Sin tareas pendientes</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">ACTIVIDADES RECIENTES</div>
+        <div id="edw-activities-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="edw-activities-empty" style="display:none;text-align:center;padding:24px 16px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;color:var(--muted);">
+          <div style="font-size:22px;margin-bottom:8px;">📋</div>
+          <div style="font-size:12px;margin-bottom:10px;">No hay actividades aún</div>
+          <button onclick="openEmpRegisterModal()" style="padding:7px 14px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">+ Registrar primera actividad</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- /EMPLOYEE DASHBOARD WIDGET -->
 
   <div id="dashboard-guide" style="margin:18px 0 16px;background:linear-gradient(135deg,rgba(123,167,232,0.14),rgba(94,201,160,0.12));border:1px solid rgba(123,167,232,0.18);border-radius:16px;padding:18px;">
     <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;">
@@ -2016,7 +2212,7 @@ tr:hover td { background: var(--surface2); }
   </div>
 
   <!-- KPI Cards -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;">
+  <div id="dash-kpi-section" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0;">
     <div class="card" onclick="openAnalysesHistory()" style="text-align:center;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">ANÁLISIS REALIZADOS</div>
       <div id="dash-kpi-analyses" style="font-size:28px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:var(--accent);">0</div>
@@ -2036,7 +2232,7 @@ tr:hover td { background: var(--surface2); }
   </div>
 
   <!-- Quick actions -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+  <div id="dash-quick-section" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
     <div id="dash-quick-analyze" onclick="showPage('analyze')" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <span style="font-size:20px;">🔍</span>
       <div><div style="font-size:13px;font-weight:700;">Analizar sitio</div><div style="font-size:11px;color:var(--muted);">Nuevo análisis con IA</div></div>
@@ -2054,7 +2250,7 @@ tr:hover td { background: var(--surface2); }
   <div id="dash-diagnosis-overview" style="margin-bottom:20px;"></div>
 
   <!-- Main grid: Recent analyses + Deliverables -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+  <div id="dash-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
 
     <!-- Recent analyses -->
     <div>
@@ -3028,13 +3224,23 @@ tr:hover td { background: var(--surface2); }
           <div style="font-size:12px;">Orgánico + Pago · Calendario 90 días · KPIs · Evaluación</div>
         </div>
       </div>
-      <div id="sp-loading" style="display:none;align-items:center;justify-content:center;height:400px;background:var(--surface);border:1px solid var(--border);border-radius:12px;flex-direction:column;gap:12px;">
-        <div style="font-size:32px;animation:spin 1.5s linear infinite;">🗺️</div>
-        <div style="font-size:13px;color:var(--accent);font-weight:600;">Construyendo tu plan estratégico...</div>
+      <div id="sp-loading" style="display:none;align-items:center;justify-content:center;height:400px;background:linear-gradient(180deg,rgba(255,255,255,0.72),rgba(123,167,232,0.03));border:1px solid rgba(123,167,232,0.10);border-radius:18px;flex-direction:column;gap:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5);">
+        <div style="width:52px;height:52px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <video autoplay loop muted playsinline preload="auto" style="width:40px;height:40px;object-fit:contain;display:block;filter:drop-shadow(0 8px 18px rgba(123,167,232,0.14));" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <source src="/strategic-plan-loading.mp4" type="video/mp4">
+          </video>
+          <div style="display:none;width:40px;height:40px;align-items:center;justify-content:center;font-size:20px;color:var(--accent);animation:spin 1.8s linear infinite;">▣</div>
+        </div>
+        <div style="font-size:13px;color:#35507f;font-weight:700;letter-spacing:0.2px;">Construyendo tu plan estratégico...</div>
         <div style="font-size:11px;color:var(--muted);">Analizando tu negocio, mercado y datos reales</div>
       </div>
       <div id="sp-result" style="display:none;"></div>
     </div>
+  </div>
+
+  <div id="sp-saved-section" style="display:none;margin-top:24px;">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">PLANES ESTRATÉGICOS REALIZADOS</div>
+    <div id="sp-saved-list" style="display:flex;flex-direction:column;gap:10px;"></div>
   </div>
 </div>
 
@@ -3839,6 +4045,11 @@ tr:hover td { background: var(--surface2); }
         </div>
       </div>
 
+      <div id="analyze-saved-section" style="display:none;margin-top:24px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">ANÁLISIS REALIZADOS</div>
+        <div id="analyze-saved-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
     </div><!-- /page-analyze -->
 
   </div><!-- /content -->
@@ -3864,7 +4075,7 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 // Global error trap
 window.onerror = function(msg, src, line, col, err) {
   console.error('JS ERROR:', msg, 'line:', line, 'col:', col);
@@ -3949,7 +4160,7 @@ function showPage(page, el) {
   if (page === 'weekly-score')   setTimeout(initWeeklyScorePage, 50);
   if (page === 'creatives')      setTimeout(initCreativesPage, 50);
   if (page === 'learning')     setTimeout(initLearningPage, 50);
-  if (page === 'analyze')      setTimeout(() => { syncAnalyzeUrlPrefill(false); injectCompetitorMonitorSection(); updateAnalyzeAuthStatus(); }, 100);
+  if (page === 'analyze')      setTimeout(() => { syncAnalyzeUrlPrefill(false); injectCompetitorMonitorSection(); updateAnalyzeAuthStatus(); renderAnalyzeSavedReports(); }, 100);
   return true;
 }
 
@@ -4306,8 +4517,12 @@ function getFriendlyAnalyzeError(message) {
 }
 
 function getFriendlyUiError(message) {
-  var text = String(message || '').trim().toLowerCase();
+  var rawMessage = String(message || '').trim();
+  var text = rawMessage.toLowerCase();
   if (!text) return 'No pude completar esa acción en este momento.';
+  if (text.includes('search console') || text.includes('sitio no encontrado en search console') || text.includes('sitios verificados')) {
+    return rawMessage;
+  }
   if (text.includes('no incluye esta función') || text.includes('plan_limit')) {
     return 'Tu etapa actual no incluye esta función. Revisa los planes para activarla.';
   }
@@ -5900,7 +6115,66 @@ const STRATEGY_TEMPLATES = {
   }
 };
 
+function normalizeSavedStrategyEntry(entry, source) {
+  if (!entry) return null;
+  var content = String(entry.content || '').trim();
+  if (!content) return null;
+  var rawName = String(entry.name || entry.type || 'Estrategia').trim();
+  return {
+    name: rawName,
+    preview: String(entry.preview || content.substring(0, 80).replace(/\n/g, ' ')).trim(),
+    content: content,
+    date: entry.date || entry.ts || new Date(entry.tsRaw || Date.now()).toLocaleDateString('es'),
+    goal: entry.goal || '',
+    duration: String(entry.duration || '').replace(/[^\d]/g, '') || '',
+    tsRaw: Number(entry.tsRaw || entry.id || Date.now()),
+    source: source || entry.source || 'saved'
+  };
+}
+
+function isStrategicDeliverable(item) {
+  var agent = String(item?.agent || '').toLowerCase();
+  var type = String(item?.type || '').toLowerCase();
+  return agent.includes('director estratégico')
+    || type.includes('estrategia')
+    || type.includes('plan estratégico');
+}
+
+function collectSavedStrategies() {
+  var directSaved = Array.isArray(DB.get('saved_strategies', [])) ? DB.get('saved_strategies', []) : [];
+  var deliverableStrategies = getDeliverables()
+    .filter(isStrategicDeliverable)
+    .map(function(item) {
+      return normalizeSavedStrategyEntry({
+        name: item.type || 'Estrategia',
+        preview: String(item.content || '').substring(0, 80).replace(/\n/g, ' '),
+        content: item.content || '',
+        date: item.ts || '',
+        tsRaw: item.tsRaw || item.id || Date.now()
+      }, 'deliverable');
+    })
+    .filter(Boolean);
+
+  var merged = []
+    .concat(directSaved.map(function(item) { return normalizeSavedStrategyEntry(item, 'saved'); }).filter(Boolean))
+    .concat(deliverableStrategies);
+
+  var seen = new Set();
+  var deduped = merged.filter(function(item) {
+    var key = String(item.content || '').trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort(function(a, b) {
+    return Number(b.tsRaw || 0) - Number(a.tsRaw || 0);
+  });
+
+  stSavedStrategies = deduped;
+  return deduped;
+}
+
 function initStrategyPage() {
+  collectSavedStrategies();
   renderStrategyGuide();
   syncStrategyDefaults();
   if (currentAnalysis) {
@@ -6119,15 +6393,19 @@ async function generateStrategy() {
 
 function saveStrategy(name, preview, content) {
   var draft = getStrategicPlanDraft();
-  stSavedStrategies.unshift({
+  var nextItem = {
     name,
     preview,
     content,
     date: new Date().toLocaleDateString('es'),
     goal: draft?.goal || spGoal || '',
-    duration: draft?.duration || document.getElementById('sp-duration')?.value || '90'
-  });
-  DB.set('saved_strategies', stSavedStrategies);
+    duration: draft?.duration || document.getElementById('sp-duration')?.value || '90',
+    tsRaw: Date.now()
+  };
+  var rawSaved = Array.isArray(DB.get('saved_strategies', [])) ? DB.get('saved_strategies', []) : [];
+  rawSaved.unshift(nextItem);
+  DB.set('saved_strategies', rawSaved);
+  collectSavedStrategies();
   renderSavedStrategies();
   showToast('Estrategia guardada');
 }
@@ -6137,11 +6415,53 @@ function saveLatestStrategy() {
   saveStrategy(latestGeneratedStrategy.name, latestGeneratedStrategy.preview, latestGeneratedStrategy.content);
 }
 
+function renderAnalyzeSavedReports() {
+  var list = document.getElementById('analyze-saved-list');
+  var section = document.getElementById('analyze-saved-section');
+  if (!list || !section) return;
+  var analyses = getAnalysisHistory();
+  clearElement(list);
+  if (!analyses.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  analyses.slice(0, 6).forEach(function(item) {
+    var card = createInfoCard({ style: 'padding:14px;' });
+    card.style.cursor = 'pointer';
+    card.style.transition = 'all 0.15s';
+    card.addEventListener('click', function() { loadAnalysisFromHistory(item.id); });
+
+    var top = document.createElement('div');
+    top.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;';
+    var left = document.createElement('div');
+    appendTextLine(left, item.siteTitle || item.url || 'Análisis', 'font-size:13px;font-weight:800;color:var(--text);line-height:1.5;');
+    appendTextLine(left, item.url || '', 'font-size:11px;color:var(--muted);margin-top:3px;');
+    top.appendChild(left);
+
+    var score = document.createElement('div');
+    score.style.cssText = 'padding:6px 10px;border-radius:999px;background:' + scoreColor(item.globalScore || 0) + '18;color:' + scoreColor(item.globalScore || 0) + ';font-size:11px;font-weight:800;white-space:nowrap;';
+    score.textContent = (item.globalScore || 0) + '/100';
+    top.appendChild(score);
+    card.appendChild(top);
+
+    var meta = document.createElement('div');
+    meta.style.cssText = 'display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text2);line-height:1.7;';
+    appendTextLine(meta, 'SEO ' + (item.seo?.score || 0) + ' · CRO ' + (item.cro?.score || 0) + ' · SEM ' + (item.sem?.score || 0), '');
+    appendTextLine(meta, item.ts || '', 'color:var(--muted);');
+    card.appendChild(meta);
+
+    list.appendChild(card);
+  });
+}
+
 function openSavedStrategy(index) {
   var item = stSavedStrategies[index];
-  var emptyEl = document.getElementById('st-empty');
-  var loadEl = document.getElementById('st-loading');
-  var resultEl = document.getElementById('st-result');
+  var strategicPlanPageActive = document.getElementById('page-strategic-plan')?.classList.contains('active');
+  var emptyEl = document.getElementById(strategicPlanPageActive ? 'sp-empty' : 'st-empty');
+  var loadEl = document.getElementById(strategicPlanPageActive ? 'sp-loading' : 'st-loading');
+  var resultEl = document.getElementById(strategicPlanPageActive ? 'sp-result' : 'st-result');
   if (!item || !resultEl) return;
   if (emptyEl) emptyEl.style.display = 'none';
   if (loadEl) loadEl.style.display = 'none';
@@ -6165,48 +6485,52 @@ function openSavedStrategy(index) {
 }
 
 function renderSavedStrategies() {
-  const list = document.getElementById('st-saved-list');
-  const section = document.getElementById('st-saved-section');
-  if (!list) return;
-  clearElement(list);
-  if (!stSavedStrategies.length) {
-    if (section) section.style.display = 'none';
-    return;
-  }
-  if (section) section.style.display='block';
-  stSavedStrategies.forEach(function(s, index) {
-    var card = createInfoCard({ style: 'padding:14px;' });
-    card.style.cursor = 'pointer';
-    card.style.transition = 'all 0.15s';
-    card.addEventListener('click', function() { openSavedStrategy(index); });
-    var header = document.createElement('div');
-    header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px;';
-    var left = document.createElement('div');
-    appendTextLine(header, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
-    clearElement(header);
-    appendTextLine(left, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
-    if (s.goal || s.duration) {
-      appendTextLine(left, [s.goal, s.duration ? (s.duration + ' días') : ''].filter(Boolean).join(' · '), 'font-size:10px;color:var(--muted);margin-top:3px;');
+  collectSavedStrategies();
+  var pairs = [
+    { list: document.getElementById('st-saved-list'), section: document.getElementById('st-saved-section') },
+    { list: document.getElementById('sp-saved-list'), section: document.getElementById('sp-saved-section') }
+  ];
+
+  pairs.forEach(function(target) {
+    if (!target.list || !target.section) return;
+    clearElement(target.list);
+    if (!stSavedStrategies.length) {
+      target.section.style.display = 'none';
+      return;
     }
-    header.appendChild(left);
-    var right = document.createElement('div');
-    right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;';
-    appendTextLine(right, s.date, 'font-size:11px;color:var(--muted);');
-    var actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;';
-    actions.appendChild(createUtilityButton('⬇ Descargar', function(ev) {
-      ev.stopPropagation();
-      downloadTextFile((s.name || 'Plan-Estrategico').replace(/\s+/g, '-') + '.txt', s.content || '');
-    }, 'font-size:10px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
-    actions.appendChild(createUtilityButton('👁 Abrir', function(ev) {
-      ev.stopPropagation();
-      openSavedStrategy(index);
-    }, 'font-size:10px;padding:4px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.18);border-radius:5px;color:var(--accent);cursor:pointer;'));
-    right.appendChild(actions);
-    header.appendChild(right);
-    card.appendChild(header);
-    appendTextLine(card, (s.preview || '').substring(0,120) + '...', 'font-size:12px;color:var(--muted);line-height:1.7;');
-    list.appendChild(card);
+    target.section.style.display='block';
+    stSavedStrategies.forEach(function(s, index) {
+      var card = createInfoCard({ style: 'padding:14px;' });
+      card.style.cursor = 'pointer';
+      card.style.transition = 'all 0.15s';
+      card.addEventListener('click', function() { openSavedStrategy(index); });
+      var header = document.createElement('div');
+      header.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;gap:8px;';
+      var left = document.createElement('div');
+      appendTextLine(left, '📋 ' + s.name, 'font-weight:700;font-size:13px;');
+      if (s.goal || s.duration) {
+        appendTextLine(left, [s.goal, s.duration ? (s.duration + ' días') : ''].filter(Boolean).join(' · '), 'font-size:10px;color:var(--muted);margin-top:3px;');
+      }
+      header.appendChild(left);
+      var right = document.createElement('div');
+      right.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;';
+      appendTextLine(right, s.date, 'font-size:11px;color:var(--muted);');
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;';
+      actions.appendChild(createUtilityButton('⬇ Descargar', function(ev) {
+        ev.stopPropagation();
+        downloadTextFile((s.name || 'Plan-Estrategico').replace(/\s+/g, '-') + '.txt', s.content || '');
+      }, 'font-size:10px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);cursor:pointer;'));
+      actions.appendChild(createUtilityButton('👁 Abrir', function(ev) {
+        ev.stopPropagation();
+        openSavedStrategy(index);
+      }, 'font-size:10px;padding:4px 8px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.18);border-radius:5px;color:var(--accent);cursor:pointer;'));
+      right.appendChild(actions);
+      header.appendChild(right);
+      card.appendChild(header);
+      appendTextLine(card, (s.preview || '').substring(0,120) + '...', 'font-size:12px;color:var(--muted);line-height:1.7;');
+      target.list.appendChild(card);
+    });
   });
 }
 
@@ -7351,6 +7675,7 @@ function renderAnalysisNextStep(data) {
 
 
 function renderResults(data) {
+  renderAnalyzeSavedReports();
   // ── Activate GSC / GA4 panels if data exists ──
   const rdPanel = document.getElementById('real-data-panels');
   if (rdPanel) {
@@ -8499,12 +8824,23 @@ function setPlanBillingInterval(interval) {
 
 async function fetchAppSession() {
   try {
-    const res = await fetch('/api/session', { credentials: 'same-origin' });
+    const res = await fetch('/api/session', { credentials: 'same-origin', cache: 'no-store' });
     if (!res.ok) return null;
     return await res.json();
   } catch (e) {
     return null;
   }
+}
+
+function clearRoleSensitiveCaches() {
+  billingStatusCache = null;
+  googleServiceSnapshot = null;
+  try {
+    DB.set('intg_connections', null);
+    DB.set('gads_credentials', null);
+    DB.set('user_profile_cache', null);
+    DB.set('campaign_activation_context', null);
+  } catch (e) {}
 }
 
 async function saveWorkspaceSetup(payload) {
@@ -8651,7 +8987,21 @@ const PLAN_CONFIG = {
 
 let planModalSelection = 'starter';
 
+function getEmployeeAccessPlanCode(session = appSession) {
+  const membership = session?.membership || {};
+  const effectiveRole = String(membership.effectiveRole || membership.role || '').toLowerCase();
+  if (effectiveRole === 'owner') return 'agency';
+  if (!['admin', 'billing', 'developer'].includes(effectiveRole)) return null;
+  return ({
+    partial: 'trial',
+    initial: 'starter',
+    full: 'agency'
+  })[String(membership.employeeAccessLevel || '').toLowerCase()] || 'starter';
+}
+
 function getCurrentPlanCode(workspace = appSession?.workspace || {}) {
+  const employeePlan = getEmployeeAccessPlanCode(appSession);
+  if (employeePlan) return employeePlan;
   if (!workspace || !workspace.subscription) return 'trial';
   const sub = workspace?.subscription || {};
   if (sub.status === 'trialing' || sub.plan === 'trial') return 'trial';
@@ -8713,6 +9063,10 @@ function canAccessPage(page) {
 }
 
 function tryOpenPage(page) {
+  if (!canAccessRoleModule(page)) {
+    showToast('Tu rol actual tiene acceso a otros módulos. Esta vista queda reservada para otro perfil interno.');
+    return false;
+  }
   const rule = getPageAccessRule(page);
   if (!rule || canUseFeature(rule.feature)) return true;
   planModalSelection = rule.targetPlan;
@@ -8872,6 +9226,7 @@ function refreshPlanLockedUI() {
   refreshPlanNavigationUI();
   refreshDashboardPlanMessaging();
   refreshIntegrationsTrialUI();
+  refreshRoleModuleAccessUI();
 }
 
 function refreshAgentAccessUI() {
@@ -9098,18 +9453,122 @@ function applyProfileToUI(profile, workspace) {
   if (mobileAv) mobileAv.textContent = initials;
 }
 
-const SA_TABS = ['audit', 'qa', 'ai', 'users', 'growth', 'billing'];
+const SA_TABS = ['audit', 'qa', 'ai', 'users', 'growth', 'billing', 'equipo'];
 const SA_ROLE_LABELS = {
   owner: 'Dueño',
   admin: 'Administrador',
   developer: 'Desarrollador',
   billing: 'Facturación',
+  member: 'Usuario',
   member_trial: 'Usuario Trial',
   member_paid: 'Usuario Pago'
 };
 
+const EMPLOYEE_ACCESS_LABELS = {
+  partial: 'Acceso parcial',
+  initial: 'Acceso inicial',
+  full: 'Acceso full'
+};
+
+function getResolvedSessionRole(session = appSession) {
+  const membership = session?.membership || {};
+  if (membership.effectiveRole) return membership.effectiveRole;
+  const adminRole = String(membership.adminRole || membership.role || '').toLowerCase();
+  // Incluye 'partner' — es un rol interno válido con panel propio
+  if (['owner', 'admin', 'billing', 'developer', 'partner'].includes(adminRole)) return adminRole;
+  const accessState = String(membership.accessState || '').toLowerCase();
+  return accessState === 'paid' ? 'member_paid' : 'member_trial';
+}
+
+function getResolvedSessionPermissions(session = appSession) {
+  const role = getResolvedSessionRole(session);
+  const moduleScopes = {
+    owner: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-users', 'admin-billing', 'admin-growth', 'admin-qa', 'admin-ai'],
+    admin: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning', 'admin-users', 'admin-growth'],
+    billing: ['dashboard', 'integrations', 'strategy', 'learning', 'admin-users', 'admin-billing'],
+    developer: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-qa', 'admin-ai'],
+    member_paid: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning'],
+    member_trial: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning']
+  };
+  const planScopeMap = {
+    trial: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'strategy', 'learning'],
+    starter: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning'],
+    pro: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning'],
+    agency: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning']
+  };
+  const employeePlan = getEmployeeAccessPlanCode(session);
+  const roleScopes = moduleScopes[role] || moduleScopes.member_trial;
+  const mergedScopes = Array.from(new Set([
+    ...roleScopes,
+    ...((['owner', 'admin', 'billing', 'developer'].includes(role) && employeePlan) ? (planScopeMap[employeePlan] || []) : [])
+  ]));
+  const basePermissions = session?.permissions || {};
+  return {
+    ...basePermissions,
+    canView: true,
+    canEdit: ['owner', 'admin', 'developer', 'billing', 'partner', 'member_paid', 'member_trial'].includes(role),
+    canAccessAdminPanel:   ['owner', 'admin', 'billing'].includes(role),
+    canAccessEmployeePanel:['owner', 'admin', 'billing', 'developer', 'partner'].includes(role),
+    canManageUsers:        ['owner', 'admin', 'billing'].includes(role),
+    canSuspendUsers:       ['owner', 'admin', 'billing'].includes(role),
+    canManageBilling:      ['owner', 'billing'].includes(role),
+    canAccessTechnical:    ['owner'].includes(role),
+    canAccessGrowth:       ['owner', 'admin'].includes(role),
+    canRunAutomations:     ['owner', 'admin'].includes(role),
+    isOwner:  role === 'owner',
+    isEmployee: ['admin', 'billing', 'developer', 'partner'].includes(role),
+    isPartner:  role === 'partner',
+    role: role,
+    moduleScopes: mergedScopes
+  };
+}
+
 function getCurrentSAPermissions() {
-  return appSession?.permissions || {};
+  return getResolvedSessionPermissions(appSession);
+}
+
+const ROLE_PAGE_SCOPE_MAP = {
+  dashboard: 'dashboard',
+  analyze: 'analyze',
+  'strategic-plan': 'strategic-plan',
+  campaigns: 'campaigns',
+  creatives: 'creatives',
+  integrations: 'integrations',
+  agents: 'agents',
+  strategy: 'strategy',
+  'weekly-score': 'weekly-score',
+  learning: 'learning'
+};
+
+function canAccessRoleModule(page, session = appSession) {
+  const scope = ROLE_PAGE_SCOPE_MAP[page];
+  if (!scope) return true;
+  const scopes = getResolvedSessionPermissions(session)?.moduleScopes;
+  if (!Array.isArray(scopes) || !scopes.length) return true;
+  return scopes.includes(scope);
+}
+
+function refreshRoleModuleAccessUI(session = appSession) {
+  const navMap = [
+    ['dashboard', 'nav-dashboard', 'mobile-nav-dashboard'],
+    ['analyze', 'nav-analyze', 'mobile-nav-analyze'],
+    ['strategic-plan', 'nav-strategic-plan', 'mobile-nav-strategic-plan'],
+    ['campaigns', 'nav-campaigns', 'mobile-nav-campaigns'],
+    ['creatives', 'nav-creatives', null],
+    ['integrations', 'nav-integrations', 'mobile-nav-integrations'],
+    ['agents', 'nav-agents', null],
+    ['strategy', null, null],
+    ['weekly-score', 'nav-weekly-score', null],
+    ['learning', null, null]
+  ];
+  navMap.forEach(function(entry) {
+    const allowed = canAccessRoleModule(entry[0], session);
+    [entry[1], entry[2]].filter(Boolean).forEach(function(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.style.display = allowed ? '' : 'none';
+    });
+  });
 }
 
 function isGlobalOwner(session = appSession) {
@@ -9121,7 +9580,7 @@ function isPrimaryRootOwner(session = appSession) {
 }
 
 function canAccessAdminPanel(session = appSession) {
-  return !!(session?.isPlatformOwner || session?.permissions?.canAccessAdminPanel);
+  return !!(session?.isPlatformOwner || getResolvedSessionPermissions(session)?.canAccessAdminPanel);
 }
 
 function hasActiveBearAdsSession(session = appSession) {
@@ -9359,11 +9818,12 @@ function getRecommendedAgents(onboarding = getWorkspaceOnboarding()) {
 }
 
 function canAccessSATab(tab, session = appSession) {
-  const permissions = session?.permissions || {};
+  const permissions = getResolvedSessionPermissions(session);
   if (isGlobalOwner(session)) return true;
   if (tab === 'users') return !!(permissions.canManageUsers || permissions.canSuspendUsers);
   if (tab === 'growth') return !!permissions.canAccessGrowth;
   if (tab === 'billing') return !!permissions.canManageBilling;
+  if (tab === 'equipo') return !!(permissions.canManageUsers || permissions.canAccessAdminPanel);
   if (['audit', 'qa', 'ai'].includes(tab)) return !!permissions.canAccessTechnical;
   return false;
 }
@@ -9383,6 +9843,18 @@ function getDefaultSATab(session = appSession) {
 
 function formatSARole(role) {
   return SA_ROLE_LABELS[role] || String(role || 'user').replace(/_/g, ' ');
+}
+
+function formatSAAccessState(accessState) {
+  return String(accessState || '').toLowerCase() === 'paid' ? 'Pago' : 'Trial';
+}
+
+function formatEmployeeAccessLevel(level) {
+  return EMPLOYEE_ACCESS_LABELS[String(level || '').toLowerCase()] || '';
+}
+
+function getWorkspaceCommercialPlanLabel(plan) {
+  return String(plan || 'trial').toUpperCase();
 }
 
 function renderRuntimeState(session = appSession) {
@@ -9461,14 +9933,32 @@ function buildPlanOptions(selectedPlan) {
   }).join('');
 }
 
+function buildEmployeeAccessOptions(selectedAccess) {
+  const current = String(selectedAccess || 'initial').toLowerCase();
+  return [
+    ['partial', 'ACCESO PARCIAL'],
+    ['initial', 'ACCESO INICIAL'],
+    ['full', 'ACCESO FULL']
+  ].map(function(item) {
+    return '<option value="' + item[0] + '"' + (current === item[0] ? ' selected' : '') + '>' + item[1] + '</option>';
+  }).join('');
+}
+
 function toggleSAPlanSelect(containerId, role) {
   const container = document.getElementById(containerId);
   if (!container) return;
   container.style.display = role === 'member_paid' ? 'block' : 'none';
 }
 
-async function handleAdminUserRoleChange(userId, workspaceId, role, planInputId, planContainerId) {
+function toggleSAEmployeeAccessSelect(containerId, role) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.style.display = ['owner', 'admin', 'billing'].includes(String(role || '').toLowerCase()) ? 'block' : 'none';
+}
+
+async function handleAdminUserRoleChange(userId, workspaceId, role, planInputId, planContainerId, accessInputId, accessContainerId) {
   toggleSAPlanSelect(planContainerId, role);
+  toggleSAEmployeeAccessSelect(accessContainerId, role);
   if (role === 'member_paid') {
     const plan = document.getElementById(planInputId)?.value || '';
     if (!plan) {
@@ -9476,7 +9966,19 @@ async function handleAdminUserRoleChange(userId, workspaceId, role, planInputId,
       return;
     }
   }
-  await updateAdminUserRole(userId, role, workspaceId, planInputId);
+  await updateAdminUserRole(userId, role, workspaceId, planInputId, accessInputId);
+}
+
+async function handleAdminUserPlanChange(userId, workspaceId, role, planInputId, accessInputId) {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (normalizedRole !== 'member_paid') return;
+  await updateAdminUserRole(userId, normalizedRole, workspaceId, planInputId, accessInputId);
+}
+
+async function handleAdminEmployeeAccessChange(userId, workspaceId, role, planInputId, accessInputId) {
+  const normalizedRole = String(role || '').toLowerCase();
+  if (!['owner', 'admin', 'billing'].includes(normalizedRole)) return;
+  await updateAdminUserRole(userId, normalizedRole, workspaceId, planInputId, accessInputId);
 }
 
 function getProfileCachePayload(profile) {
@@ -9549,6 +10051,7 @@ function collectBillingSecurityCheck(status) {
 
 async function refreshAppSession() {
   billingStatusCache = null;
+  googleServiceSnapshot = null;
   const session = await fetchAppSession();
   if (!session || !session.user) {
     appSession = null;
@@ -9573,26 +10076,29 @@ async function refreshAppSession() {
   };
   DB.set('user_profile_cache', getProfileCachePayload(userProfile));
   applyProfileToUI(userProfile, session.workspace);
+  const hasSA = canAccessAdminPanel(session);
   const saBtn = document.getElementById('superadmin-btn');
-  if (saBtn) {
-    saBtn.style.display = canAccessAdminPanel(session) ? 'flex' : 'none';
+  if (saBtn) saBtn.style.display = hasSA ? 'flex' : 'none';
+  // Employee dashboard widget — inicializar para roles internos (billing, developer, partner)
+  if (typeof initEmployeeDashWidget === 'function') {
+    initEmployeeDashWidget(session).catch(function(e) { console.warn('Employee widget:', e.message); });
   }
   renderSAAccess();
   syncCampaignAuthUI(session);
   renderRuntimeState(session);
+  refreshRoleModuleAccessUI(session);
   setTimeout(refreshPlanLockedUI, 0);
-  if (session?.workspace?.integrationHub?.connections) {
-    intgConnections = {
-      google: session.workspace.integrationHub.connections.google || null,
-      gsc: session.workspace.integrationHub.connections.gsc || null,
-      ga4: session.workspace.integrationHub.connections.ga4 || null,
-      meta: session.workspace.integrationHub.connections.meta || null,
-      googleAds: session.workspace.integrationHub.connections.googleAds || null,
-      email: session.workspace.integrationHub.connections.email || null,
-      ecom: session.workspace.integrationHub.connections.ecom || null
-    };
-    DB.set('intg_connections', intgConnections);
-  }
+  const workspaceConnections = session?.workspace?.integrationHub?.connections || {};
+  intgConnections = {
+    google: workspaceConnections.google || null,
+    gsc: workspaceConnections.gsc || null,
+    ga4: workspaceConnections.ga4 || null,
+    meta: workspaceConnections.meta || null,
+    googleAds: workspaceConnections.googleAds || null,
+    email: workspaceConnections.email || null,
+    ecom: workspaceConnections.ecom || null
+  };
+  DB.set('intg_connections', intgConnections);
   return session;
 }
 
@@ -10824,7 +11330,7 @@ function getSABillingUsers() {
   const subscription = workspace.subscription || {};
   return (Array.isArray(data.members) ? data.members : []).map(function(member) {
     const user = member.user || {};
-    const memberTrial = member.role === 'member_trial';
+    const memberTrial = String(member.accessState || '').toLowerCase() === 'trial';
     return {
       ...member,
       user,
@@ -10927,7 +11433,7 @@ function switchSATab(tab) {
 
 async function loadSAPlatformStats() {
   try {
-    const res = await fetch('/api/admin/overview', { credentials: 'same-origin' });
+    const res = await fetch('/api/admin/overview', { credentials: 'same-origin', cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo cargar admin');
     saWorkspaceData = data;
@@ -11006,7 +11512,9 @@ async function loadSAPlatformStats() {
     renderSAAccess();
     await loadSAGlobalUsers();
     renderSAUsers();
-    if (canAccessSATab('growth')) loadSAGrowthInsights();
+    // Growth insights NO se carga automáticamente en cada reload del panel —
+    // solo se carga cuando el usuario abre la pestaña Growth (setSATab('growth')).
+    // Esto evita llamadas a Claude por cada cambio de rol o acción admin.
     if (canAccessSATab('billing')) loadSABillingOverview();
   } catch (e) {
     showToast(e.message || 'No se pudo cargar el panel admin');
@@ -11020,7 +11528,7 @@ function renderSAUsers() {
   if (isPlatformOwnerUser) {
     const results = saGlobalUsersData.filter(function(item) {
       return matchesSAUserSearch(item.user, (item.memberships || []).map(function(m) {
-        return [m.workspaceName, m.workspaceId, m.role, m.plan].join(' ');
+        return [m.workspaceName, m.workspaceId, m.role, m.plan, m.accessState, m.employeeAccessLevel].join(' ');
       }));
     });
     if (!results.length) {
@@ -11038,17 +11546,26 @@ function renderSAUsers() {
             const defaultPlan = ['starter', 'pro', 'agency'].includes(String(membership.plan || '').toLowerCase()) ? String(membership.plan).toLowerCase() : 'starter';
             const planInputId = 'sa-global-plan-' + user.id + '-' + membership.workspaceId;
             const planContainerId = 'sa-global-plan-wrap-' + user.id + '-' + membership.workspaceId;
+            const accessInputId = 'sa-global-access-' + user.id + '-' + membership.workspaceId;
+            const accessContainerId = 'sa-global-access-wrap-' + user.id + '-' + membership.workspaceId;
+            const defaultAccess = ['partial', 'initial', 'full'].includes(String(membership.employeeAccessLevel || '').toLowerCase()) ? String(membership.employeeAccessLevel).toLowerCase() : (membership.role === 'owner' ? 'full' : 'initial');
             return '<div style="padding:8px 10px;background:#fff;border:1px solid rgba(224,112,112,0.12);border-radius:8px;">'
               + '<div style="font-size:11px;font-weight:700;color:#0f172a;">' + esc(membership.workspaceName || 'Workspace') + '</div>'
-              + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Plan: ' + esc(String(membership.plan || 'trial').toUpperCase()) + '</div>'
+              + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Plan comercial: <strong style="color:#0f172a;">' + esc(getWorkspaceCommercialPlanLabel(membership.plan)) + '</strong></div>'
+              + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Rol interno: <strong style="color:#0f172a;">' + esc(formatSARole(membership.role)) + '</strong></div>'
+              + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Nivel de acceso: <strong style="color:#0f172a;">' + esc(membership.employeeAccessLevel ? formatEmployeeAccessLevel(membership.employeeAccessLevel) : formatSAAccessState(membership.accessState)) + '</strong></div>'
               + '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">ID dependencia: ' + esc(membership.workspaceId || '') + '</div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'
-              + '<select onchange="handleAdminUserRoleChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\')" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
+              + '<select onchange="handleAdminUserRoleChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
               + '<button onclick="resetAdminUserTrial(\'' + user.id + '\', \'' + membership.workspaceId + '\')" ' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
               + '</div>'
               + '<div id="' + planContainerId + '" style="margin-top:8px;' + (membership.role === 'member_paid' ? '' : 'display:none;') + '">'
               + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Plan del usuario pago</div>'
-              + '<select id="' + planInputId + '" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
+              + '<select id="' + planInputId + '" onchange="handleAdminUserPlanChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', \'' + membership.role + '\', \'' + planInputId + '\', \'' + accessInputId + '\')" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
+              + '</div>'
+              + '<div id="' + accessContainerId + '" style="margin-top:8px;' + (['owner', 'admin', 'billing'].includes(String(membership.role || '').toLowerCase()) ? '' : 'display:none;') + '">'
+              + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Acceso de empleado</div>'
+              + '<select id="' + accessInputId + '" onchange="handleAdminEmployeeAccessChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', \'' + membership.role + '\', \'' + planInputId + '\', \'' + accessInputId + '\')" ' + ((membership.role === 'owner' && isDannyProtected) ? 'disabled ' : '') + 'style="width:100%;background:#fff;border:1px solid rgba(123,167,232,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + ((membership.role === 'owner' && isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + buildEmployeeAccessOptions(defaultAccess) + '</select>'
               + '</div>'
               + '</div>';
           }).join('')
@@ -11056,7 +11573,7 @@ function renderSAUsers() {
       const canSuspend = canSuspendProfiles();
       return '<div style="padding:12px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
         + '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px;">'
-        + '<div><div style="font-size:13px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
+      + '<div><div style="font-size:13px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
         + '<div style="text-align:right;"><div style="font-size:11px;color:#64748b;">ID: ' + esc(user.id || '') + '</div><div style="font-size:11px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;margin-top:4px;">' + esc(user.status === 'suspended' ? 'Suspendido' : 'Activo') + '</div>' + (isDannyProtected ? '<div style="margin-top:8px;font-size:10px;color:#7f1d1d;font-weight:700;">Protegido</div>' : '<button onclick="toggleGlobalAdminUserStatus(\'' + user.id + '\', \'' + (user.status === 'suspended' ? 'active' : 'suspended') + '\', \'' + (memberships[0]?.workspaceId || '') + '\')" ' + (canSuspend ? '' : 'disabled ') + 'style="margin-top:8px;padding:6px 8px;background:' + (user.status === 'suspended' ? 'rgba(94,201,160,0.12)' : 'rgba(224,112,112,0.1)') + ';border:1px solid rgba(224,112,112,0.18);border-radius:6px;font-size:11px;color:#0f172a;' + (canSuspend ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">' + (user.status === 'suspended' ? 'Reactivar' : 'Suspender') + '</button>') + '</div>'
         + '</div>'
         + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;">' + membershipHtml + '</div>'
@@ -11067,7 +11584,7 @@ function renderSAUsers() {
   const members = saWorkspaceData?.members || [];
   const filteredMembers = members.filter(function(member) {
     const user = member.user || {};
-    return matchesSAUserSearch(user, [member.role, user.platformRole]);
+    return matchesSAUserSearch(user, [member.role, member.accessState, member.employeeAccessLevel, user.platformRole]);
   });
   if (!filteredMembers.length) {
     list.innerHTML = getCurrentSAPermissions().canManageUsers
@@ -11086,15 +11603,23 @@ function renderSAUsers() {
     const defaultPlan = ['starter', 'pro', 'agency'].includes(String(member.plan || '').toLowerCase()) ? String(member.plan).toLowerCase() : 'starter';
     const planInputId = 'sa-user-plan-' + member.userId;
     const planContainerId = 'sa-user-plan-wrap-' + member.userId;
+    const accessInputId = 'sa-user-access-' + member.userId;
+    const accessContainerId = 'sa-user-access-wrap-' + member.userId;
+    const defaultAccess = ['partial', 'initial', 'full'].includes(String(member.employeeAccessLevel || '').toLowerCase()) ? String(member.employeeAccessLevel).toLowerCase() : (member.role === 'owner' ? 'full' : 'initial');
     const status = user.status === 'suspended' ? 'Suspendido' : 'Activo';
     return '<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(224,112,112,0.08);">'
       + '<div><div style="font-size:12px;font-weight:700;color:#0f172a;">' + esc(user.name || user.email || 'Usuario') + '</div><div style="font-size:11px;color:#64748b;">' + esc(user.email || '') + '</div></div>'
-      + '<div style="font-size:11px;color:#64748b;"><div>' + esc(formatSARole(member.role)) + '</div><div style="margin-top:4px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;">' + esc(status) + '</div></div>'
+      + '<div style="font-size:11px;color:#64748b;"><div>Rol interno</div><div style="margin-top:4px;color:#0f172a;font-weight:700;">' + esc(formatSARole(member.role)) + '</div><div style="margin-top:6px;">Nivel de acceso</div><div style="margin-top:4px;color:#35507f;font-weight:700;">' + esc(member.employeeAccessLevel ? formatEmployeeAccessLevel(member.employeeAccessLevel) : formatSAAccessState(member.accessState)) + '</div><div style="margin-top:6px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;">' + esc(status) + '</div></div>'
+      + '<div style="font-size:11px;color:#64748b;"><div>Plan comercial</div><div style="margin-top:4px;color:#0f172a;font-weight:700;">' + esc(getWorkspaceCommercialPlanLabel(member.plan)) + '</div><div style="margin-top:6px;">Workspace</div><div style="margin-top:4px;">' + esc(member.workspaceId || '') + '</div></div>'
       + '<div>'
-      + '<select onchange="handleAdminUserRoleChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\')" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
+      + '<select onchange="handleAdminUserRoleChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
       + '<div id="' + planContainerId + '" style="margin-top:6px;' + (member.role === 'member_paid' ? '' : 'display:none;') + '">'
       + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Plan del usuario pago</div>'
-      + '<select id="' + planInputId + '" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
+      + '<select id="' + planInputId + '" onchange="handleAdminUserPlanChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', \'' + member.role + '\', \'' + planInputId + '\', \'' + accessInputId + '\')" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
+      + '</div>'
+      + '<div id="' + accessContainerId + '" style="margin-top:6px;' + (['owner', 'admin', 'billing'].includes(String(member.role || '').toLowerCase()) ? '' : 'display:none;') + '">'
+      + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Acceso de empleado</div>'
+      + '<select id="' + accessInputId + '" onchange="handleAdminEmployeeAccessChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', \'' + member.role + '\', \'' + planInputId + '\', \'' + accessInputId + '\')" ' + ((member.role === 'owner' && isDannyProtected) ? 'disabled ' : '') + 'style="width:100%;background:#fff;border:1px solid rgba(123,167,232,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + ((member.role === 'owner' && isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + buildEmployeeAccessOptions(defaultAccess) + '</select>'
       + '</div>'
       + '</div>'
       + (isDannyProtected
@@ -11113,7 +11638,7 @@ async function loadSAGlobalUsers() {
     return;
   }
   try {
-    const res = await fetch('/api/admin/global-users', { credentials: 'same-origin' });
+    const res = await fetch('/api/admin/global-users', { credentials: 'same-origin', cache: 'no-store' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo cargar usuarios globales');
     saGlobalUsersData = Array.isArray(data.items) ? data.items : [];
@@ -11141,7 +11666,7 @@ async function inviteAdminUser() {
   showToast(data.attachedExistingUser ? 'Usuario agregado al workspace' : 'Invitación creada');
 }
 
-async function updateAdminUserRole(userId, role, workspaceId, planInputId) {
+async function updateAdminUserRole(userId, role, workspaceId, planInputId, accessInputId) {
   if (!role) return;
   const payload = { role: role };
   if (workspaceId) payload.workspaceId = workspaceId;
@@ -11153,6 +11678,9 @@ async function updateAdminUserRole(userId, role, workspaceId, planInputId) {
     }
     payload.plan = selectedPlan;
   }
+  if (['owner', 'admin', 'billing'].includes(String(role || '').toLowerCase())) {
+    payload.accessLevel = document.getElementById(accessInputId || '')?.value || 'initial';
+  }
   const res = await fetch('/api/admin/users/' + userId, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -11161,7 +11689,11 @@ async function updateAdminUserRole(userId, role, workspaceId, planInputId) {
   });
   const data = await res.json();
   if (!res.ok) { showToast(data.error || 'No se pudo actualizar el rol'); return; }
+  clearRoleSensitiveCaches();
+  await refreshAppSession();
   await loadSAPlatformStats();
+  if (typeof initIntegrationsPage === 'function') setTimeout(initIntegrationsPage, 50);
+  if (typeof refreshDashboard === 'function') setTimeout(refreshDashboard, 50);
   showToast(role === 'member_paid' ? 'Usuario pago activado con plan' : 'Rol actualizado');
 }
 
@@ -11220,22 +11752,31 @@ async function resetAdminUserTrial(userId, workspaceId) {
   await loadSAPlatformStats();
 }
 
-async function loadSAGrowthInsights() {
+async function loadSAGrowthInsights(forceRefresh) {
   const box = document.getElementById('sa-growth-result');
   if (!box) return;
   if (!canAccessSATab('growth')) {
     box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#64748b;', textContent: 'Tu rol no puede ver growth.' }));
     return;
   }
-  box.replaceChildren(Object.assign(document.createElement('em'), { style: 'color:rgba(224,112,112,0.45);', textContent: '⏳ Analizando crecimiento y autogestión...' }));
+  box.replaceChildren(Object.assign(document.createElement('em'), { style: 'color:rgba(224,112,112,0.45);', textContent: '⏳ Analizando crecimiento...' }));
   try {
-    const res = await fetch('/api/admin/growth-insights', { credentials: 'same-origin' });
+    const url = '/api/admin/growth-insights' + (forceRefresh ? '?refresh=true' : '');
+    const res = await fetch(url, { credentials: 'same-origin' });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'No se pudo generar insight');
+    const wrap = document.createElement('div');
+    if (data.fromCache && data.cachedAt) {
+      const badge = document.createElement('div');
+      badge.style.cssText = 'font-size:10px;color:#94a3b8;margin-bottom:8px;';
+      badge.textContent = '📦 Caché · generado ' + new Date(data.cachedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      wrap.appendChild(badge);
+    }
     const text = document.createElement('div');
     text.style.cssText = 'white-space:pre-wrap;line-height:1.8;';
     text.textContent = data.insight || '';
-    box.replaceChildren(text);
+    wrap.appendChild(text);
+    box.replaceChildren(wrap);
   } catch (e) {
     box.replaceChildren(Object.assign(document.createElement('span'), { style: 'color:#e07070;', textContent: e.message || 'Error' }));
   }
@@ -11359,6 +11900,8 @@ function renderSABillingUserList(items, selectedUser) {
       + '</div>'
       + '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'
       + '<span style="display:inline-flex;padding:3px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.1);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(item.role)) + '</span>'
+      + '<span style="display:inline-flex;padding:3px 8px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:999px;font-size:10px;color:#334155;">Acceso ' + esc(formatSAAccessState(item.accessState || item.paymentState)) + '</span>'
+      + (item.employeeAccessLevel ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(formatEmployeeAccessLevel(item.employeeAccessLevel)) + '</span>' : '')
       + '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(String(memberships.length || 1)) + ' dependencias</span>'
       + (paidDependencies ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.14);border-radius:999px;font-size:10px;color:#256b55;">Pago: ' + esc(String(paidDependencies)) + '</span>' : '')
       + (trialDependencies ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">Trial: ' + esc(String(trialDependencies)) + '</span>' : '')
@@ -11430,6 +11973,8 @@ function renderSABillingUserDetailContent() {
           + '<div style="margin-top:4px;font-size:10px;color:#64748b;overflow-wrap:anywhere;">' + esc(item.workspaceId || '') + '</div>'
           + '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">'
           + '<span style="display:inline-flex;padding:3px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.1);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(item.role || 'member_trial')) + '</span>'
+          + '<span style="display:inline-flex;padding:3px 8px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:999px;font-size:10px;color:#334155;">Acceso ' + esc(formatSAAccessState(item.accessState || item.paymentState)) + '</span>'
+          + (item.employeeAccessLevel ? '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(formatEmployeeAccessLevel(item.employeeAccessLevel)) + '</span>' : '')
           + '<span style="display:inline-flex;padding:3px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(String(item.plan || 'trial').toUpperCase()) + '</span>'
           + stripeBadge
           + '</div>'
@@ -11451,6 +11996,8 @@ function renderSABillingUserDetailContent() {
     + '<div style="margin-top:4px;font-size:10px;color:#94a3b8;overflow-wrap:anywhere;">ID perfil: ' + esc(user.id || '') + '</div>'
     + '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;">'
     + '<span style="display:inline-flex;padding:4px 8px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:999px;font-size:10px;color:#7f1d1d;">' + esc(formatSARole(membership.role || 'member_trial')) + '</span>'
+    + '<span style="display:inline-flex;padding:4px 8px;background:rgba(15,23,42,0.04);border:1px solid rgba(15,23,42,0.08);border-radius:999px;font-size:10px;color:#334155;">Acceso ' + esc(formatSAAccessState(membership.accessState || membership.paymentState)) + '</span>'
+    + (membership.employeeAccessLevel ? '<span style="display:inline-flex;padding:4px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">' + esc(formatEmployeeAccessLevel(membership.employeeAccessLevel)) + '</span>' : '')
     + '<span style="display:inline-flex;padding:4px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.14);border-radius:999px;font-size:10px;color:#35507f;">Plan ' + esc(String(membership.plan || workspace.subscription?.plan || 'trial').toUpperCase()) + '</span>'
     + '<span style="display:inline-flex;padding:4px 8px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.14);border-radius:999px;font-size:10px;color:#256b55;">Estado ' + esc(membership.commercialStatus || workspace.subscription?.status || 'trialing') + '</span>'
     + '</div>'
@@ -11986,6 +12533,7 @@ function useCachedAnalysis() {
     if (emptyEl) emptyEl.style.display = 'none';
     document.getElementById('analyze-loading').style.display = 'none';
     renderResults(cached.report);
+    renderAnalyzeSavedReports();
     document.getElementById('analyze-results').style.display = 'block';
     showToast('✓ Análisis cargado — Score: ' + cached.globalScore + '/100');
   } else if (cached) {
@@ -12013,9 +12561,84 @@ function forceNewAnalysis() {
 function getDefaultGoogleAnalysisSelection() {
   const hub = getWorkspaceIntegrationHub();
   const connections = hub?.connections || {};
+  const workspaceUrl = String(appSession?.workspace?.profile?.website || '').trim();
   return {
-    siteUrl: String(connections.gsc?.siteUrl || userProfile.url || '').replace('sc-domain:', ''),
+    siteUrl: String(connections.gsc?.siteUrl || workspaceUrl || userProfile.url || '').replace('sc-domain:', ''),
     ga4PropertyId: connections.ga4?.propertyId || ''
+  };
+}
+
+function resolveDetectedGoogleSelections(snapshot, defaults) {
+  var services = snapshot?.googleServices || {};
+  var gscSites = Array.isArray(services.gsc?.sites) ? services.gsc.sites : [];
+  var ga4Properties = Array.isArray(services.ga4?.properties) ? services.ga4.properties : [];
+  var gadsCustomers = Array.isArray(services.googleAds?.customers) ? services.googleAds.customers : [];
+  var gscValues = gscSites.map(function(site) { return String(site.url || ''); }).filter(Boolean);
+  var ga4Values = ga4Properties.map(function(property) { return String(property.propertyId || ''); }).filter(Boolean);
+  var gadsValues = gadsCustomers.map(function(customer) { return String(customer.customerId || ''); }).filter(Boolean);
+  var activeGoogleEmail = String(snapshot?.user?.email || '').trim().toLowerCase();
+  var savedGoogleEmail = String(intgConnections.google?.email || '').trim().toLowerCase();
+  var canReuseSavedSelections = !activeGoogleEmail || !savedGoogleEmail || activeGoogleEmail === savedGoogleEmail;
+  var selectedGscValue = canReuseSavedSelections ? String(intgConnections.gsc?.siteUrl || '') : '';
+  var selectedGa4Value = canReuseSavedSelections ? String(intgConnections.ga4?.propertyId || '') : '';
+  var selectedGadsValue = canReuseSavedSelections ? String(intgConnections.googleAds?.customerId || '') : '';
+  var selectedGa4Label = intgConnections.ga4?.displayName
+    ? intgConnections.ga4.displayName + ' · ' + selectedGa4Value
+    : (selectedGa4Value ? 'GA4 guardada · ' + selectedGa4Value : '');
+
+  if (!selectedGscValue && defaults.siteUrl) {
+    selectedGscValue = gscSites.find(function(site) {
+      var value = String(site.url || '');
+      return value === defaults.siteUrl || value.replace('sc-domain:', '') === defaults.siteUrl;
+    })?.url || '';
+  }
+  if (!selectedGscValue && gscSites.length === 1) {
+    selectedGscValue = gscValues[0];
+  }
+  if (selectedGscValue && !gscValues.includes(String(selectedGscValue))) {
+    selectedGscValue = gscSites.length === 1 ? gscValues[0] : '';
+  }
+
+  if (!selectedGa4Value && defaults.ga4PropertyId) {
+    selectedGa4Value = ga4Properties.find(function(property) {
+      return String(property.propertyId || '') === String(defaults.ga4PropertyId || '');
+    })?.propertyId || '';
+  }
+  if (!selectedGa4Value && ga4Properties.length === 1) {
+    selectedGa4Value = ga4Values[0];
+  }
+  if (selectedGa4Value && !ga4Values.includes(String(selectedGa4Value))) {
+    selectedGa4Value = ga4Properties.length === 1 ? ga4Values[0] : '';
+  }
+  if (selectedGa4Value) {
+    var selectedGa4Property = ga4Properties.find(function(property) {
+      return String(property.propertyId || '') === String(selectedGa4Value || '');
+    }) || null;
+    if (selectedGa4Property) {
+      selectedGa4Label = (selectedGa4Property.displayName || 'GA4') + ' · ' + selectedGa4Value;
+    }
+  }
+
+  if (!selectedGadsValue && gadsCustomers.length === 1) {
+    selectedGadsValue = gadsValues[0];
+  }
+  if (selectedGadsValue && !gadsValues.includes(String(selectedGadsValue))) {
+    selectedGadsValue = gadsCustomers.length === 1 ? gadsValues[0] : '';
+  }
+
+  return {
+    gscSites: gscSites,
+    ga4Properties: ga4Properties,
+    gadsCustomers: gadsCustomers,
+    gscValues: gscValues,
+    ga4Values: ga4Values,
+    gadsValues: gadsValues,
+    selectedGscValue: selectedGscValue,
+    selectedGa4Value: selectedGa4Value,
+    selectedGa4Label: selectedGa4Label,
+    selectedGadsValue: selectedGadsValue,
+    activeGoogleEmail: activeGoogleEmail,
+    canReuseSavedSelections: canReuseSavedSelections
   };
 }
 
@@ -12043,6 +12666,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadProfileOnStart();
   await handleBillingReturnState();
   syncNotificationButton();
+  renderAnalyzeSavedReports();
+  renderSavedStrategies();
   refreshDashboard();
   const defaults = getDefaultGoogleAnalysisSelection();
   const urlInput = document.getElementById('analyze-url');
@@ -12287,6 +12912,7 @@ function fillSelectOptions(selectEl, options, placeholder, selectedValue) {
   var placeholderOption = document.createElement('option');
   placeholderOption.value = '';
   placeholderOption.textContent = placeholder;
+  placeholderOption.selected = !selectedValue;
   selectEl.appendChild(placeholderOption);
   (options || []).forEach(function(option) {
     var el = document.createElement('option');
@@ -12324,21 +12950,19 @@ function populateAnalyzeGoogleSelectors(snapshot) {
   var hint = document.getElementById('google-connect-hint');
   var defaults = getDefaultGoogleAnalysisSelection();
   var services = snapshot?.googleServices || {};
-  var gscSites = Array.isArray(services.gsc?.sites) ? services.gsc.sites : [];
-  var ga4Properties = Array.isArray(services.ga4?.properties) ? services.ga4.properties : [];
-  var gadsCustomers = Array.isArray(services.googleAds?.customers) ? services.googleAds.customers : [];
-  var selectedGscValue = intgConnections.gsc?.siteUrl || '';
-  var selectedGa4Value = intgConnections.ga4?.propertyId || defaults.ga4PropertyId || '';
-  var selectedGa4Label = intgConnections.ga4?.displayName
-    ? intgConnections.ga4.displayName + ' · ' + selectedGa4Value
-    : (selectedGa4Value ? 'GA4 guardada · ' + selectedGa4Value : '');
-  if (!selectedGscValue && defaults.siteUrl) {
-    selectedGscValue = gscSites.find(function(site) {
-      return String(site.url || '').replace('sc-domain:', '') === defaults.siteUrl;
-    })?.url || defaults.siteUrl;
-  }
+  var selection = resolveDetectedGoogleSelections(snapshot, defaults);
+  var gscSites = selection.gscSites;
+  var ga4Properties = selection.ga4Properties;
+  var gadsCustomers = selection.gadsCustomers;
+  var selectedGscValue = selection.selectedGscValue;
+  var selectedGa4Value = selection.selectedGa4Value;
+  var selectedGa4Label = selection.selectedGa4Label;
+  var selectedGadsValue = selection.selectedGadsValue;
 
   if (!panel || !gscSelect || !ga4Select || !gadsSelect) return;
+
+  if (urlInput && selectedGscValue) urlInput.value = String(selectedGscValue).replace('sc-domain:', '');
+  if (ga4Input && selectedGa4Value) ga4Input.value = selectedGa4Value;
 
   fillSelectOptions(
     gscSelect,
@@ -12381,7 +13005,7 @@ function populateAnalyzeGoogleSelectors(snapshot) {
       };
     }),
     gadsCustomers.length ? 'Selecciona una cuenta de Google Ads' : 'No se detectaron cuentas de Google Ads',
-    intgConnections.googleAds?.customerId || ''
+    selectedGadsValue
   );
 
   panel.style.display = (gscSites.length || ga4Properties.length || gadsCustomers.length) ? 'block' : 'none';
@@ -12476,20 +13100,29 @@ function applyDetectedGoogleAssets(snapshot) {
   var firstSite = services.gsc?.sites?.[0]?.url || '';
   var firstGA4PropertyId = services.ga4?.properties?.[0]?.propertyId || '';
   var firstGoogleAdsCustomer = services.googleAds?.customers?.[0]?.customerId || '';
+  var gscValues = Array.isArray(services.gsc?.sites) ? services.gsc.sites.map(function(site) { return String(site.url || ''); }) : [];
+  var ga4Values = Array.isArray(services.ga4?.properties) ? services.ga4.properties.map(function(property) { return String(property.propertyId || ''); }) : [];
+  var gadsValues = Array.isArray(services.googleAds?.customers) ? services.googleAds.customers.map(function(customer) { return String(customer.customerId || ''); }) : [];
+  var storedSite = String(hubConnections.gsc?.siteUrl || '');
+  var storedGa4 = String(hubConnections.ga4?.propertyId || '');
+  var storedGads = String(hubConnections.googleAds?.customerId || '');
+  var resolvedSite = gscValues.includes(storedSite) ? storedSite : firstSite;
+  var resolvedGa4 = ga4Values.includes(storedGa4) ? storedGa4 : firstGA4PropertyId;
+  var resolvedGads = gadsValues.includes(storedGads) ? storedGads : firstGoogleAdsCustomer;
 
   var urlField = document.getElementById('intg-gsc-url');
   if (urlField && !urlField.value) {
-    urlField.value = String(hubConnections.gsc?.siteUrl || firstSite || '').replace('sc-domain:', '');
+    urlField.value = String(resolvedSite || '').replace('sc-domain:', '');
   }
 
   var ga4Field = document.getElementById('intg-ga4-id');
   if (ga4Field && !ga4Field.value) {
-    ga4Field.value = hubConnections.ga4?.propertyId || firstGA4PropertyId || '';
+    ga4Field.value = resolvedGa4 || '';
   }
 
   var gadsCidField = document.getElementById('gads-cid');
   if (gadsCidField && !gadsCidField.value) {
-    gadsCidField.value = formatGoogleAdsCustomerId(hubConnections.googleAds?.customerId || firstGoogleAdsCustomer || '');
+    gadsCidField.value = formatGoogleAdsCustomerId(resolvedGads || '');
   }
 }
 
@@ -13148,17 +13781,18 @@ async function loadGSCDashboard() {
   var formRow = document.createElement('div');
   formRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;';
   var defaults = getDefaultGoogleAnalysisSelection();
-  var selectedGscValue = intgConnections.gsc?.siteUrl || '';
-  if (!selectedGscValue && defaults.siteUrl) {
-    selectedGscValue = (services.gsc?.sites || []).find(function(site) {
-      return String(site.url || '').replace('sc-domain:', '') === defaults.siteUrl;
-    })?.url || defaults.siteUrl;
-  }
+  var selection = resolveDetectedGoogleSelections(snapshot, defaults);
+  var gscSites = selection.gscSites;
+  var ga4Properties = selection.ga4Properties;
+  var gadsCustomers = selection.gadsCustomers;
+  var selectedGscValue = selection.selectedGscValue;
+  var selectedGa4Value = selection.selectedGa4Value;
+  var selectedGadsValue = selection.selectedGadsValue;
   var urlField = document.createElement('input');
   urlField.id = 'intg-gsc-url';
   urlField.type = 'url';
   urlField.placeholder = 'https://tu-sitio.com — ingresa para ver datos de GSC';
-  urlField.value = defaults.siteUrl || '';
+  urlField.value = selectedGscValue ? String(selectedGscValue).replace('sc-domain:', '') : '';
   urlField.style.cssText = 'flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
   urlField.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
   urlField.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
@@ -13168,7 +13802,7 @@ async function loadGSCDashboard() {
   ga4Field.id = 'intg-ga4-id';
   ga4Field.type = 'text';
   ga4Field.placeholder = 'GA4 Property ID (opcional)';
-  ga4Field.value = defaults.ga4PropertyId || '';
+  ga4Field.value = selectedGa4Value || '';
   ga4Field.style.cssText = 'width:180px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;';
   ga4Field.addEventListener('focus', function(){ this.style.borderColor = '#5ec9a0'; });
   ga4Field.addEventListener('blur', function(){ this.style.borderColor = 'var(--border)'; });
@@ -13183,6 +13817,7 @@ async function loadGSCDashboard() {
     selectorsRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;';
 
     var gscSelect = document.createElement('select');
+    gscSelect.id = 'intg-gsc-select';
     gscSelect.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(123,167,232,0.16);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
     fillSelectOptions(
       gscSelect,
@@ -13210,6 +13845,7 @@ async function loadGSCDashboard() {
     selectorsRow.appendChild(gscSelect);
 
     var ga4Select = document.createElement('select');
+    ga4Select.id = 'intg-ga4-select';
     ga4Select.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(123,167,232,0.16);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
     fillSelectOptions(
       ga4Select,
@@ -13217,7 +13853,7 @@ async function loadGSCDashboard() {
         return { value: String(property.propertyId || ''), label: 'GA4 · ' + (property.displayName || property.propertyId || '') + ' · ' + (property.propertyId || '') };
       }),
       'Selecciona una propiedad de GA4',
-      intgConnections.ga4?.propertyId || defaults.ga4PropertyId || ''
+      selectedGa4Value
     );
     ga4Select.onchange = function() {
       var selectedProperty = (services.ga4?.properties || []).find(function(property) { return String(property.propertyId || '') === ga4Select.value; }) || null;
@@ -13241,6 +13877,7 @@ async function loadGSCDashboard() {
     selectorsRow.appendChild(ga4Select);
 
     var gadsSelect = document.createElement('select');
+    gadsSelect.id = 'intg-gads-select';
     gadsSelect.style.cssText = 'flex:1;min-width:220px;background:rgba(255,255,255,0.75);border:1px solid rgba(251,191,36,0.18);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--text);outline:none;';
     fillSelectOptions(
       gadsSelect,
@@ -13248,7 +13885,7 @@ async function loadGSCDashboard() {
         return { value: String(customer.customerId || ''), label: 'Google Ads · ' + formatGoogleAdsCustomerId(customer.customerId || '') };
       }),
       'Selecciona una cuenta de Google Ads',
-      intgConnections.googleAds?.customerId || ''
+      selectedGadsValue
     );
     gadsSelect.onchange = function() {
       var selectedCustomer = (services.googleAds?.customers || []).find(function(customer) { return String(customer.customerId || '') === gadsSelect.value; }) || null;
@@ -13355,8 +13992,11 @@ async function diagnosGSC() {
 async function loadGSCWithUrl() {
   const urlInput = document.getElementById('intg-gsc-url');
   const ga4Input = document.getElementById('intg-ga4-id');
+  const gscSelect = document.getElementById('intg-gsc-select');
   const content = document.getElementById('intg-gsc-content');
-  const url = urlInput?.value.trim();
+  const rawUrl = urlInput?.value.trim();
+  const selectedSiteUrl = gscSelect?.value.trim() || '';
+  const url = rawUrl || String(selectedSiteUrl || '').replace('sc-domain:', '');
   
   if (!url) { showToast('Ingresa la URL de tu sitio'); urlInput?.focus(); return; }
   if (!content) return;
@@ -13368,15 +14008,21 @@ async function loadGSCWithUrl() {
     const res = await fetch('/api/traffic-data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteUrl: url, ga4PropertyId: ga4Input?.value.trim() || undefined })
+      body: JSON.stringify({ siteUrl: selectedSiteUrl || url, ga4PropertyId: ga4Input?.value.trim() || undefined })
     });
-    const data = await res.json();
+    const responseText = await res.text();
+    let data = {};
+    try {
+      data = responseText ? JSON.parse(responseText) : {};
+    } catch (error) {
+      throw new Error('La respuesta de Integraciones no llegó en formato válido');
+    }
     
-    if (data.error) {
+    if (!res.ok && !data?.gsc && !data?.ga4) {
       clearElement(content);
       var errorBox = document.createElement('div');
       errorBox.style.cssText = 'padding:16px;background:rgba(239,68,68,0.05);border:1px solid rgba(224,112,112,0.18);border-radius:8px;font-size:12px;color:#f87171;';
-      appendTextLine(errorBox, '⚠️ ' + getFriendlyUiError(data.error), 'margin-bottom:6px;');
+      appendTextLine(errorBox, '⚠️ ' + getFriendlyUiError(data.error || ('HTTP ' + res.status + ' · ' + (responseText || 'sin detalle'))), 'margin-bottom:6px;');
       appendTextLine(errorBox, 'Verifica que tu sitio esté registrado en Search Console y que estás usando la cuenta correcta.', 'font-size:11px;color:var(--muted);');
       content.appendChild(errorBox);
       return;
@@ -13389,7 +14035,7 @@ async function loadGSCWithUrl() {
         name: appSession.user.name || ''
       } : intgConnections.google,
       gsc: {
-        siteUrl: url,
+        siteUrl: data?.gsc?.matchedUrl || selectedSiteUrl || url,
         selectedAt: new Date().toISOString()
       },
       ga4: ga4Input?.value.trim() ? {
@@ -13398,7 +14044,7 @@ async function loadGSCWithUrl() {
       } : intgConnections.ga4
     }, ['google', 'gsc', ga4Input?.value.trim() ? 'ga4' : null].filter(Boolean));
 
-    renderGSCDashboard(content, data, url);
+    renderGSCDashboard(content, data, selectedSiteUrl || url);
   } catch(e) {
     clearElement(content);
     var networkError = document.createElement('div');
@@ -14632,6 +15278,7 @@ function renderStrategicAnalysisBridge() {
 function initStrategicPlanPage() {
   refreshPlanLockedUI();
   renderStrategicAnalysisBridge();
+  renderSavedStrategies();
   var ctx = deriveStrategicPlanContext();
   var draft = getStrategicPlanDraft();
   var onboarding = getWorkspaceOnboarding();
@@ -15367,18 +16014,66 @@ async function generateCreativeImage() {
 }
 
 // ── GOOGLE ADS REAL DASHBOARD ──
+function getResolvedGAdsCustomerId() {
+  var stored = DB.get('gads_credentials', null);
+  var storedId = String(stored?.customerId || '').replace(/\D/g, '');
+  if (storedId) return storedId;
+
+  var connectedId = String(intgConnections?.googleAds?.customerId || '').replace(/\D/g, '');
+  if (connectedId) return connectedId;
+
+  var detectedId = String(googleServiceSnapshot?.googleServices?.googleAds?.customers?.[0]?.customerId || '').replace(/\D/g, '');
+  if (detectedId) return detectedId;
+
+  return '';
+}
+
+function hydrateGAdsCredentials(forceRefresh) {
+  var resolvedCustomerId = getResolvedGAdsCustomerId();
+  var cidInput = document.getElementById('gads-cid');
+
+  if (cidInput && (forceRefresh || !cidInput.value)) {
+    cidInput.value = resolvedCustomerId ? formatGoogleAdsCustomerId(resolvedCustomerId) : '';
+  }
+
+  if (!resolvedCustomerId) {
+    gadsCredentials = null;
+    return null;
+  }
+
+  gadsCredentials = { customerId: resolvedCustomerId };
+  DB.set('gads_credentials', gadsCredentials);
+
+  if (!intgConnections.googleAds || String(intgConnections.googleAds.customerId || '').replace(/\D/g, '') !== resolvedCustomerId) {
+    intgConnections.googleAds = {
+      ...(intgConnections.googleAds || {}),
+      customerId: resolvedCustomerId,
+      hasToken: true,
+      selectedAt: intgConnections.googleAds?.selectedAt || new Date().toISOString()
+    };
+    DB.set('intg_connections', intgConnections);
+    renderSavedConnections();
+    updateIntgSummary(Boolean(appSession?.user?.googleId || appSession?.user?.googleConnected));
+  }
+
+  return gadsCredentials;
+}
+
 function initGAdsDashboard() {
-  DB.set('gads_credentials', null);
   checkGAdsAuthStatus();
-  if (gadsCredentials) {
+  hydrateGAdsCredentials(true);
+  if (gadsCredentials?.customerId) {
     document.getElementById('gads-connect-section').style.display = 'none';
     document.getElementById('gads-dashboard').style.display = 'block';
     loadGAdsDashboard();
+  } else {
+    document.getElementById('gads-connect-section').style.display = 'block';
+    document.getElementById('gads-dashboard').style.display = 'none';
   }
 }
 
 async function connectGoogleAds() {
-  var cid = document.getElementById('gads-cid')?.value.trim();
+  var cid = String(document.getElementById('gads-cid')?.value || '').replace(/\D/g, '');
   if (!cid) { showToast('Ingresa tu Customer ID'); return; }
 
   var btn = document.getElementById('gads-connect-btn');
@@ -15416,6 +16111,18 @@ async function connectGoogleAds() {
 
     // All good
     gadsCredentials = { customerId: cid };
+    DB.set('gads_credentials', gadsCredentials);
+    intgConnections.googleAds = {
+      ...(intgConnections.googleAds || {}),
+      customerId: cid,
+      hasToken: true,
+      selectedAt: new Date().toISOString()
+    };
+    DB.set('intg_connections', intgConnections);
+    renderSavedConnections();
+    updateIntgSummary(Boolean(appSession?.user?.googleId || appSession?.user?.googleConnected));
+    var cidInput = document.getElementById('gads-cid');
+    if (cidInput) cidInput.value = formatGoogleAdsCustomerId(cid);
     document.getElementById('gads-connect-section').style.display = 'none';
     document.getElementById('gads-dashboard').style.display = 'block';
     loadGAdsDashboard();
@@ -15452,6 +16159,9 @@ function checkGAdsAuthStatus() {
 }
 
 async function loadGAdsDashboard() {
+  if (!gadsCredentials?.customerId) {
+    hydrateGAdsCredentials();
+  }
   var content = document.getElementById('gads-dashboard-content');
   if (!content) return;
   clearElement(content);
@@ -16344,8 +17054,10 @@ function setSATab(tab) {
   });
   saCurrentTab = tab;
   if (tab === 'users') renderSAUsers();
-  if (tab === 'growth') loadSAGrowthInsights();
+  // Growth insights NO se carga automáticamente al abrir la pestaña —
+  // solo cuando el usuario hace clic en "🔄 Actualizar". Evita llamadas a Claude.
   if (tab === 'billing') loadSABillingOverview();
+  if (tab === 'equipo') loadSAEquipoTab();
 }
 
 var QA_SYSTEM = `Eres el agente QA y Seguridad de BearAds. Acceso: SUPERADMIN ONLY.
@@ -16715,6 +17427,7 @@ async function runQACustom() {
         <button onclick="setSATab('users')" id="sa-tab-users" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">👥 Usuarios</button>
         <button onclick="setSATab('growth')" id="sa-tab-growth" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">📈 Growth</button>
         <button onclick="setSATab('billing')" id="sa-tab-billing" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">💳 Billing</button>
+        <button onclick="setSATab('equipo')" id="sa-tab-equipo" style="padding:8px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:11px;font-weight:700;color:rgba(224,112,112,0.4);cursor:pointer;">🤝 Equipo</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;">
         <div style="background:rgba(224,112,112,0.04);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:12px;">
@@ -16834,10 +17547,15 @@ async function runQACustom() {
       </div>
 
       <div id="sa-panel-growth" style="display:none;">
-        <div style="padding:10px 12px;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;margin-bottom:10px;">
-          Autogestión inicial: este módulo analiza el workspace, el trial, el equipo y te sugiere automatizaciones, integraciones y mejoras de crecimiento.
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;">
+          <div style="padding:10px 12px;flex:1;background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.12);border-radius:8px;font-size:11px;color:#7f1d1d;">
+            Autogestión: analiza el workspace, el trial y el equipo para sugerirte automatizaciones, integraciones y mejoras de crecimiento.
+          </div>
+          <button onclick="loadSAGrowthInsights(true)" style="padding:8px 12px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.25);border-radius:8px;font-size:11px;color:#e07070;cursor:pointer;white-space:nowrap;font-weight:700;" title="Regenerar con IA (usa créditos)">🔄 Actualizar</button>
         </div>
-        <div id="sa-growth-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:120px;"></div>
+        <div id="sa-growth-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:120px;">
+          <em style="color:rgba(224,112,112,0.45);">Click en 🔄 Actualizar para generar el análisis de crecimiento con IA.</em>
+        </div>
       </div>
 
       <div id="sa-panel-billing" style="display:none;">
@@ -16846,10 +17564,121 @@ async function runQACustom() {
         </div>
         <div id="sa-billing-result" style="background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:10px;padding:14px;font-size:12px;color:#334155;line-height:1.8;white-space:pre-wrap;min-height:120px;"></div>
       </div>
+
+      <!-- ── EQUIPO TAB ────────────────────────────────────────────────────── -->
+      <div id="sa-panel-equipo" style="display:none;">
+        <div id="sa-equipo-loading" style="font-size:12px;color:rgba(224,112,112,0.5);padding:16px 0;">Cargando equipo...</div>
+        <div id="sa-equipo-content" style="display:none;">
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:#7f1d1d;margin-bottom:10px;">EQUIPO INTERNO</div>
+          <div id="sa-equipo-internal" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+          <div style="font-size:11px;font-weight:800;letter-spacing:0.5px;color:#7f1d1d;margin-bottom:10px;">PARTNERS</div>
+          <div id="sa-equipo-partners" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+          <!-- CRM Drawer -->
+          <div id="sa-equipo-crm" style="display:none;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.15);border-radius:12px;padding:14px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div id="sa-crm-title" style="font-size:13px;font-weight:800;color:#0f172a;">Historial CRM</div>
+              <button onclick="document.getElementById('sa-equipo-crm').style.display='none'" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;">✕</button>
+            </div>
+            <div id="sa-crm-activities" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;margin-bottom:12px;"></div>
+            <!-- Añadir nota -->
+            <div id="sa-crm-add-note" style="display:none;border-top:1px solid rgba(224,112,112,0.12);padding-top:10px;margin-top:4px;">
+              <div style="font-size:10px;font-weight:800;color:#7f1d1d;margin-bottom:6px;">AÑADIR NOTA</div>
+              <input id="sa-crm-note-title" type="text" placeholder="Título de la nota" style="width:100%;padding:7px 10px;border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;margin-bottom:6px;box-sizing:border-box;background:rgba(224,112,112,0.03);color:#0f172a;outline:none;"/>
+              <textarea id="sa-crm-note-desc" placeholder="Descripción (opcional)" rows="2" style="width:100%;padding:7px 10px;border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;box-sizing:border-box;background:rgba(224,112,112,0.03);color:#0f172a;outline:none;resize:vertical;"></textarea>
+              <button onclick="submitOwnerNote()" style="margin-top:6px;padding:7px 14px;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.25);border-radius:7px;font-size:11px;font-weight:700;color:#e07070;cursor:pointer;">Añadir nota</button>
+            </div>
+
+            <!-- Gestión de rol (solo owner/admin) -->
+            <div id="sa-crm-role-mgmt" style="display:none;border-top:1px solid rgba(224,112,112,0.12);padding-top:12px;margin-top:8px;">
+              <div style="font-size:10px;font-weight:800;color:#7f1d1d;margin-bottom:10px;letter-spacing:0.5px;">GESTIÓN DE ROL</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+                <div>
+                  <div style="font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:0.4px;margin-bottom:4px;">ROL DEL SISTEMA</div>
+                  <select id="sa-crm-role-select" style="width:100%;padding:7px 10px;border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;background:rgba(224,112,112,0.03);color:#0f172a;outline:none;cursor:pointer;">
+                    <option value="admin">Admin General</option>
+                    <option value="billing">Finanzas</option>
+                    <option value="developer">Técnico / Desarrollador</option>
+                    <option value="partner">Partner / Colaborador</option>
+                  </select>
+                </div>
+                <div>
+                  <div style="font-size:9px;font-weight:700;color:#94a3b8;letter-spacing:0.4px;margin-bottom:4px;">ESPECIALIDAD</div>
+                  <select id="sa-crm-jobrole-select" style="width:100%;padding:7px 10px;border:1px solid rgba(224,112,112,0.2);border-radius:7px;font-size:12px;background:rgba(224,112,112,0.03);color:#0f172a;outline:none;cursor:pointer;">
+                    <option value="">Sin especialidad</option>
+                    <option value="sales">Ventas</option>
+                    <option value="soporte">Soporte</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="analyst">Analista</option>
+                    <option value="strategist">Estratega</option>
+                    <option value="account_manager">Account Manager</option>
+                    <option value="creative">Creativo</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <button onclick="saveEmpRoleChange()" style="padding:7px 16px;background:rgba(224,112,112,0.12);border:1px solid rgba(224,112,112,0.28);border-radius:7px;font-size:11px;font-weight:700;color:#e07070;cursor:pointer;">💾 Guardar cambios</button>
+                <div id="sa-crm-role-feedback" style="font-size:11px;color:#5ec9a0;display:none;">✓ Guardado</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
+<!-- ══ EMPLOYEE REGISTER ACTIVITY MODAL ════════════════════════════════════ -->
+<div id="emp-register-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2200;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;width:460px;max-width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,0.35);">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;color:var(--text);">⚡ Registrar Actividad</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Deja constancia de tu trabajo</div>
+      </div>
+      <button onclick="closeEmpRegisterModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:0.5px;">TIPO</label>
+          <select id="emp-reg-type" style="width:100%;padding:9px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;">
+            <option value="task">✅ Tarea</option>
+            <option value="meeting">🤝 Reunión</option>
+            <option value="note">📝 Nota</option>
+            <option value="strategy">📋 Estrategia</option>
+            <option value="creative">🎨 Creativo</option>
+            <option value="analysis">🔍 Análisis</option>
+            <option value="campaign">📣 Campaña</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:0.5px;">ESTADO</label>
+          <select id="emp-reg-status" style="width:100%;padding:9px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;">
+            <option value="done">✓ Completada</option>
+            <option value="pending">⏳ Pendiente</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:0.5px;">TÍTULO *</label>
+        <input id="emp-reg-title" type="text" placeholder="¿Qué hiciste o qué hay que hacer?" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text);outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"/>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:0.5px;">DESCRIPCIÓN</label>
+        <textarea id="emp-reg-desc" placeholder="Detalles adicionales (opcional)" rows="3" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);outline:none;resize:vertical;box-sizing:border-box;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:0.5px;">CLIENTE</label>
+        <select id="emp-reg-client" style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;">
+          <option value="">Sin cliente específico</option>
+        </select>
+      </div>
+      <button onclick="submitEmpActivity()" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:0.3px;">Guardar actividad</button>
+    </div>
+  </div>
+</div>
 
 <!-- GOOGLE ADS CREATE MODAL -->
 <div id="gads-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;">
@@ -16962,5 +17791,835 @@ async function runQACustom() {
   <button onclick="installPWA()" style="padding:9px 14px;background:var(--accent);border:none;border-radius:8px;color:#ffffff;font-size:12px;font-weight:700;cursor:pointer;">Agregar</button>
   <button onclick="dismissPWABanner(true)" style="padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;">Ahora no</button>
 </div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// EMPLOYEE DASHBOARD WIDGET + Admin Equipo Tab
+// ══════════════════════════════════════════════════════════════════════════════
+
+var empDashClients = [];
+
+var EDW_ROLE_CONFIG = {
+  // Roles principales
+  owner:          { icon: '👑', label: 'Super Admin',       color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.3)',  desc: 'Acceso total a la plataforma.' },
+  billing:        { icon: '💳', label: 'Finanzas',          color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.3)', desc: 'Monitorea pagos activos, trials y alertas de suscripción.' },
+  developer:      { icon: '⚙️', label: 'Técnico',           color: '#6366f1', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.3)',  desc: 'Supervisa el estado del servidor y la infraestructura técnica.' },
+  partner:        { icon: '🤝', label: 'Partner',           color: '#14b8a6', bg: 'rgba(20,184,166,0.15)',  border: 'rgba(20,184,166,0.3)',  desc: 'Gestiona tus clientes asignados y registra actividades de trabajo.' },
+  admin:          { icon: '🛡️', label: 'Admin General',     color: '#e07070', bg: 'rgba(224,112,112,0.15)', border: 'rgba(224,112,112,0.3)', desc: 'Administra la plataforma y el equipo.' },
+  // Especialidades (jobRole)
+  sales:          { icon: '💼', label: 'Ventas',            color: '#10b981', bg: 'rgba(16,185,129,0.15)',  border: 'rgba(16,185,129,0.3)',  desc: 'Gestiona el pipeline de clientes y oportunidades comerciales.' },
+  soporte:        { icon: '🎧', label: 'Soporte',           color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.3)',  desc: 'Atiende las necesidades y problemas de los clientes asignados.' },
+  marketing:      { icon: '📣', label: 'Marketing',         color: '#ec4899', bg: 'rgba(236,72,153,0.15)',  border: 'rgba(236,72,153,0.3)',  desc: 'Gestiona campañas, contenido y estrategias de crecimiento.' },
+  strategist:     { icon: '📋', label: 'Estratega',         color: '#7ba7e8', bg: 'rgba(123,167,232,0.15)', border: 'rgba(123,167,232,0.3)', desc: 'Define estrategias y planes de crecimiento para los clientes.' },
+  account_manager:{ icon: '🤝', label: 'Account Manager',   color: '#5ec9a0', bg: 'rgba(94,201,160,0.15)',  border: 'rgba(94,201,160,0.3)',  desc: 'Gestiona la relación y satisfacción de los clientes asignados.' },
+  creative:       { icon: '🎨', label: 'Creativo',          color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.3)',  desc: 'Desarrolla piezas creativas y contenido para los clientes.' },
+  analyst:        { icon: '🔍', label: 'Analista',          color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.3)', desc: 'Analiza datos y genera reportes para la toma de decisiones.' },
+};
+
+// ── Inicializar widget según sesión ──────────────────────────────────────────
+async function initEmployeeDashWidget(session) {
+  var role         = getResolvedSessionRole(session);
+  var jobRole      = session && session.membership ? session.membership.jobRole : null;
+  var isPO         = !!(session && session.isPlatformOwner);
+  var perms        = (session && session.permissions) || {};
+  var canAdminPanel = !!(perms.canAccessAdminPanel);
+
+  // Mostrar widget para billing, developer y partner
+  // No para: platform owner, admin puro (tiene SA panel), ni clientes
+  var EMPLOYEE_ROLES = ['billing', 'developer', 'partner'];
+  var showWidget = EMPLOYEE_ROLES.indexOf(role) !== -1 && !isPO;
+
+  // Excluir explícitamente admin/owner del widget (tienen SA)
+  if (role === 'admin' || role === 'owner' || isPO) showWidget = false;
+
+  var widget  = document.getElementById('employee-dash-widget');
+  var guide   = document.getElementById('dashboard-guide');
+  var kpiSec  = document.getElementById('dash-kpi-section');
+  var qkSec   = document.getElementById('dash-quick-section');
+  var diagSec = document.getElementById('dash-diagnosis-overview');
+  var mainGrid= document.getElementById('dash-main-grid');
+
+  if (!showWidget) {
+    if (widget)   widget.style.display   = 'none';
+    if (guide)    guide.style.display    = '';
+    if (kpiSec)   kpiSec.style.display   = '';
+    if (qkSec)    qkSec.style.display    = '';
+    if (diagSec)  diagSec.style.display  = '';
+    if (mainGrid) mainGrid.style.display = '';
+    return;
+  }
+
+  // Mostrar widget; ocultar secciones para clientes
+  if (widget)   widget.style.display   = 'block';
+  if (guide)    guide.style.display    = 'none';
+  if (kpiSec)   kpiSec.style.display   = 'none';
+  if (qkSec)    qkSec.style.display    = 'none';
+  if (diagSec)  diagSec.style.display  = 'none';
+  if (mainGrid) mainGrid.style.display = 'none';
+
+  // Hero: nombre + badges
+  var name = (session && session.user) ? (session.user.name || session.user.email || 'Equipo') : 'Equipo';
+  var firstName = name.split(' ')[0];
+  var welcomeEl = document.getElementById('edw-welcome');
+  if (welcomeEl) welcomeEl.textContent = 'Hola, ' + firstName + ' 👋';
+
+  var keyForConfig = jobRole || role;
+  var cfg = EDW_ROLE_CONFIG[keyForConfig] || EDW_ROLE_CONFIG[role] || {};
+
+  var roleBadge = document.getElementById('edw-role-badge');
+  if (roleBadge) {
+    roleBadge.textContent = (cfg.label || role).toUpperCase();
+    if (cfg.bg)     roleBadge.style.background  = cfg.bg;
+    if (cfg.color)  roleBadge.style.color        = cfg.color;
+    if (cfg.border) roleBadge.style.borderColor  = cfg.border;
+  }
+
+  var jrBadge = document.getElementById('edw-jobrole-badge');
+  if (jrBadge) {
+    if (jobRole && jobRole !== role) {
+      var jrCfg = EDW_ROLE_CONFIG[jobRole] || {};
+      jrBadge.style.display     = 'inline-block';
+      jrBadge.textContent       = jrCfg.label || jobRole;
+      if (jrCfg.bg)     jrBadge.style.background = jrCfg.bg;
+      if (jrCfg.color)  jrBadge.style.color       = jrCfg.color;
+      if (jrCfg.border) jrBadge.style.borderColor = jrCfg.border;
+    } else {
+      jrBadge.style.display = 'none';
+    }
+  }
+
+  var accessBadge = document.getElementById('edw-access-badge');
+  if (accessBadge) {
+    var lvl = session && session.user && session.user.membership ? session.user.membership.employeeAccessLevel : null;
+    var lvlMap = { initial: '· Acceso inicial', partial: '· Acceso parcial', full: '· Acceso completo' };
+    if (lvl && lvlMap[lvl]) {
+      accessBadge.style.display = 'inline-block';
+      accessBadge.textContent   = lvlMap[lvl];
+    } else {
+      accessBadge.style.display = 'none';
+    }
+  }
+
+  // Mostrar panel específico del rol
+  ['edw-billing-panel','edw-dev-panel','edw-clients-panel'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+
+  if (role === 'billing') {
+    var bp = document.getElementById('edw-billing-panel');
+    if (bp) bp.style.display = 'block';
+    edwLoadBillingData();
+  } else if (role === 'developer') {
+    var dp = document.getElementById('edw-dev-panel');
+    if (dp) dp.style.display = 'block';
+    edwRefreshSystemStatus();
+  } else {
+    // Partner + cualquier jobRole → panel de clientes con banner dinámico
+    var cp = document.getElementById('edw-clients-panel');
+    if (cp) cp.style.display = 'block';
+
+    // Banner de función según jobRole (o role como fallback)
+    var banner = document.getElementById('edw-clients-function-banner');
+    if (banner) {
+      var bannerKey = jobRole || role;
+      var bCfg = EDW_ROLE_CONFIG[bannerKey] || EDW_ROLE_CONFIG[role] || {};
+      var bColor  = bCfg.color  || 'var(--accent)';
+      var bBg     = bCfg.bg     || 'rgba(123,167,232,0.06)';
+      var bBorder = bCfg.border || 'rgba(123,167,232,0.18)';
+      var bIcon   = bCfg.icon   || '🤝';
+      var bLabel  = bCfg.label  || 'Colaborador';
+      var bDesc   = bCfg.desc   || 'Atiende a tus clientes asignados, registra actividades y mantén el historial actualizado.';
+      banner.style.cssText = 'border-radius:12px;padding:13px 16px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;background:' + bBg.replace('0.15', '0.06') + ';border:1px solid ' + bBorder.replace('0.3', '0.18') + ';';
+      banner.innerHTML = '<span style="font-size:20px;flex-shrink:0;">' + bIcon + '</span>'
+        + '<div><div style="font-size:12px;font-weight:800;margin-bottom:2px;color:' + bColor + ';">Tu función: ' + bLabel + '</div>'
+        + '<div style="font-size:11px;color:var(--text2);line-height:1.5;">' + bDesc + '</div></div>';
+    }
+  }
+
+  // Cargar datos desde API
+  try {
+    var res  = await fetch('/api/employee/dashboard', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    edwRenderSharedData(data);
+  } catch(e) {
+    console.warn('Employee widget init error:', e.message);
+  }
+}
+
+// ── Renderizar datos compartidos (clientes, tareas, actividades) ─────────────
+function edwRenderSharedData(data) {
+  var stats = data.stats || {};
+  var el = document.getElementById('edw-stat-total');
+  if (el) el.textContent = stats.total || 0;
+
+  empDashClients = data.clients || [];
+
+  // Clientes
+  var clientsList = document.getElementById('edw-clients-list');
+  if (clientsList) {
+    clientsList.innerHTML = '';
+    if (!empDashClients.length) {
+      clientsList.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:12px 14px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">Sin clientes asignados aún.</div>';
+    } else {
+      empDashClients.forEach(function(c) {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;transition:border-color 0.15s;';
+        div.onmouseenter = function(){ div.style.borderColor = 'var(--accent)'; };
+        div.onmouseleave = function(){ div.style.borderColor = 'var(--border)'; };
+        div.innerHTML = '<div style="width:34px;height:34px;border-radius:8px;background:rgba(123,167,232,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🏢</div>'
+          + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(c.name) + '</div></div>'
+          + '<span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(123,167,232,0.1);color:var(--accent);border:1px solid rgba(123,167,232,0.2);white-space:nowrap;">' + (c.plan || 'trial').toUpperCase() + '</span>';
+        clientsList.appendChild(div);
+      });
+    }
+    // Poblar select del modal
+    var sel = document.getElementById('emp-reg-client');
+    if (sel) {
+      sel.innerHTML = '<option value="">Sin cliente específico</option>';
+      empDashClients.forEach(function(c) {
+        var o = document.createElement('option'); o.value = c.workspaceId; o.textContent = c.name; sel.appendChild(o);
+      });
+    }
+  }
+
+  // Tareas pendientes
+  var tasksList  = document.getElementById('edw-tasks-list');
+  var tasksEmpty = document.getElementById('edw-tasks-empty');
+  var tasks = data.pendingTasks || [];
+  if (tasksList) {
+    tasksList.innerHTML = '';
+    if (tasksEmpty) tasksEmpty.style.display = tasks.length ? 'none' : 'block';
+    tasks.forEach(function(t) {
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:11px 13px;background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.18);border-radius:10px;';
+      div.innerHTML = '<span style="font-size:15px;flex-shrink:0;margin-top:1px;">⏳</span>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text);">' + esc(t.title) + '</div>'
+        + (t.client_name ? '<div style="font-size:10px;color:var(--muted);margin-top:2px;">Cliente: ' + esc(t.client_name) + '</div>' : '')
+        + '</div>'
+        + '<button onclick="edwMarkTaskDone(\'' + t.id + '\')" style="padding:5px 10px;background:rgba(94,201,160,0.1);border:1px solid rgba(94,201,160,0.3);border-radius:6px;font-size:10px;font-weight:700;color:#5ec9a0;cursor:pointer;white-space:nowrap;flex-shrink:0;">✓ Listo</button>';
+      tasksList.appendChild(div);
+    });
+  }
+
+  // Actividades recientes
+  var actList  = document.getElementById('edw-activities-list');
+  var actEmpty = document.getElementById('edw-activities-empty');
+  var activities = data.recentActivities || [];
+  if (actList) {
+    actList.innerHTML = '';
+    if (actEmpty) actEmpty.style.display = activities.length ? 'none' : 'block';
+    var ACT_ICONS   = { analysis:'🔍', strategy:'📋', creative:'🎨', task:'✅', note:'📝', meeting:'🤝', campaign:'📣' };
+    var ACT_COLORS  = { done:'#5ec9a0', pending:'#f59e0b', cancelled:'#94a3b8' };
+    activities.slice(0, 8).forEach(function(a) {
+      var div = document.createElement('div');
+      div.style.cssText = 'padding:10px 13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;';
+      var icon   = ACT_ICONS[a.activity_type]  || '📌';
+      var sColor = ACT_COLORS[a.status]         || '#94a3b8';
+      div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text);">' + icon + ' ' + esc(a.title) + '</div>'
+        + '<span style="font-size:9px;font-weight:700;color:' + sColor + ';white-space:nowrap;flex-shrink:0;padding:2px 7px;border-radius:4px;background:rgba(0,0,0,0.04);">' + (a.status || '').toUpperCase() + '</span>'
+        + '</div>'
+        + '<div style="color:var(--muted);font-size:10px;margin-top:3px;">'
+        + esc(a.activity_type || '') + ' · ' + (a.created_at || '').slice(0, 10)
+        + (a.client_name ? ' · ' + esc(a.client_name) : '') + '</div>';
+      actList.appendChild(div);
+    });
+  }
+}
+
+// ── Billing overview ──────────────────────────────────────────────────────────
+async function edwLoadBillingData() {
+  try {
+    var res  = await fetch('/api/employee/billing-overview', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+
+    var sum  = data.summary || {};
+    var setEl = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+
+    // KPIs
+    setEl('edw-bill-active', sum.active   || 0);
+    setEl('edw-bill-trial',  sum.trial    || 0);
+    setEl('edw-bill-alerts', sum.problems || 0);
+    setEl('edw-bill-mrr',    '$' + (sum.mrr || 0).toLocaleString('en-US'));
+
+    var paying   = data.paying   || [];
+    var trials   = data.trials   || [];
+    var problems = data.problems || [];
+
+    // Contadores en encabezados de sección
+    setEl('edw-bill-prob-count',  problems.length);
+    setEl('edw-bill-pay-count',   paying.length);
+    setEl('edw-bill-trial-count', trials.length);
+
+    // ── helper para crear una fila ────────────────────────────────────────────
+    function billRow(icon, bgColor, borderColor, name, email, badge, badgeColor, badgeBg, meta) {
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 13px;background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:10px;flex-wrap:wrap;gap:8px;';
+      div.innerHTML = '<span style="font-size:16px;flex-shrink:0;">' + icon + '</span>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(name) + '</div>'
+        + (email ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;">' + esc(email) + '</div>' : '')
+        + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;">'
+        + (badge ? '<span style="font-size:9px;font-weight:800;letter-spacing:0.5px;padding:2px 8px;border-radius:999px;background:' + badgeBg + ';color:' + badgeColor + ';white-space:nowrap;">' + badge + '</span>' : '')
+        + (meta  ? '<span style="font-size:10px;color:var(--muted);">' + meta + '</span>' : '')
+        + '</div>';
+      return div;
+    }
+
+    // ── PROBLEMAS ─────────────────────────────────────────────────────────────
+    var probList = document.getElementById('edw-bill-problems-list');
+    if (probList) {
+      probList.innerHTML = '';
+      if (!problems.length) {
+        probList.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px 13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">✅ Sin problemas activos</div>';
+      } else {
+        problems.forEach(function(p) {
+          var issueLabel = p.issue === 'past_due' ? 'Pago vencido' : p.issue === 'unpaid' ? 'Sin pagar' : p.issue === 'cancelled' ? 'Cancelado' : (p.expired ? 'Trial vencido' : (p.issue || 'Problema'));
+          var dMeta = p.daysSince != null ? p.daysSince + 'd' : '';
+          probList.appendChild(billRow('⚠️', 'rgba(248,113,113,0.04)', 'rgba(248,113,113,0.2)',
+            p.name, p.email,
+            issueLabel, '#f87171', 'rgba(248,113,113,0.12)',
+            dMeta ? dMeta + ' sin actualizar' : ''
+          ));
+        });
+      }
+    }
+
+    // ── CLIENTES PAGANDO ──────────────────────────────────────────────────────
+    var payList = document.getElementById('edw-bill-paying-list');
+    if (payList) {
+      payList.innerHTML = '';
+      if (!paying.length) {
+        payList.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px 13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">Sin clientes con suscripción activa aún.</div>';
+      } else {
+        paying.forEach(function(p) {
+          var amount = p.amount ? '$' + p.amount + '/mes' : '';
+          payList.appendChild(billRow('✅', 'rgba(94,201,160,0.03)', 'rgba(94,201,160,0.18)',
+            p.name, p.email,
+            (p.plan || '').toUpperCase(), '#5ec9a0', 'rgba(94,201,160,0.12)',
+            amount
+          ));
+        });
+      }
+    }
+
+    // ── EN TRIAL ──────────────────────────────────────────────────────────────
+    var trialList = document.getElementById('edw-bill-trial-list');
+    if (trialList) {
+      trialList.innerHTML = '';
+      if (!trials.length) {
+        trialList.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px 13px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;">Sin workspaces en período de prueba.</div>';
+      } else {
+        trials.forEach(function(t) {
+          var dLabel = t.daysSince != null ? t.daysSince + 'd en prueba' : 'Trial activo';
+          trialList.appendChild(billRow('🕐', 'rgba(123,167,232,0.03)', 'rgba(123,167,232,0.15)',
+            t.name, t.email,
+            'TRIAL', 'var(--accent)', 'rgba(123,167,232,0.12)',
+            dLabel
+          ));
+        });
+      }
+    }
+
+  } catch(e) { console.warn('Billing overview error:', e.message); }
+}
+
+// ── System status (developer) ─────────────────────────────────────────────────
+async function edwRefreshSystemStatus() {
+  try {
+    var res  = await fetch('/api/employee/system-status', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    var srv = data.server || {};
+    var dt  = data.data   || {};
+    var setEl = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; };
+
+    // Servidor
+    setEl('edw-dev-node', srv.nodeVersion || '—');
+    var uH   = srv.uptime ? Math.floor(srv.uptime / 3600) : 0;
+    var uMin = srv.uptime ? Math.floor((srv.uptime % 3600) / 60) : 0;
+    setEl('edw-dev-uptime', srv.uptime ? uH + 'h ' + uMin + 'm' : '—');
+    var mem = srv.memoryMb || 0;
+    var memColor = mem > 400 ? '#f87171' : mem > 200 ? '#f59e0b' : '#5ec9a0';
+    var memEl = document.getElementById('edw-dev-mem');
+    if (memEl) { memEl.textContent = mem ? mem + ' MB' : '—'; memEl.style.color = memColor; }
+    setEl('edw-dev-env', srv.env || '—');
+
+    // Plataforma
+    setEl('edw-dev-workspaces', dt.totalWorkspaces  || '—');
+    setEl('edw-dev-users',      dt.totalUsers        || '—');
+    setEl('edw-dev-members',    dt.totalMemberships  || '—');
+
+    // Plan breakdown
+    var pb = dt.planBreakdown || {};
+    var planEl = document.getElementById('edw-dev-plans');
+    if (planEl) {
+      var parts = Object.keys(pb).map(function(k) { return k + ': ' + pb[k]; });
+      planEl.textContent = parts.length ? parts.join(' · ') : '—';
+    }
+
+    // Timestamp
+    var chk = data.checkedAt ? new Date(data.checkedAt).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : '—';
+    setEl('edw-dev-checked', chk);
+
+  } catch(e) { console.warn('System status error:', e.message); }
+}
+
+// ── Marcar tarea como hecha ───────────────────────────────────────────────────
+async function edwMarkTaskDone(activityId) {
+  try {
+    var res = await fetch('/api/employee/activities/' + activityId, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin', body: JSON.stringify({ status: 'done' })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Error');
+    showToast('✓ Tarea marcada como hecha');
+    if (appSession) initEmployeeDashWidget(appSession).catch(function(){});
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ── Modal registrar actividad ─────────────────────────────────────────────────
+function openEmpRegisterModal() {
+  var m = document.getElementById('emp-register-modal');
+  if (m) { m.style.display = 'flex'; setTimeout(function(){ var t = document.getElementById('emp-reg-title'); if (t) t.focus(); }, 80); }
+}
+function closeEmpRegisterModal() {
+  var m = document.getElementById('emp-register-modal');
+  if (m) m.style.display = 'none';
+}
+// Cerrar modal al clic en backdrop
+document.addEventListener('click', function(e) {
+  var m = document.getElementById('emp-register-modal');
+  if (m && m.style.display === 'flex' && e.target === m) closeEmpRegisterModal();
+});
+
+async function submitEmpActivity() {
+  var activityType = (document.getElementById('emp-reg-type')  || {}).value;
+  var status       = (document.getElementById('emp-reg-status') || {}).value;
+  var titleInput   = document.getElementById('emp-reg-title');
+  var title        = (titleInput ? titleInput.value : '').trim();
+  var descInput    = document.getElementById('emp-reg-desc');
+  var description  = (descInput ? descInput.value : '').trim();
+  var clientSel    = document.getElementById('emp-reg-client');
+  var clientId     = clientSel ? clientSel.value : null;
+  var clientName   = (clientId && clientSel) ? (clientSel.options[clientSel.selectedIndex] || {}).text || null : null;
+
+  if (!title) { showToast('Escribe un título para la actividad'); return; }
+
+  try {
+    var res  = await fetch('/api/employee/activities', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ activityType, title, description: description || null, clientId: clientId || null, clientName, status })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    showToast('✓ Actividad guardada');
+    if (titleInput) titleInput.value = '';
+    if (descInput)  descInput.value  = '';
+    closeEmpRegisterModal();
+    if (appSession) initEmployeeDashWidget(appSession).catch(function(){});
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// Compatibilidad con referencias antiguas
+function openEmployeePanel()       { openEmpRegisterModal(); }
+function submitEmployeeActivity()  { submitEmpActivity(); }
+function markTaskDone(id)          { edwMarkTaskDone(id); }
+
+var selectedCRMUserId = null;
+
+var JOB_ROLE_LABELS_FE = {
+  strategist:      'Estratega',
+  account_manager: 'Account Manager',
+  creative:        'Creativo',
+  analyst:         'Analista',
+  sales:           'Ventas',
+  soporte:         'Soporte',
+  marketing:       'Marketing',
+};
+var ROLE_LABELS_FE = {
+  owner:     'Super Admin',
+  admin:     'Admin General',
+  billing:   'Finanzas',
+  developer: 'Técnico',
+  partner:   'Partner / Colaborador',
+};
+
+var ACTIVITY_TYPE_ICONS = {
+  analysis: '🔍', strategy: '📋', creative: '🎨',
+  task: '✅', note: '📝', meeting: '🤝', campaign: '📣'
+};
+
+var ACTIVITY_STATUS_COLORS = {
+  done: '#2d8f6f', pending: '#f59e0b', cancelled: '#94a3b8'
+};
+
+// ── Abrir panel del empleado ──────────────────────────────────────────────────
+async function openEmployeePanel() {
+  try {
+    const res  = await fetch('/api/employee/dashboard', { credentials: 'same-origin', cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cargando panel');
+    employeePanelData = data;
+    renderEmployeePanel(data);
+    document.getElementById('employee-panel-modal').style.display = 'flex';
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+function renderEmployeePanel(data) {
+  var user       = data.user       || {};
+  var membership = data.membership || {};
+  var stats      = data.stats      || {};
+
+  // Avatar + nombre
+  var avatarEl = document.getElementById('ep-avatar');
+  if (avatarEl) avatarEl.textContent = (user.name || user.email || '?')[0].toUpperCase();
+
+  var nameEl = document.getElementById('ep-name');
+  if (nameEl) nameEl.textContent = user.name || user.email || '—';
+
+  var metaEl = document.getElementById('ep-meta');
+  if (metaEl) {
+    var parts = [];
+    if (membership.role)             parts.push(ROLE_LABELS_FE[membership.role] || membership.role.replace('_',' ').toUpperCase());
+    if (membership.jobRoleLabel)     parts.push(membership.jobRoleLabel);
+    if (membership.employeeAccessLevel) parts.push({ partial:'Acc. parcial', initial:'Acc. inicial', full:'Acc. full' }[membership.employeeAccessLevel] || '');
+    metaEl.textContent = parts.filter(Boolean).join(' · ');
+  }
+
+  var subtitle = document.getElementById('ep-subtitle');
+  if (subtitle) subtitle.textContent = user.email || '';
+
+  var statsEl = document.getElementById('ep-stats-total');
+  if (statsEl) statsEl.textContent = stats.total || 0;
+
+  // Clientes
+  var clientsList = document.getElementById('ep-clients-list');
+  if (clientsList) {
+    clientsList.innerHTML = '';
+    var clients = data.clients || [];
+    if (!clients.length) {
+      clientsList.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Sin clientes asignados.</p>';
+    } else {
+      clients.forEach(function(c) {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;';
+        div.innerHTML = '<span style="font-weight:700;color:#0f172a;">' + esc(c.name) + '</span>'
+          + '<span style="color:#94a3b8;font-size:10px;margin-left:auto;">' + (c.plan||'trial').toUpperCase() + '</span>';
+        clientsList.appendChild(div);
+      });
+    }
+    // Popular select de clientes en el form
+    var clientSelect = document.getElementById('ep-act-client');
+    if (clientSelect) {
+      clientSelect.innerHTML = '<option value="">Sin cliente específico</option>';
+      clients.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.workspaceId;
+        opt.textContent = c.name;
+        clientSelect.appendChild(opt);
+      });
+    }
+  }
+
+  // Tareas pendientes
+  var tasksList  = document.getElementById('ep-tasks-list');
+  var tasksEmpty = document.getElementById('ep-tasks-empty');
+  if (tasksList) {
+    tasksList.innerHTML = '';
+    var tasks = data.pendingTasks || [];
+    if (tasksEmpty) tasksEmpty.style.display = tasks.length ? 'none' : 'block';
+    tasks.forEach(function(t) {
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:12px;';
+      div.innerHTML = '<span style="flex:1;font-weight:600;color:#0f172a;">' + esc(t.title) + '</span>'
+        + '<button onclick="markTaskDone(\'' + t.id + '\')" style="padding:4px 8px;background:#dcfce7;border:1px solid #86efac;border-radius:5px;font-size:10px;font-weight:700;color:#16a34a;cursor:pointer;white-space:nowrap;">✓ Hecho</button>';
+      tasksList.appendChild(div);
+    });
+  }
+
+  // Actividades recientes
+  var actList = document.getElementById('ep-activities-list');
+  if (actList) {
+    actList.innerHTML = '';
+    var activities = data.recentActivities || [];
+    if (!activities.length) {
+      actList.innerHTML = '<p style="font-size:12px;color:#94a3b8;">Sin actividades registradas aún.</p>';
+    } else {
+      activities.forEach(function(a) {
+        var div = document.createElement('div');
+        div.style.cssText = 'padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;';
+        var icon   = ACTIVITY_TYPE_ICONS[a.activity_type] || '📌';
+        var sColor = ACTIVITY_STATUS_COLORS[a.status] || '#94a3b8';
+        div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+          + '<span style="font-weight:700;color:#0f172a;">' + icon + ' ' + esc(a.title) + '</span>'
+          + '<span style="font-size:10px;color:' + sColor + ';font-weight:700;white-space:nowrap;margin-left:8px;">' + (a.status||'').toUpperCase() + '</span>'
+          + '</div>'
+          + '<div style="color:#94a3b8;font-size:10px;margin-top:3px;">' + esc(a.activity_type||'') + ' · ' + (a.created_at||'').slice(0,10) + (a.client_name ? ' · ' + esc(a.client_name) : '') + '</div>'
+          + (a.description ? '<div style="color:#475569;margin-top:4px;white-space:pre-wrap;">' + esc(a.description) + '</div>' : '');
+        actList.appendChild(div);
+      });
+    }
+  }
+}
+
+async function markTaskDone(activityId) {
+  try {
+    var res = await fetch('/api/employee/activities/' + activityId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ status: 'done' })
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Error');
+    showToast('✓ Tarea completada');
+    openEmployeePanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+async function submitEmployeeActivity() {
+  var activityType = document.getElementById('ep-act-type')?.value;
+  var status       = document.getElementById('ep-act-status')?.value;
+  var title        = (document.getElementById('ep-act-title')?.value || '').trim();
+  var description  = (document.getElementById('ep-act-desc')?.value || '').trim();
+  var clientSel    = document.getElementById('ep-act-client');
+  var clientId     = clientSel?.value || null;
+  var clientName   = clientId ? (clientSel.options[clientSel.selectedIndex]?.text || null) : null;
+
+  if (!title) { showToast('Escribe un título para la actividad'); return; }
+
+  try {
+    var res = await fetch('/api/employee/activities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ activityType, title, description: description||null, clientId, clientName, status })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    showToast('Actividad guardada ✓');
+    document.getElementById('ep-act-title').value = '';
+    document.getElementById('ep-act-desc').value  = '';
+    openEmployeePanel();
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN — TAB EQUIPO
+// ══════════════════════════════════════════════════════════════════════════════
+
+async function loadSAEquipoTab() {
+  selectedCRMUserId = null; // Resetear selección al recargar para evitar modificar miembro equivocado
+  var loading = document.getElementById('sa-equipo-loading');
+  var content = document.getElementById('sa-equipo-content');
+  if (loading) { loading.style.display = 'block'; loading.textContent = 'Cargando equipo...'; }
+  if (content) content.style.display = 'none';
+  var crm = document.getElementById('sa-equipo-crm');
+  if (crm) crm.style.display = 'none';
+
+  try {
+    var res  = await fetch('/api/admin/employees', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error cargando equipo');
+    renderSAEquipo(data);
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'block';
+  } catch(e) {
+    if (loading) loading.textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderSAEquipo(data) {
+  renderSAEquipoSection('sa-equipo-internal', data.internalTeam || []);
+  renderSAEquipoSection('sa-equipo-partners', data.partners     || []);
+}
+
+function renderSAEquipoSection(containerId, members) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!members.length) {
+    var p = document.createElement('p');
+    p.style.cssText = 'font-size:12px;color:rgba(224,112,112,0.5);';
+    p.textContent = 'Sin miembros en esta sección.';
+    container.appendChild(p);
+    return;
+  }
+
+  members.forEach(function(m) {
+    var div = document.createElement('div');
+    div.style.cssText = 'background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.12);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color 0.15s;';
+    div.onmouseenter = function() { div.style.borderColor = 'rgba(224,112,112,0.35)'; };
+    div.onmouseleave = function() { div.style.borderColor = 'rgba(224,112,112,0.12)'; };
+
+    var stats     = m.stats || {};
+    var jobLabel  = JOB_ROLE_LABELS_FE[m.jobRole] || '';
+    var assigned  = m.role === 'partner' ? (m.assignedClients || []).length : null;
+    var userName  = m.user?.name || m.user?.email || m.userId;
+
+    var roleCfgFE = EDW_ROLE_CONFIG[m.role] || {};
+    var roleColor = roleCfgFE.color || '#e07070';
+    var roleBg    = roleCfgFE.bg    || 'rgba(224,112,112,0.1)';
+    var roleLabel = ROLE_LABELS_FE[m.role] || (m.role || '—').replace('_',' ').toUpperCase();
+
+    div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">'
+      + '<div style="min-width:0;flex:1;">'
+      + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">'
+      + '<span style="font-size:13px;font-weight:800;color:#0f172a;">' + esc(userName) + '</span>'
+      + '<span style="font-size:9px;font-weight:700;color:' + roleColor + ';background:' + roleBg + ';padding:2px 7px;border-radius:4px;white-space:nowrap;">' + esc(roleLabel) + '</span>'
+      + (jobLabel ? '<span style="font-size:9px;font-weight:700;color:#64748b;background:rgba(100,116,139,0.1);padding:2px 7px;border-radius:4px;">' + esc(jobLabel) + '</span>' : '')
+      + '</div>'
+      + '<div style="font-size:11px;color:#94a3b8;">' + esc(m.user?.email || '') + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;flex-shrink:0;">'
+      + '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;">Este mes</div>'
+      + '<div style="font-size:20px;font-weight:800;color:#e07070;line-height:1.1;">' + (stats.total || 0) + '</div>'
+      + (assigned !== null ? '<div style="font-size:10px;color:#64748b;">' + assigned + ' clientes</div>' : '')
+      + '</div>'
+      + '</div>';
+
+    div.onclick = function() { openEquipoCRM(m); };
+    container.appendChild(div);
+  });
+}
+
+async function openEquipoCRM(member) {
+  selectedCRMUserId = member.userId;
+  var crm = document.getElementById('sa-equipo-crm');
+  if (!crm) return;
+
+  // Título con rol actual
+  var titleEl = document.getElementById('sa-crm-title');
+  var memberRoleLabel = ROLE_LABELS_FE[member.role] || member.role || '—';
+  var memberJobLabel  = JOB_ROLE_LABELS_FE[member.jobRole] || '';
+  if (titleEl) {
+    titleEl.innerHTML = '<span style="color:#0f172a;">' + esc(member.user?.name || member.userId) + '</span>'
+      + ' <span style="font-size:10px;font-weight:700;color:#e07070;background:rgba(224,112,112,0.1);padding:2px 6px;border-radius:4px;">' + esc(memberRoleLabel) + '</span>'
+      + (memberJobLabel ? ' <span style="font-size:10px;color:#64748b;">' + esc(memberJobLabel) + '</span>' : '');
+  }
+
+  var sessionRole = getResolvedSessionRole();
+  var canManage   = isGlobalOwner() || sessionRole === 'owner' || sessionRole === 'admin';
+
+  // Sección añadir nota
+  var addNoteEl = document.getElementById('sa-crm-add-note');
+  if (addNoteEl) addNoteEl.style.display = canManage ? 'block' : 'none';
+
+  // Sección gestión de rol
+  var roleMgmtEl = document.getElementById('sa-crm-role-mgmt');
+  if (roleMgmtEl) {
+    roleMgmtEl.style.display = canManage ? 'block' : 'none';
+    if (canManage) {
+      // Pre-seleccionar rol actual
+      var roleSelect    = document.getElementById('sa-crm-role-select');
+      var jobRoleSelect = document.getElementById('sa-crm-jobrole-select');
+      if (roleSelect)    roleSelect.value    = member.role    || 'partner';
+      if (jobRoleSelect) jobRoleSelect.value = member.jobRole || '';
+      // Ocultar feedback
+      var fb = document.getElementById('sa-crm-role-feedback');
+      if (fb) fb.style.display = 'none';
+    }
+  }
+
+  crm.style.display = 'block';
+  crm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  var actEl = document.getElementById('sa-crm-activities');
+  if (actEl) actEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Cargando...</div>';
+
+  try {
+    var res  = await fetch('/api/admin/employees/' + member.userId + '/activities', { credentials: 'same-origin' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    var activities = data.activities || [];
+    actEl.innerHTML = '';
+    if (!activities.length) {
+      actEl.innerHTML = '<div style="font-size:12px;color:#94a3b8;">Sin actividades registradas.</div>';
+      return;
+    }
+    activities.forEach(function(a) {
+      var div = document.createElement('div');
+      div.style.cssText = 'padding:8px 10px;background:rgba(224,112,112,0.03);border:1px solid rgba(224,112,112,0.1);border-radius:8px;font-size:12px;';
+      var icon    = ACTIVITY_TYPE_ICONS[a.activity_type] || '📌';
+      var sColor  = ACTIVITY_STATUS_COLORS[a.status] || '#94a3b8';
+      var ownerBadge = a.metadata?.addedByOwner ? ' <span style="font-size:9px;background:rgba(224,112,112,0.15);color:#e07070;padding:1px 5px;border-radius:3px;font-weight:700;">OWNER</span>' : '';
+      div.innerHTML = '<div style="display:flex;justify-content:space-between;">'
+        + '<span style="font-weight:700;color:#0f172a;">' + icon + ' ' + esc(a.title) + ownerBadge + '</span>'
+        + '<span style="font-size:10px;color:#94a3b8;white-space:nowrap;margin-left:8px;">' + (a.created_at||'').slice(0,10) + '</span>'
+        + '</div>'
+        + '<div style="color:#64748b;font-size:10px;margin-top:2px;">' + esc(a.activity_type||'') + ' · <span style="color:' + sColor + ';font-weight:700;">' + (a.status||'') + '</span>' + (a.client_name ? ' · ' + esc(a.client_name) : '') + '</div>'
+        + (a.description ? '<div style="color:#475569;margin-top:4px;">' + esc(a.description) + '</div>' : '');
+      actEl.appendChild(div);
+    });
+  } catch(e) {
+    if (actEl) actEl.innerHTML = '<div style="font-size:12px;color:#e07070;">Error: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function submitOwnerNote() {
+  if (!selectedCRMUserId) return;
+  var title = (document.getElementById('sa-crm-note-title')?.value || '').trim();
+  var desc  = (document.getElementById('sa-crm-note-desc')?.value  || '').trim();
+  if (!title) { showToast('Escribe un título para la nota'); return; }
+
+  try {
+    var res = await fetch('/api/admin/employees/' + selectedCRMUserId + '/activities', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ title, description: desc || null })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    showToast('Nota añadida ✓');
+    document.getElementById('sa-crm-note-title').value = '';
+    document.getElementById('sa-crm-note-desc').value  = '';
+    // Refrescar el CRM del empleado seleccionado
+    openEquipoCRM({ userId: selectedCRMUserId, user: {} });
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+// ── Cambiar rol / especialidad de un empleado ─────────────────────────────────
+async function saveEmpRoleChange() {
+  if (!selectedCRMUserId) return;
+  var roleEl    = document.getElementById('sa-crm-role-select');
+  var jobRoleEl = document.getElementById('sa-crm-jobrole-select');
+  var fb        = document.getElementById('sa-crm-role-feedback');
+  if (!roleEl) return;
+
+  var newRole    = roleEl.value    || null;
+  var newJobRole = jobRoleEl ? (jobRoleEl.value || null) : null;
+
+  try {
+    var body = {};
+    if (newRole)    body.role    = newRole;
+    if (newJobRole !== undefined) body.jobRole = newJobRole || null;
+
+    var res  = await fetch('/api/admin/employees/' + selectedCRMUserId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body)
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar');
+
+    // Feedback visual
+    if (fb) { fb.style.display = 'inline-block'; setTimeout(function(){ fb.style.display = 'none'; }, 2500); }
+    showToast('✓ Rol actualizado correctamente');
+
+    // Recargar lista del equipo para reflejar el cambio
+    loadSAEquipoTab().catch(function(){});
+
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+</script>
+
 </body>
 </html>

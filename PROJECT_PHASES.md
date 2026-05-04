@@ -165,6 +165,45 @@ Avance reciente:
 Objetivo:
 dar control operativo minimo a owners/admins sin ampliar de mas el producto.
 
+Linea adicional:
+desarrollo de empleados y alcance por rol.
+
+Base inicial acordada:
+- `Dueño`: acceso total.
+- `Administrador`: acceso operativo a sus módulos.
+- `Facturación`: acceso a billing, usuarios y cobros.
+- `Usuario Trial / Usuario Pago`: acceso a plataforma, sin panel de control.
+
+Regla estructural:
+- separar `rol administrativo` de `estado comercial/acceso`
+- persistir por separado:
+  - `adminRole`
+  - `accessState`
+- derivar desde ahí:
+  - permisos
+  - navegación
+  - vistas permitidas
+  - etiquetas del panel
+
+Tabla operativa actual:
+
+| Caso | platformRole | adminRole | accessState | employeeAccessLevel | Lectura final |
+|---|---|---|---|---|---|
+| Registro nuevo normal | `member` | `member` | `trial` | `null` | Usuario `trial/free` |
+| Cliente activo pago | `member` | `member` | `paid` | `null` | Usuario pago |
+| Empleado facturación | `member` | `billing` | `trial` o `paid` | `partial / initial / full` | Perfil interno con acceso por rol + nivel |
+| Empleado administrador | `member` | `admin` | `trial` o `paid` | `partial / initial / full` | Perfil interno con acceso por rol + nivel |
+| Dueño raíz | `owner` | `owner` | `paid` | `full` | Acceso total protegido |
+
+Regla de alta:
+- todo usuario nuevo que se registra por Google o correo entra por defecto como `trial/free`
+- solo después un `Dueño` o `Administrador` puede cambiarlo
+
+Equivalencia interna para empleados:
+- `partial` = comportamiento cercano a `Trial`
+- `initial` = comportamiento cercano a `Starter`
+- `full` = comportamiento cercano a `Agency`
+
 Criterio de cierre:
 
 - Onboarding completo y guardado en servidor.
@@ -1800,3 +1839,425 @@ La Fase 1 queda cerrada como:
 Importante:
 este cierre no reemplaza QA real con casos, cuentas y servicios conectados.
 Lo que se cierra aquí es la base funcional web para seguir con las fases siguientes sin seguir corrigiendo fundamentos de UI/flujo.
+
+## 2026-04-29 — Bloque de pruebas de Integraciones para salida
+
+### Lectura actual del frente de integraciones
+
+BearAds ya no está en una etapa donde convenga tratar todas las integraciones como si estuvieran al mismo nivel.
+
+Hoy hay tres capas distintas:
+
+1. Integraciones reales y prioritarias para salida
+   - Google OAuth
+   - Search Console
+   - GA4
+   - Google Ads
+   - Meta Ads
+   - SMTP / correo
+   - Score Semanal por email
+
+2. Integraciones funcionales pero todavía semimanuales
+   - BearAds Tracking
+   - Email marketing como conexión guardada
+   - E-commerce como conexión guardada
+
+3. Integraciones visibles o narrativas, pero no listas como core de salida
+   - Webhooks avanzados
+   - TikTok como integración real
+   - Automatizaciones avanzadas tipo Agency
+
+La salida más rápida del producto no depende de cerrar todo.
+Depende de cerrar muy bien el bloque:
+
+Google -> análisis -> estrategia -> campañas
+
+y dejar Meta + correo como segunda capa estable.
+
+### Estado actual por integración
+
+#### Google OAuth
+
+Estado actual:
+- funcional y ya separado de la sesión local por correo;
+- el sistema detecta mejor si el usuario está autenticado con Google de verdad;
+- después del login se intentan leer Search Console, GA4 y Google Ads.
+
+Riesgos actuales:
+- el botón `Desconectar Google` hoy usa logout total, no una desconexión fina solo de Google;
+- si hay problemas de caché o callback, puede sentirse como fallo de app aunque el backend esté bien.
+
+Qué probar ya:
+- login con Google;
+- volver a la app;
+- comprobar `googleConnected`;
+- recarga con sesión viva;
+- logout / re-login;
+- cuenta sin acceso a GSC;
+- cuenta con acceso a GSC y GA4.
+
+Mejora inmediata recomendada:
+- separar `desconectar Google` de `cerrar sesión` completa;
+- dejar mensajes más claros cuando el login es correcto pero faltan permisos de datos.
+
+#### Search Console
+
+Estado actual:
+- listado de sitios disponible;
+- selección de sitio funcional;
+- lectura de métricas reales en `Integraciones`;
+- lectura también usada por `Analizar Sitio`.
+- además ya quedó corregido el cruce de datos entre cuentas Google y selecciones viejas de `GSC / GA4 / Google Ads`.
+
+Riesgos actuales:
+- depende de que la cuenta conectada sea la correcta;
+- si el usuario mete una URL distinta a la registrada, el error puede sentirse como falla del producto;
+- el módulo mezcla diagnóstico, selección de sitio y ayuda operativa en la misma vista.
+- había un riesgo técnico adicional ya detectado:
+  - rutas duplicadas entre `server.js` y `routes/analyze.js` podían responder distinto al mismo endpoint (`400 / 501`) aunque el frontend estuviera bien.
+
+Qué probar ya:
+- cuenta con varios sitios;
+- cuenta con cero sitios;
+- dominio URL-prefix;
+- dominio `sc-domain`;
+- sitio correcto sin GA4;
+- sitio correcto con GA4;
+- URL no registrada en Search Console.
+
+Mejora inmediata recomendada:
+- priorizar selector de sitio detectado sobre input manual;
+- dejar una recomendación automática de “usa este sitio” cuando Google ya lo detectó.
+
+### Tarea técnica transversal — cortar errores fantasma de rutas duplicadas
+
+Hallazgo real:
+- algunos endpoints existen tanto en `server.js` como en `routes/analyze.js`;
+- cuando el router modular quedó con stubs viejos o validaciones antiguas, BearAds mostró errores engañosos como:
+  - `501 Not Implemented` en `/api/traffic-data`
+  - `400 Bad Request` en `/api/strategic-plan`
+  aunque la lógica nueva ya existía en otro archivo.
+
+Casos ya corregidos:
+- `/api/traffic-data`
+- `/api/strategic-plan`
+
+Tarea añadida de cierre:
+1. auditar todos los endpoints duplicados entre `server.js` y `routes/*`;
+2. eliminar stubs viejos o hacer que deleguen explícitamente a un solo handler real;
+3. evitar que frontend nuevo pegue contra contratos viejos por error de orden de montaje;
+4. dejar una sola fuente de verdad por endpoint crítico antes de salida.
+
+#### GA4
+
+Estado actual:
+- detección de propiedades funcional;
+- selección de propiedad guardable;
+- lectura de sesiones, usuarios, rebote y duración;
+- uso como soporte real para análisis y score semanal.
+
+Riesgos actuales:
+- el usuario todavía puede quedar sin entender cuál propiedad usar;
+- si el property ID no existe o no tiene acceso, la experiencia depende mucho del mensaje devuelto.
+
+Qué probar ya:
+- cuenta con varias propiedades;
+- propiedad correcta;
+- propiedad inexistente;
+- cuenta sin propiedades;
+- sitio con GSC pero sin GA4;
+- sitio con ambos conectados.
+
+Mejora inmediata recomendada:
+- marcar una propiedad sugerida por dominio;
+- mostrar más claramente la correspondencia `sitio <-> propiedad`.
+
+#### Google Ads
+
+Estado actual:
+- detección de cuentas accesibles funcional;
+- guardado de `customerId`;
+- endpoints reales para campañas, keywords y optimización;
+- gating por plan ya amarrado a `Pro`.
+
+Riesgos actuales:
+- mezcla entre modo detección, modo IA y modo API real;
+- depende de tokens y developer token del servidor;
+- el módulo puede sentirse “listo para operar” aunque la conexión real no esté completa.
+
+Qué probar ya:
+- detección de cuentas;
+- guardado de customer id;
+- endpoint `/api/gads/test`;
+- campañas reales;
+- keywords reales;
+- optimización real;
+- error por token faltante;
+- error por plan no permitido.
+
+Mejora inmediata recomendada:
+- mostrar un estado más explícito:
+  - `Detectado`
+  - `Configurado`
+  - `Probado`
+  - `Operando`
+- para que el usuario no confunda una cuenta detectada con una integración completamente validada.
+
+#### Meta Ads
+
+Estado actual:
+- conexión manual por token + account id;
+- verificación del ad account;
+- lectura básica de campañas;
+- optimización por IA sobre campañas reales;
+- gating por plan ya amarrado a `Pro`.
+
+Riesgos actuales:
+- es más sensible que Google porque depende de entrada manual;
+- no hay onboarding guiado fino para el usuario menos técnico;
+- el estado se guarda, pero todavía requiere una prueba real fuerte con cuentas válidas.
+
+Qué probar ya:
+- token válido;
+- token inválido;
+- ad account correcta;
+- cuenta sin permisos;
+- lectura de campañas;
+- optimización con campañas reales;
+- bloqueo por plan.
+
+Mejora inmediata recomendada:
+- añadir ayuda paso a paso para sacar `token` y `account id`;
+- distinguir visualmente entre:
+  - `credenciales guardadas`
+  - `cuenta verificada`
+  - `campañas leídas correctamente`
+
+#### SMTP / correo
+
+Estado actual:
+- SMTP ya funcional;
+- registro con código por correo;
+- recuperación de contraseña;
+- Score Semanal usa email real.
+
+Riesgos actuales:
+- todavía falta una ronda formal de prueba con varios correos reales;
+- no hay todavía una verificación robusta de reputación/entrega;
+- si el SMTP cae, el sistema usa fallback local en pruebas.
+
+Qué probar ya:
+- registro por correo;
+- validación por código;
+- login por correo;
+- recuperación de contraseña;
+- reset de contraseña;
+- envío de Score Semanal.
+
+Mejora inmediata recomendada:
+- dejar templates finales de correo;
+- validar asunto, remitente y mensajes de éxito/error para producción.
+
+#### BearAds Tracking
+
+Estado actual:
+- snippet visible;
+- pasos de instalación visibles;
+- existe como soporte para no depender solo de Google.
+
+Riesgos actuales:
+- todavía no reemplaza la capa fuerte de GA4/GSC;
+- puede quedar como promesa si no se testea medición real de eventos básicos.
+
+Qué probar ya:
+- copia del snippet;
+- instalación básica;
+- confirmación de que el script carga;
+- al menos un evento real o hit básico.
+
+Mejora inmediata recomendada:
+- dejarlo como complemento de diagnóstico, no como “analytics full” todavía.
+
+#### Email Marketing / E-commerce / Webhooks
+
+Estado actual:
+- visibles y con persistencia básica de conexión;
+- útiles como capa de producto, no todavía como integración robusta completa.
+
+Riesgos actuales:
+- hoy pueden inflar la sensación de alcance más de lo que realmente operan;
+- no deben bloquear salida del producto principal.
+
+Decisión recomendada:
+- mantenerlos visibles,
+- pero tratarlos como secundarios en esta fase,
+- y no condicionar la salida comercial del core a cerrarlos por completo.
+
+### Orden recomendado de prueba real de integraciones
+
+1. Google OAuth
+2. Search Console
+3. GA4
+4. Flujo `Analizar Sitio` con datos reales
+5. Google Ads
+6. Meta Ads
+7. SMTP / recuperación / verificación
+8. Score Semanal
+9. BearAds Tracking
+10. Email / E-commerce / Webhooks
+
+### Criterio práctico para salir más rápido
+
+Se puede considerar que el frente de integraciones está listo para salida cuando:
+
+- Google OAuth funciona sin romper sesión;
+- Search Console y GA4 entregan datos reales útiles en análisis;
+- Google Ads y Meta Ads al menos pasan prueba real de lectura/configuración;
+- correo personal, recuperación y Score Semanal funcionan;
+- los módulos secundarios no rompen la experiencia aunque sigan más verdes.
+
+### Bloque de trabajo inmediato recomendado
+
+1. Cerrar prueba real de Google OAuth + GSC + GA4.
+2. Cerrar prueba real de Google Ads.
+3. Cerrar prueba real de Meta Ads.
+4. Cerrar prueba real de correo y Score Semanal.
+5. Reetiquetar lo secundario como secundario, no como core de salida.
+
+Conclusión:
+
+para salir más pronto, BearAds no necesita cerrar “todas” las integraciones al mismo nivel.
+Necesita cerrar muy bien las integraciones que sostienen el flujo principal y dejar el resto claramente ubicado como complementario o siguiente capa.
+
+
+---
+
+## Sesión de trabajo — 2026-05-03
+
+### Panel de Empleados (Employee Dashboard Widget)
+
+#### Contexto
+
+Se rediseño completamente la experiencia de primer acceso para empleados internos y partners. El objetivo: que cualquier persona que reciba acceso entienda inmediatamente qué hacer sin guía externa.
+
+#### Cambios realizados
+
+**Backend — `routes/employee.js`**
+
+- Nuevo endpoint `GET /api/employee/billing-overview`: retorna tres listas completas — `paying[]` (clientes activos con plan y monto), `trials[]` (workspaces en prueba con días desde registro), `problems[]` (cancelados, vencidos, past_due). Antes solo retornaba conteos agregados.
+- Nuevo endpoint `GET /api/employee/system-status`: retorna estado del servidor (Node.js version, uptime, memoria, entorno) y métricas de plataforma (workspaces, usuarios, membresías, desglose de planes). Solo accesible para `developer` y `owner`.
+- `PATCH /api/admin/employees/:userId`: ahora acepta `role` (cambio de rol principal) además de `jobRole`. Valida contra `ASSIGNABLE_ROLES`. Solo `owner` o `admin` pueden cambiar el rol principal. Graba `roleChangedAt` para forzar re-login si la sesión está desactualizada.
+
+**Backend — `lib/workspace-helpers.js`**
+
+- Nuevos `jobRole` agregados: `soporte`, `marketing` (sumados a los existentes: `sales`, `analyst`, `strategist`, `account_manager`, `creative`).
+- Nueva constante exportada: `ASSIGNABLE_ROLES = ['admin', 'billing', 'developer', 'partner']`.
+- `partner` agregado al orden de prioridad de `getPrimaryMembership` en `server.js` (posición 4, antes recibía prioridad 99 y podía resolverse como `member_trial`).
+
+**Backend — `lib/auth-middleware.js`**
+
+- `resolveUserRole()`: revisa `effectiveRole`, `adminRole` y `role` en ambos objetos (`currentUser` y `req.user`) para ser resiliente ante diferencias entre la versión de `buildSessionUser` del monolito y la del módulo.
+- `requireAuth`: ahora verifica `membership.roleChangedAt` vs `req.session.loginAt`. Si el rol fue cambiado por un admin después del último login, la sesión se destruye y se pide re-login.
+- `canAccessEmployeePanel` expuesto en `requireEmployeePanelAccess`.
+
+**Frontend — `public/index.html`**
+
+- Widget de empleados reemplaza completamente el dashboard de cliente para roles `billing`, `developer`, `partner` (admin y owner siguen viendo el panel SA).
+- `EDW_ROLE_CONFIG`: configuración visual (ícono, color, descripción de función) para todos los roles: `owner`, `admin`, `billing`, `developer`, `partner`, `sales`, `soporte`, `marketing`, `strategist`, `account_manager`, `creative`, `analyst`.
+- **Panel Finanzas (`billing`)**: 4 KPIs + tres secciones de listas reales — Clientes Activos, En Trial, Requieren Atención. Cada fila muestra nombre, email, plan y monto/días.
+- **Panel Técnico (`developer`)**: Servidor (Node, uptime, memoria con color semáforo, entorno) + Plataforma (workspaces, usuarios, membresías, desglose de planes) + timestamp de última actualización.
+- **Panel Clientes (`partner` + cualquier `jobRole`)**: Banner de función dinámico que cambia ícono, color y descripción según el `jobRole` del empleado. Lista de clientes asignados.
+- `getResolvedSessionRole()`: corregido para incluir `partner` en roles válidos (antes partner podía resolverse como `member_trial`).
+- `getResolvedSessionPermissions()`: agregados `canAccessEmployeePanel`, `isEmployee`, `isPartner`.
+- `ROLE_LABELS_FE`: mapa de roles técnicos a nombres amigables (Admin General, Finanzas, Técnico, etc.).
+- Panel Equipo SA: cards de miembros con badges de color por rol. CRM drawer con sección "Gestión de Rol" (select de rol + select de especialidad + botón Guardar). `selectedCRMUserId` se resetea al recargar el equipo para evitar modificar el miembro incorrecto.
+
+---
+
+### Seguridad — Auditoría y Correcciones
+
+#### Vulnerabilidades críticas corregidas
+
+| Severidad | Vulnerabilidad | Corrección |
+|-----------|----------------|------------|
+| 🔴 CRÍTICO | Cualquier usuario autenticado podía auto-activar plan `agency` gratis enviando `{activatePlan: true}` a `PATCH /api/workspace-setup` — bypass de billing completo | Solo `owner` y `billing` pueden usar `activatePlan`. Se agrega `activatedBy` al registro. |
+| 🟠 ALTO | `developer` y `partner` no podían ser invitados — `validRoles` en `/api/admin/invite` no los incluía | Agregados a `validRoles`. |
+| 🟠 ALTO | `partner` sin prioridad en `getPrimaryMembership` de `server.js` — usuario partner con membresía trial antigua podía resolverse como `member_trial` | Posición 4 en el orden de prioridad (igual que en `workspace-helpers.js`). |
+| 🟠 ALTO | Cambio de rol vía `PATCH /api/admin/employees/:userId` no invalidaba la sesión activa del usuario afectado | Se graba `roleChangedAt` en la membresía; `requireAuth` destruye la sesión si es anterior al cambio. |
+| 🟡 MEDIO | Al invitar usuario existente como empleado, sus membresías trial conflictivas no se limpiaban | `archiveConflictingTrialMembershipsForUser()` + `invalidateUserSessions()` tras el invite. |
+| 🟡 MEDIO | Session fixation: login no marcaba timestamp en sesión — imposible detectar sesiones comprometidas | `req.session.loginAt` en ambos flujos (email verify + email login). |
+
+#### Recomendaciones implementadas
+
+**CSRF — Protección activa en todas las rutas `/api/*`**
+
+Se implementó verificación de `Content-Type: application/json` o header `X-Requested-With: XMLHttpRequest` en todos los métodos mutantes (`POST`, `PATCH`, `PUT`, `DELETE`) bajo `/api/*`. Los navegadores no pueden enviar estos headers cross-origin sin CORS preflight. Exentos: `/api/stripe/webhook` (firma Stripe) y `/api/track` (pixel de analytics).
+
+Antes: `sameSite: lax` era el único escudo — no protegía XHR/fetch cross-origin.
+Ahora: doble barrera — mismo origen vía header + sameSite lax de cookie.
+
+**Email enumeration — Delay mínimo de 350ms en todas las rutas auth**
+
+Todas las respuestas de `/auth/email/login` toman al menos 350ms independientemente de si el usuario existe o no. Antes, la rama "usuario no existe" respondía en ~0ms y la rama "contraseña incorrecta" tomaba ~100ms (scrypt), creando una diferencia de timing medible.
+
+**Rate limiting — Persistencia en SQLite**
+
+Nueva tabla `auth_rate_limits` en `bearads.db`. El rate limiting sobrevive reinicios del servidor. Antes era in-memory (`authAttempts = {}`) y se borraba con cada restart — un atacante podía reiniciar el proceso para limpiar el conteo.
+
+Ventana: 15 minutos, máximo 10 intentos. Bucket: `{ip}:{email}`. Limpieza periódica automática.
+
+**Sanitizador de respuestas API — Elimina campos sensibles de cualquier JSON**
+
+Middleware en `/api/*` que intercepta `res.json()` y elimina automáticamente campos como `password`, `hash`, `salt`, `secret`, `token`, `apiKey`, `privateKey`, `clientSecret`, `accessToken`, `refreshToken`, etc. Protege contra fugas de credenciales por bugs futuros.
+
+**Protección de IA contra prompt injection**
+
+`sanitizeAiInput()` aplicado a todo input de usuario antes de enviarlo a cualquier proveedor (Gemini, Groq, Anthropic). Bloquea y registra patrones de injection conocidos:
+- "ignore previous instructions"
+- "reveal your system prompt"
+- "bypass your role"
+- Tokens Bearer en texto plano
+- Credenciales en formato `password: xxx`
+
+El input se trunca a 8000 chars para evitar ataques de consumo de tokens.
+
+#### Pendientes identificados (no implementados — requieren decisión de arquitectura)
+
+- **OAuth session regeneration**: `req.session.regenerate()` tras login con Google OAuth para prevenir session fixation en ese flujo. Requiere coordinar con el callback de Passport.
+- **OTP con KDF**: El código de verificación de 6 dígitos se hashea con SHA-256, no con scrypt/bcrypt. Vulnerable a fuerza bruta offline si la base de datos se filtra. Fix: usar scrypt también para OTPs, o aumentar el espacio a 8 dígitos alfanuméricos.
+- **Delay en registro**: La ruta `/auth/email/register` retorna error específico `email_in_use` — enumerable. Fix: retornar siempre el mismo mensaje y enviar un correo de "ya tienes cuenta" al email detectado.
+- **`PATCH /api/admin/workspace-settings` y `GET /api/admin/growth-insights`**: usan `req.user` directamente sin `rehydrateRequestUser()`. Stale session bug potencial si el workspace del usuario cambia.
+
+---
+
+### Arquitectura de Roles — Estructura Definida
+
+#### Dos capas de rol
+
+| Capa | Campo | Propósito |
+|------|-------|-----------|
+| **Rol del sistema** | `membership.role` | Controla permisos de acceso (qué endpoints puede llamar) |
+| **Especialidad** | `membership.jobRole` | Controla qué ve en su panel (UI/UX diferenciada) |
+
+#### Roles del sistema (internos)
+
+| Rol | Permisos | Panel |
+|-----|----------|-------|
+| `owner` | Todo — platform level | SA Panel completo |
+| `admin` | Admin panel, gestión de usuarios, growth | SA Panel completo |
+| `billing` | Admin panel, facturación | SA Panel + widget Finanzas |
+| `developer` | Employee panel, system-status | Widget Técnico |
+| `partner` | Employee panel | Widget Clientes |
+
+#### Especialidades (jobRole) — afectan solo la UI del widget
+
+`sales` · `soporte` · `marketing` · `analyst` · `strategist` · `account_manager` · `creative`
+
+Cada especialidad tiene: ícono, color, label, descripción de función — configurados en `EDW_ROLE_CONFIG`.
+
+#### Flujo de activación de empleados
+
+Solo por invitación manual desde el panel SA → tab Equipo. No hay auto-upgrade desde registro trial. Al invitar un usuario existente:
+1. Se le asigna la nueva membresía con el rol indicado.
+2. Se archivan sus membresías trial conflictivas.
+3. Se invalidan sus sesiones activas (forzando re-login con el nuevo rol).

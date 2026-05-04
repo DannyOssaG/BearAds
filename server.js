@@ -1,130 +1,131 @@
-// BEARADS-SERVER-BUILD-20260318-V3
+// BEARADS-SERVER-BUILD-20260429-V4
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROJECT_PHASES — Historial de desarrollo de BearAds
 // Formato: [Fecha] [Autor] Descripción
 // Autores: Danny = Danny Ossa González (dueño del producto)
-//          Claude = Claude Sonnet (IA asistente de Anthropic)
+//          Claude = Claude Sonnet 4.6 (IA asistente de Anthropic)
+// Última actualización: 2026-04-29
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// FASE 1 — Fundación del servidor
-// [2026-03-18] [Danny + Claude] Arquitectura base de Express. Autenticación
-// local con email/código OTP y Google OAuth. Sesiones persistentes en JSON.
-// Sistema de workspaces y membresías con roles (owner, admin, billing,
-// member_paid, member_trial). Invitaciones por email. Panel superadmin inicial.
+// ── FASE 1 ── Fundación del servidor
+// [2026-03-18] [Danny + Claude]
+// Arquitectura base Express. Auth local con email/OTP y Google OAuth.
+// Sesiones persistentes en JSON. Workspaces y membresías con roles
+// (owner, admin, billing, member_paid, member_trial). Invitaciones por email.
+// Panel superadmin inicial.
 //
-// FASE 2 — Diagnóstico IA (agentes especialistas)
-// [2026-03-18] [Danny + Claude] Endpoint /api/analyze con 5 agentes paralelos:
-// SEO, SEM, Contenido, CRO y Tráfico. Cada agente produce JSON estructurado
-// con score, acciones y quick wins. Integración con Google Search Console (GSC)
-// y Google Analytics 4 (GA4) para contexto real del sitio analizado.
+// ── FASE 2 ── Diagnóstico IA — agentes especialistas
+// [2026-03-18] [Danny + Claude]
+// /api/analyze con 5 agentes paralelos: SEO, SEM, Contenido, CRO, Tráfico.
+// Cada agente devuelve JSON con score, hallazgos y acciones priorizadas.
+// Integración Google Search Console (GSC) y Google Analytics 4 (GA4) para
+// contexto real del sitio. Scraping del HTML del sitio como base del análisis.
 //
-// FASE 3 — Integración Google Ads y Meta Ads
-// [2026-03-xx] [Danny + Claude] Conexión con Google Ads API (reportes de
-// campañas, keywords, CPA). Integración Meta Ads via Graph API (campañas,
-// conjuntos, creativos). Agentes reciben datos reales de pauta pagada como
-// contexto adicional para el análisis.
+// ── FASE 3 ── Integración Google Ads y Meta Ads
+// [2026-03-xx] [Danny + Claude]
+// Google Ads API (campañas, keywords, CPA real). Meta Ads via Graph API
+// (campañas, conjuntos, creativos). Los agentes reciben datos reales de pauta
+// como contexto adicional en el análisis.
 //
-// FASE 4 — Planes y Stripe Billing
-// [2026-03-xx] [Danny + Claude] Sistema de planes: Trial (gratis), Starter,
-// Pro, Agency. Checkout y webhooks de Stripe. Límites de uso por plan
-// (análisis diarios, miembros, integraciones). Modal de planes con comparativa.
-// Flujo de upgrade/downgrade con confirmación.
+// ── FASE 4 ── Planes y Stripe Billing
+// [2026-03-xx] [Danny + Claude]
+// Planes: Trial (gratis), Starter, Pro, Agency. Checkout y webhooks Stripe.
+// Límites de uso por plan (análisis diarios, miembros, integraciones).
+// Modal de planes con comparativa. Flujo upgrade/downgrade con confirmación.
 //
-// FASE 5 — Router multi-proveedor de IA
-// [2026-04-xx] [Danny + Claude] Reemplazo del fetch directo a un proveedor fijo
-// por callAI() con cadena de fallback automático. Proveedores:
-//   • Gemini 2.0 Flash Lite (gratis, primero para Trial)
-//   • Groq Llama 3.3 70B (gratis, fallback Trial)
-//   • Claude Haiku 4.5 (Starter/batch)
-//   • Claude Sonnet 4.6 (Pro/Agency)
-// PROVIDER_CHAINS por tipo de plan. Si el proveedor no tiene key configurada
-// o falla, el router salta automáticamente al siguiente — sin código extra.
-// Prompt caching Anthropic vía SDK (cache_control: ephemeral) para reducir
-// costos en prompts de sistema repetidos.
+// ── FASE 5 ── Router multi-proveedor de IA
+// [2026-04-xx] [Danny + Claude]
+// callAI() con cadena de fallback automático por plan:
+//   Trial:   Gemini 2.0 Flash Lite → Groq Llama 3.3 → Claude Haiku
+//   Starter: Claude Haiku → Gemini → Groq
+//   Pro/Agency: Claude Sonnet 4.6 → Haiku → Gemini
+// Si un proveedor no tiene key o falla, salta al siguiente sin intervención.
+// Prompt caching Anthropic SDK (cache_control: ephemeral) para reducir costos.
+// test-providers.js para verificar keys independientemente.
 //
-// FASE 6 — Agentes más efectivos (bloque completo)
-// [2026-04-29] [Claude] Cuatro mejoras implementadas en una sola sesión:
+// ── FASE 6 ── Agentes más efectivos
+// [2026-04-29] [Danny → Claude]
 //
-//   6A. Routing por ruta del cliente (ROUTE_AGENTS)
-//       Solo corren los agentes relevantes según el modo del cliente:
-//       arranque → [contenido, cro, trafico]  (ahorra ~40% tokens)
+//   6A. ROUTE_AGENTS — Routing por ruta del cliente
+//       Solo corren los agentes del contexto del negocio:
+//       arranque → [contenido, cro, trafico]   (~40% menos tokens)
 //       organico → [seo, contenido, cro]
 //       ads      → [sem, trafico, cro]
 //       agencia  → todos los 5 agentes
-//       /api/analyze acepta routeMode en el body.
 //
 //   6B. Agente Sintetizador (synthesis)
-//       6° agente que corre después de los especialistas. Recibe los outputs
-//       de todos los agentes activos y produce: prioridades rankeadas por
-//       impacto/esfuerzo, conflictos entre agentes y resumen ejecutivo.
-//       Se agrega como campo synthesis en la respuesta del endpoint.
+//       6° agente post-especialistas. Produce prioridades rankeadas por
+//       impacto/esfuerzo, conflictos detectados entre agentes y resumen
+//       ejecutivo accionable. Devuelto como campo synthesis en la respuesta.
 //
 //   6C. Memoria delta entre análisis
-//       workspace.lastAnalysis guarda scores y fecha tras cada análisis.
-//       En el siguiente análisis de la misma URL, los scores anteriores se
-//       inyectan en fullContext para que los agentes detecten progreso o
-//       regresión y lo comenten explícitamente.
+//       workspace.lastAnalysis persiste scores y fecha. Al reanálisis de la
+//       misma URL, los scores previos se inyectan en el contexto para que
+//       los agentes detecten y comenten progreso o regresión.
 //
-//   6D. Registro de costos estimados
-//       PROVIDER_COSTS_PER_1M con precios reales de cada proveedor.
-//       costTracker acumula el costo estimado de cada llamada (chars/4 tokens).
-//       Log por llamada: proveedor, feature, tokens in/out, costo estimado.
-//       workspace.usage.aiCosts[YYYY-MM] acumula el gasto mensual real.
-//       workspace.lastAnalysis.analysisCostUsd guarda el costo del último run.
+//   6D. Registro de costos estimados por llamada
+//       PROVIDER_COSTS_PER_1M con precios reales. costTracker acumula por
+//       análisis. Log: proveedor, feature, tokens in/out, costo estimado.
+//       workspace.usage.aiCosts[YYYY-MM] acumula gasto mensual persistido.
 //
-// FASE 6E — Caché de análisis 24h
-// [2026-04-29] [Claude] analysisCache Map en memoria con TTL de 24h.
-// Clave: workspaceId:url:dayKey. Si el mismo workspace analiza la misma URL
-// el mismo día, retorna el resultado cacheado con fromCache:true sin llamar
-// a ningún proveedor de IA.
+//   6E. Caché de análisis 24h
+//       analysisCache Map en memoria. Clave: workspaceId:url:dayKey.
+//       Misma URL analizada el mismo día → resultado inmediato, sin IA.
 //
-// FASE 6F — Costos IA en panel admin
-// [2026-04-29] [Claude] /api/admin/overview ahora incluye aiUsage (solo para
-// roles owner/admin): costo del mes actual, total acumulado, historial de los
-// últimos 6 meses y detalle del último análisis (URL, fecha, costo, scores).
-// Frontend: 2 tarjetas nuevas en el grid del panel superadmin (Costo IA este
-// mes, Último análisis), más sección de historial mensual y detalle en la
-// pestaña "IAs Estratégicas". Invisible para roles sin permisos admin.
+//   6F. Costos IA en panel admin (roles owner/admin)
+//       /api/admin/overview incluye aiUsage: costo del mes, total acumulado,
+//       historial 6 meses, detalle del último análisis (URL, costo, scores).
+//       Frontend: 2 tarjetas nuevas en el panel + sección historial mensual
+//       en pestaña "IAs Estratégicas". Oculto para roles sin permisos.
 //
-// FASE 7 — DB real, cola async, modularización parcial, costos cross-workspace
-// [2026-04-29] [Claude] Cuatro pilares implementados en una sola sesión:
+// ── FASE 7 ── DB real, cola async, módulos, costos cross-workspace
+// [2026-04-29] [Danny → Claude]
 //
-//   7A. SQLite con better-sqlite3 (lib/db.js)
-//       Tres tablas: analysis_jobs, ai_cost_events, platform_cost_summary.
-//       WAL mode + índices para workspace_id, status, month_key.
-//       API: createJob, getJob, markJobStarted/Done/Error, recordCostEvent,
-//       getCostsByMonth, getPlatformSummary, pruneOldJobs.
+//   7A. SQLite — better-sqlite3 (lib/db.js)
+//       Tablas: analysis_jobs · ai_cost_events · platform_cost_summary
+//       WAL mode + índices en workspace_id, status, month_key.
+//       API pública: createJob, getJob, getRecentJobs, markJobStarted,
+//       markJobDone, markJobError, countPendingJobs, pruneOldJobs,
+//       recordCostEvent, getCostsByMonth, getPlatformSummary.
+//       Cron diario 3am: purga jobs completados con >7 días.
 //
 //   7B. Cola async para /api/analyze
-//       POST /api/analyze → crea job SQLite → devuelve { jobId } inmediatamente
-//       Procesamiento en background (fire-and-forget) → actualiza job cuando termina
-//       GET /api/analyze/job/:id → polling del resultado
-//       GET /api/analyze/jobs → historial del workspace (últimos 20)
-//       Límite: 2 jobs pendientes por workspace simultáneos
-//       Frontend actualizado: detecta { jobId } y hace polling automático
-//       Retrocompatible: si Phase 7 no carga, server.js legacy routes activan.
+//       POST /api/analyze → crea job en SQLite → devuelve { jobId } al instante
+//       Background: fire-and-forget, actualiza job al terminar o fallar
+//       GET /api/analyze/job/:jobId → polling (estado + resultado)
+//       GET /api/analyze/jobs → historial de los últimos 20 del workspace
+//       Límite: 2 jobs pendientes por workspace en simultáneo
+//       Frontend: detecta { jobId }, hace polling automático c/2.5s, anima
+//       badges progresivamente. Timeout a los 2.5min con mensaje claro.
+//       Retrocompatible: si Phase 7 no carga, el monolito sigue funcionando.
 //
-//   7C. Costos cross-workspace (GET /api/admin/platform-costs)
-//       Solo accesible para platform owner. Agrega costos de todos los
-//       workspaces desde SQLite + fallback de JSON stores. Incluye top 10
-//       workspaces por gasto del mes y breakdown por proveedor.
+//   7C. Costos cross-workspace — GET /api/admin/platform-costs
+//       Solo platform owner. Agrega costos de TODOS los workspaces desde
+//       SQLite + fallback JSON. Respuesta: total plataforma por mes, top 10
+//       workspaces más costosos del mes, breakdown por proveedor de IA.
 //
-//   7D. Modularización parcial (lib/ + routes/)
-//       lib/db.js        — capa SQLite
-//       lib/state.js     — stores en memoria exportados por referencia
-//       lib/helpers.js   — utilidades puras (nowIso, getUsageDayKey, etc.)
-//       lib/workspace-helpers.js — lógica de workspaces, roles, usuarios
-//       lib/auth-middleware.js   — middleware Express de autenticación
-//       routes/analyze.js — motor IA con cola async + callAI modular
-//       routes/admin.js   — panel admin con platform-costs endpoint
-//       Estrategia: montar routers Phase 7 ANTES del monolito para que
-//       Express use las versiones modulares sin eliminar el código legacy.
+//   7D. Modularización parcial — lib/ y routes/
+//       lib/db.js              → capa SQLite (zero deps de Express)
+//       lib/state.js           → stores JSON exportados por referencia
+//       lib/helpers.js         → utilidades puras sin side effects
+//       lib/workspace-helpers.js → lógica workspaces, roles, membresías
+//       lib/auth-middleware.js → middleware requireAuth, requireAdmin, etc.
+//       routes/analyze.js      → motor IA completo + cola async
+//       routes/admin.js        → panel admin + platform-costs
+//       Estrategia de montaje: routers Phase 7 se registran ANTES del monolito.
+//       Express usa la versión modular; el código legacy queda como fallback.
+//       No se eliminó ninguna línea de server.js → cero riesgo de regresión.
 //
-// ─── PENDIENTE / NEXT ────────────────────────────────────────────────────────
-// Phase 7E — Modularización completa (auth, billing, gads, meta, email routes)
-// Phase 7F — Migración de JSON stores a SQLite (users, workspaces, memberships)
-// Phase 8  — Queue con prioridades, rate limiting por provider, retry con backoff
+// ─────────────────────────────────────────────────────────────────────────────
+// PENDIENTE — próximas fases
+// ─────────────────────────────────────────────────────────────────────────────
+// 7E  Modularización completa: routes/auth · billing · gads · meta · email
+// 7F  Migración JSON → SQLite: users, workspaces, memberships, tracking
+// 8   Queue con prioridades (Pro > Trial), retry con backoff exponencial,
+//     rate limiting por proveedor en paralelo
+// 9   Dashboard de costos en tiempo real para el platform owner
+//     (WebSocket o SSE) con alertas por umbral mensual configurable
 // ─────────────────────────────────────────────────────────────────────────────
 
 require('dotenv').config();
@@ -236,6 +237,21 @@ class FileSessionStore extends session.Store {
 
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 const sessionStore = new FileSessionStore(SESSION_STORE_FILE);
+
+function invalidateUserSessions(userId) {
+  if (!userId || !sessionStore?.sessions) return;
+  let changed = false;
+  Object.entries(sessionStore.sessions).forEach(([sid, raw]) => {
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (String(parsed?.passport?.user || '') === String(userId)) {
+        delete sessionStore.sessions[sid];
+        changed = true;
+      }
+    } catch (error) {}
+  });
+  if (changed) writeJsonFile(SESSION_STORE_FILE, sessionStore.sessions);
+}
 const oauthUsers = readJsonFile(OAUTH_USERS_FILE, {});
 const appUsers = readJsonFile(APP_USERS_FILE, {});
 const localAuthUsers = readJsonFile(LOCAL_AUTH_USERS_FILE, {});
@@ -269,10 +285,9 @@ const STRIPE_PRICE_ENV_MAP = {
     annual: 'STRIPE_PRICE_AGENCY_ANNUAL'
   }
 };
-const authAttempts = {};
 const requestRateBuckets = {};
-const AUTH_WINDOW_MS = 15 * 60 * 1000;
-const AUTH_MAX_ATTEMPTS = 10;
+// Rate limiting de auth ahora persiste en SQLite (ver lib/db.js → isRateLimited/recordRateAttempt)
+const _dbRateLimit = require('./lib/db');
 
 if (!process.env.SESSION_SECRET) {
   console.warn('SESSION_SECRET not set. Generated an ephemeral secret for this process.');
@@ -364,15 +379,15 @@ function findWorkspaceByStripeReference({ customerId, subscriptionId, workspaceI
 function syncWorkspaceMembershipPlanRoles(workspace) {
   if (!workspace?.id) return;
   const paidState = workspace.subscription?.status && workspace.subscription.status !== 'trialing';
-  const nextRole = paidState ? 'member_paid' : 'member_trial';
+  const nextAccessState = paidState ? 'paid' : 'trial';
   let changed = false;
   getWorkspaceMembers(workspace.id).forEach(membership => {
-    if (membership.role === 'member_trial' || membership.role === 'member_paid') {
-      if (membership.role !== nextRole) {
-        membership.role = nextRole;
-        membership.updatedAt = nowIso();
-        changed = true;
-      }
+    const adminRole = getMembershipAdminRole(membership, workspace);
+    if (adminRole === 'member' && membership.accessState !== nextAccessState) {
+      membership.accessState = nextAccessState;
+      membership.role = 'member';
+      membership.updatedAt = nowIso();
+      changed = true;
     }
   });
   if (changed) saveMemberships();
@@ -603,6 +618,7 @@ function refreshPersistentState() {
   replaceJsonStore(memberships, readJsonFile(MEMBERSHIPS_FILE, {}));
   replaceJsonStore(userInvites, readJsonFile(INVITES_FILE, {}));
   syncPlatformOwners();
+  normalizeMembershipShapes();
   normalizeOwnerMemberships();
 }
 
@@ -628,18 +644,34 @@ function syncPlatformOwners() {
 function normalizeOwnerMemberships() {
   let changed = false;
   Object.values(memberships).forEach(membership => {
-    if (membership.status === 'removed' || membership.role !== 'owner') return;
-    const user = appUsers[membership.userId];
+    if (membership.status === 'removed') return;
     const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    const adminRole = getMembershipAdminRole(membership, workspace);
+    if (adminRole !== 'owner') return;
+    const user = appUsers[membership.userId];
     const normalizedEmail = normalizeEmail(user?.email);
     const isAllowedOwner = Boolean(
       user &&
       (PLATFORM_OWNER_EMAILS.includes(normalizedEmail) || normalizedEmail === PRIMARY_OWNER_EMAIL || user.platformRole === 'owner')
     );
     if (isAllowedOwner) return;
-    membership.role = defaultMemberRoleForWorkspace(workspace);
+    membership.adminRole = 'member';
+    membership.accessState = defaultAccessStateForWorkspace(workspace);
+    membership.role = 'member';
     membership.updatedAt = nowIso();
     changed = true;
+  });
+  if (changed) saveMemberships();
+}
+
+function normalizeMembershipShapes() {
+  let changed = false;
+  Object.values(memberships).forEach(function(membership) {
+    const workspace = ensureWorkspaceState(workspaces[membership.workspaceId]);
+    if (syncMembershipShape(membership, workspace)) {
+      membership.updatedAt = membership.updatedAt || nowIso();
+      changed = true;
+    }
   });
   if (changed) saveMemberships();
 }
@@ -803,42 +835,32 @@ function markPasswordResetTokenUsed(tokenHash) {
   savePasswordResetTokens();
 }
 
+// ── Rate limiting persistente vía SQLite ──────────────────────────────────────
 function getAuthAttemptKey(req, email = '') {
   const ip = String(req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || 'unknown')
-    .split(',')[0]
-    .trim();
-  return `${ip}:${normalizeEmail(email) || 'unknown'}`;
-}
-
-function pruneAuthAttemptBucket(bucket) {
-  const now = Date.now();
-  const attempts = Array.isArray(bucket?.attempts) ? bucket.attempts.filter(ts => now - ts < AUTH_WINDOW_MS) : [];
-  return { attempts, blockedUntil: bucket?.blockedUntil && bucket.blockedUntil > now ? bucket.blockedUntil : 0 };
+    .split(',')[0].trim();
+  return `${ip}:${normalizeEmail(email) || 'anon'}`;
 }
 
 function isAuthRateLimited(req, email = '') {
-  const key = getAuthAttemptKey(req, email);
-  const next = pruneAuthAttemptBucket(authAttempts[key]);
-  authAttempts[key] = next;
-  if (next.blockedUntil && next.blockedUntil > Date.now()) {
-    return { limited: true, retryAfterMs: next.blockedUntil - Date.now() };
-  }
-  return { limited: false, retryAfterMs: 0 };
+  try { return _dbRateLimit.isRateLimited(getAuthAttemptKey(req, email)); } catch (_) { return false; }
 }
 
 function registerAuthFailure(req, email = '') {
-  const key = getAuthAttemptKey(req, email);
-  const bucket = pruneAuthAttemptBucket(authAttempts[key]);
-  bucket.attempts.push(Date.now());
-  if (bucket.attempts.length >= AUTH_MAX_ATTEMPTS) {
-    bucket.blockedUntil = Date.now() + AUTH_WINDOW_MS;
-  }
-  authAttempts[key] = bucket;
+  try { _dbRateLimit.recordRateAttempt(getAuthAttemptKey(req, email)); } catch (_) {}
 }
 
 function clearAuthFailures(req, email = '') {
-  const key = getAuthAttemptKey(req, email);
-  delete authAttempts[key];
+  try { _dbRateLimit.clearRateAttempts(getAuthAttemptKey(req, email)); } catch (_) {}
+}
+
+// ── Delay mínimo para respuestas auth (anti-enumeración de emails) ────────────
+const MIN_AUTH_DELAY_MS = 350;
+function minAuthDelay(startMs) {
+  return new Promise(resolve => {
+    const elapsed = Date.now() - startMs;
+    setTimeout(resolve, Math.max(0, MIN_AUTH_DELAY_MS - elapsed));
+  });
 }
 
 function getRequestRateKey(req, prefix = 'generic') {
@@ -917,14 +939,26 @@ function persistLocalAuthRecordData(userId, email, passwordData) {
 
 function getAuthStatusPayload(currentUser) {
   const googleConnected = isGoogleConnectedForUser(currentUser);
+  const workspace = currentUser?.workspace ? ensureWorkspaceState(currentUser.workspace) : null;
+  const membership = currentUser?.membership
+    ? {
+        ...currentUser.membership,
+        role: getMembershipRoleSelection(currentUser.membership, workspace),
+        adminRole: getMembershipAdminRole(currentUser.membership, workspace),
+        accessState: getMembershipAccessState(currentUser.membership, workspace),
+        effectiveRole: getEffectiveMembershipRole(currentUser.membership, workspace),
+        employeeAccessLevel: normalizeEmployeeAccessLevel(currentUser.membership.employeeAccessLevel, getMembershipAdminRole(currentUser.membership, workspace)),
+        employeeAccessPlan: getEmployeeAccessPlanCode(currentUser.membership.employeeAccessLevel, getMembershipAdminRole(currentUser.membership, workspace))
+      }
+    : null;
   return {
     connected: Boolean(currentUser),
     googleConnected,
     authProvider: googleConnected ? 'google' : (currentUser ? 'email' : null),
     user: currentUser ? sanitizeUser(currentUser) : null,
-    membership: currentUser?.membership || null,
-    workspace: currentUser?.workspace ? sanitizeWorkspace(currentUser.workspace) : null,
-    permissions: currentUser ? rolePermissions(currentUser.membership?.role) : null,
+    membership,
+    workspace: workspace ? sanitizeWorkspace(workspace) : null,
+    permissions: currentUser ? rolePermissions(membership?.effectiveRole || membership?.role) : null,
     isPlatformOwner: currentUser ? isPlatformOwner(currentUser) : false
   };
 }
@@ -1259,13 +1293,86 @@ function getUserMemberships(userId) {
 function getPrimaryMembership(userId) {
   return getUserMemberships(userId)
     .sort((a, b) => {
-      const roleOrder = { owner: 0, admin: 1, billing: 2, developer: 3, member_paid: 4, member_trial: 5, member: 6, manager: 7, viewer: 8 };
-      return (roleOrder[a.role] ?? 99) - (roleOrder[b.role] ?? 99);
+      const workspaceA = ensureWorkspaceState(workspaces[a.workspaceId]);
+      const workspaceB = ensureWorkspaceState(workspaces[b.workspaceId]);
+      const roleOrder = { owner: 0, admin: 1, billing: 2, developer: 3, partner: 4, member_paid: 5, member_trial: 6, member: 7, manager: 8, viewer: 9 };
+      const roleA = getEffectiveMembershipRole(a, workspaceA);
+      const roleB = getEffectiveMembershipRole(b, workspaceB);
+      return (roleOrder[roleA] ?? 99) - (roleOrder[roleB] ?? 99);
     })[0] || null;
+}
+
+function normalizeMembershipAdminRole(role, workspace = null, membership = null) {
+  const normalized = String(role || '').toLowerCase();
+  const user = membership?.userId ? appUsers[membership.userId] : null;
+  if (user?.platformRole === 'owner') return 'owner';
+  if (normalized === 'manager') return 'admin';
+  if (normalized === 'partner') return 'partner';
+  if (['owner', 'admin', 'billing', 'developer'].includes(normalized)) return normalized;
+  return 'member';
+}
+
+function defaultAccessStateForWorkspace(workspace) {
+  return workspace?.subscription?.status === 'trialing' ? 'trial' : 'paid';
+}
+
+function normalizeMembershipAccessState(roleOrState, workspace = null) {
+  const normalized = String(roleOrState || '').toLowerCase();
+  if (['trial', 'member_trial'].includes(normalized)) return 'trial';
+  if (['paid', 'member_paid'].includes(normalized)) return 'paid';
+  return defaultAccessStateForWorkspace(workspace);
+}
+
+function getMembershipAdminRole(membership, workspace = null) {
+  if (!membership) return null;
+  return normalizeMembershipAdminRole(membership.adminRole || membership.role, workspace, membership);
+}
+
+function getMembershipAccessState(membership, workspace = null) {
+  if (!membership) return defaultAccessStateForWorkspace(workspace);
+  return normalizeMembershipAccessState(
+    membership.accessState || membership.billingState || membership.role,
+    workspace
+  );
+}
+
+function getMembershipRoleSelection(membership, workspace = null) {
+  const adminRole = getMembershipAdminRole(membership, workspace);
+  if (!adminRole) return null;
+  if (adminRole !== 'member') return adminRole;
+  return getMembershipAccessState(membership, workspace) === 'paid' ? 'member_paid' : 'member_trial';
+}
+
+function syncMembershipShape(membership, workspace = null) {
+  if (!membership) return false;
+  const adminRole = normalizeMembershipAdminRole(membership.adminRole || membership.role, workspace, membership);
+  const accessState = normalizeMembershipAccessState(membership.accessState || membership.billingState || membership.role, workspace);
+  const storedRole = adminRole;
+  const employeeAccessLevel = normalizeEmployeeAccessLevel(membership.employeeAccessLevel, adminRole);
+  let changed = false;
+  if (membership.adminRole !== adminRole) {
+    membership.adminRole = adminRole;
+    changed = true;
+  }
+  if (membership.accessState !== accessState) {
+    membership.accessState = accessState;
+    changed = true;
+  }
+  if (membership.role !== storedRole) {
+    membership.role = storedRole;
+    changed = true;
+  }
+  if ((membership.employeeAccessLevel || null) !== employeeAccessLevel) {
+    if (employeeAccessLevel) membership.employeeAccessLevel = employeeAccessLevel;
+    else delete membership.employeeAccessLevel;
+    changed = true;
+  }
+  return changed;
 }
 
 function resolveMembershipRole(role, workspace = null) {
   const normalized = String(role || '').toLowerCase();
+  if (['owner', 'admin', 'billing', 'developer'].includes(normalized)) return normalized;
   if (normalized === 'manager') return 'admin';
   if (normalized === 'viewer') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
   if (normalized === 'member') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
@@ -1278,13 +1385,67 @@ function defaultMemberRoleForWorkspace(workspace) {
   return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
 }
 
+function defaultSignupRole() {
+  return 'member_trial';
+}
+
+function normalizeEmployeeAccessLevel(level, role = null) {
+  const normalized = String(level || '').toLowerCase().trim();
+  const normalizedRole = String(role || '').toLowerCase().trim();
+  if (normalizedRole === 'owner') return 'full';
+  if (['partial', 'initial', 'full'].includes(normalized)) return normalized;
+  if (['owner', 'admin', 'billing', 'developer'].includes(normalizedRole)) return 'initial';
+  return null;
+}
+
+function getEmployeeAccessPlanCode(level, role = null) {
+  const normalizedLevel = normalizeEmployeeAccessLevel(level, role);
+  if (normalizedLevel === 'full') return 'agency';
+  if (normalizedLevel === 'initial') return 'starter';
+  if (normalizedLevel === 'partial') return 'trial';
+  return null;
+}
+
 function getEffectiveMembershipRole(membership, workspace = null) {
   if (!membership) return null;
-  return resolveMembershipRole(membership.role, workspace);
+  const adminRole = getMembershipAdminRole(membership, workspace);
+  if (adminRole !== 'member') return adminRole;
+  return getMembershipAccessState(membership, workspace) === 'paid' ? 'member_paid' : 'member_trial';
+}
+
+function getCurrentUserEffectiveRole(currentUser) {
+  if (!currentUser) return null;
+  return getEffectiveMembershipRole(currentUser.membership, currentUser.workspace);
+}
+
+function applyMembershipRoleSelection(membership, roleSelection, workspace = null) {
+  if (!membership) return membership;
+  const normalized = String(roleSelection || '').toLowerCase();
+  if (['member_paid', 'member_trial', 'paid', 'trial', 'member', 'viewer'].includes(normalized)) {
+    membership.adminRole = 'member';
+    membership.accessState = normalizeMembershipAccessState(normalized, workspace);
+    membership.role = 'member';
+    delete membership.employeeAccessLevel;
+  } else {
+    membership.adminRole = normalizeMembershipAdminRole(normalized, workspace, membership);
+    membership.accessState = normalizeMembershipAccessState(membership.accessState, workspace);
+    membership.role = membership.adminRole;
+    membership.employeeAccessLevel = normalizeEmployeeAccessLevel(membership.employeeAccessLevel, membership.adminRole);
+  }
+  membership.updatedAt = nowIso();
+  return membership;
 }
 
 function rolePermissions(role = 'member_trial') {
   const resolvedRole = resolveMembershipRole(role);
+  const moduleScopes = {
+    owner: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-users', 'admin-billing', 'admin-growth', 'admin-qa', 'admin-ai'],
+    admin: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning', 'admin-users', 'admin-growth'],
+    billing: ['dashboard', 'integrations', 'strategy', 'learning', 'admin-users', 'admin-billing'],
+    developer: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-qa', 'admin-ai'],
+    member_paid: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning'],
+    member_trial: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning']
+  };
   return {
     canView: true,
     canEdit: ['owner', 'admin', 'developer', 'billing', 'member_paid', 'member_trial'].includes(resolvedRole),
@@ -1296,7 +1457,8 @@ function rolePermissions(role = 'member_trial') {
     canAccessGrowth: ['owner', 'admin'].includes(resolvedRole),
     canRunAutomations: ['owner', 'admin'].includes(resolvedRole),
     isOwner: resolvedRole === 'owner',
-    role: resolvedRole
+    role: resolvedRole,
+    moduleScopes: moduleScopes[resolvedRole] || moduleScopes.member_trial
   };
 }
 
@@ -1510,10 +1672,17 @@ function ensureMembership(workspaceId, userId, role, invitedBy = null) {
   const existing = memberships[key];
   const now = nowIso();
   const workspace = workspaces[workspaceId] || null;
+  const requestedAdminRole = normalizeMembershipAdminRole(role || existing?.adminRole || existing?.role, workspace, { userId, workspaceId });
+  const requestedAccessState = normalizeMembershipAccessState(
+    role || existing?.accessState || existing?.role,
+    workspace
+  );
   memberships[key] = {
     workspaceId,
     userId,
-    role: resolveMembershipRole(role || existing?.role || defaultMemberRoleForWorkspace(workspace), workspace),
+    role: requestedAdminRole,
+    adminRole: requestedAdminRole,
+    accessState: requestedAccessState,
     invitedBy: invitedBy || existing?.invitedBy || null,
     status: 'active',
     joinedAt: existing?.joinedAt || now,
@@ -1530,7 +1699,17 @@ function buildSessionUser(userId) {
   if (!user) return false;
   const rawMembership = getPrimaryMembership(userId);
   const workspace = rawMembership ? ensureWorkspaceState(workspaces[rawMembership.workspaceId]) : null;
-  const membership = rawMembership ? { ...rawMembership, role: getEffectiveMembershipRole(rawMembership, workspace) } : null;
+  const membership = rawMembership
+    ? {
+        ...rawMembership,
+        role: getMembershipRoleSelection(rawMembership, workspace),
+        adminRole: getMembershipAdminRole(rawMembership, workspace),
+        accessState: getMembershipAccessState(rawMembership, workspace),
+        effectiveRole: getEffectiveMembershipRole(rawMembership, workspace),
+        employeeAccessLevel: normalizeEmployeeAccessLevel(rawMembership.employeeAccessLevel, getMembershipAdminRole(rawMembership, workspace)),
+        employeeAccessPlan: getEmployeeAccessPlanCode(rawMembership.employeeAccessLevel, getMembershipAdminRole(rawMembership, workspace))
+      }
+    : null;
   return {
     ...user,
     accessToken: oauth.accessToken || null,
@@ -1633,10 +1812,17 @@ function resolveBillingWorkspaceForRequest(currentUser, workspaceId = null) {
 function sanitizeBillingMember(membership, workspace) {
   const user = sanitizeUser(appUsers[membership.userId]);
   const effectiveRole = getEffectiveMembershipRole(membership, workspace);
+  const adminRole = getMembershipAdminRole(membership, workspace);
+  const accessState = getMembershipAccessState(membership, workspace);
   const paidState = workspace?.subscription?.status && workspace.subscription.status !== 'trialing';
   return {
     ...membership,
-    role: effectiveRole,
+    role: getMembershipRoleSelection(membership, workspace),
+    adminRole,
+    accessState,
+    effectiveRole,
+    employeeAccessLevel: normalizeEmployeeAccessLevel(membership.employeeAccessLevel, adminRole),
+    employeeAccessPlan: getEmployeeAccessPlanCode(membership.employeeAccessLevel, adminRole),
     user,
     workspaceName: workspace?.name || '',
     plan: resolveWorkspacePlanCode(workspace),
@@ -1729,7 +1915,7 @@ function inferWorkspaceBillingUserId(workspace) {
 }
 
 function listBillingUsersForScope(currentUser, workspace) {
-  const permissions = rolePermissions(currentUser?.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   const useAdminWideScope = isPlatformOwner(currentUser)
     || permissions.canAccessAdminPanel
     || permissions.canManageUsers
@@ -1767,7 +1953,7 @@ function listBillingUsersForScope(currentUser, workspace) {
 }
 
 function getBillingMembershipEntriesForScope(currentUser, focusWorkspace = null) {
-  const permissions = rolePermissions(currentUser?.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   const useAdminWideScope = isPlatformOwner(currentUser)
     || permissions.canAccessAdminPanel
     || permissions.canManageUsers
@@ -2119,7 +2305,7 @@ function ensureUserAccessModel(profile) {
     membership = ensureMembership(
       workspace.id,
       user.id,
-      user.platformRole === 'owner' ? 'owner' : defaultMemberRoleForWorkspace(workspace),
+      user.platformRole === 'owner' ? 'owner' : defaultSignupRole(),
       user.id
     );
   }
@@ -2166,7 +2352,7 @@ function requireAuth(req, res, next) {
 function requireAdminPanelAccess(req, res, next) {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   if (isPlatformOwner(currentUser) || permissions.canAccessAdminPanel) return next();
   return res.status(403).json({ error: 'Permisos insuficientes' });
 }
@@ -2181,7 +2367,7 @@ function requirePlatformOwner(req, res, next) {
 function requireUserManagement(req, res, next) {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   if (isPlatformOwner(currentUser) || permissions.canManageUsers) return next();
   return res.status(403).json({ error: 'No puedes gestionar usuarios' });
 }
@@ -2189,7 +2375,7 @@ function requireUserManagement(req, res, next) {
 function requireUserOperations(req, res, next) {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   if (isPlatformOwner(currentUser) || permissions.canManageUsers || permissions.canSuspendUsers) return next();
   return res.status(403).json({ error: 'No puedes operar usuarios' });
 }
@@ -2197,7 +2383,7 @@ function requireUserOperations(req, res, next) {
 function requireBillingAccess(req, res, next) {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   if (isPlatformOwner(currentUser) || permissions.canManageBilling) return next();
   return res.status(403).json({ error: 'No puedes acceder a billing' });
 }
@@ -2205,7 +2391,7 @@ function requireBillingAccess(req, res, next) {
 function requireGrowthAccess(req, res, next) {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
   const currentUser = rehydrateRequestUser(req) || req.user;
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   if (isPlatformOwner(currentUser) || permissions.canAccessGrowth) return next();
   return res.status(403).json({ error: 'No puedes acceder a growth' });
 }
@@ -2325,6 +2511,46 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   next();
 });
+
+// ── CSRF: rutas /api/* mutantes requieren Content-Type JSON o X-Requested-With ─
+// Protege contra formularios HTML cross-origin que no pueden enviar estos headers
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const CSRF_EXEMPT = new Set(['/api/stripe/webhook', '/api/track']);
+app.use('/api', (req, res, next) => {
+  if (CSRF_SAFE_METHODS.has(req.method)) return next();
+  if (CSRF_EXEMPT.has(req.path))         return next();
+  const ct  = (req.headers['content-type'] || '').toLowerCase();
+  const xrw = (req.headers['x-requested-with'] || '').toLowerCase();
+  if (ct.includes('application/json') || xrw === 'xmlhttprequest') return next();
+  return res.status(403).json({ error: 'Solicitud no autorizada' });
+});
+
+// ── Sanitizador de respuestas: elimina campos sensibles de cualquier JSON ─────
+// Protege contra fugas de credenciales en respuestas API (incluyendo bugs futuros)
+const SENSITIVE_FIELDS = new Set([
+  'password','passwordHash','hash','salt','secret','token','apiKey','api_key',
+  'privateKey','private_key','clientSecret','client_secret','accessToken',
+  'refreshToken','oauthToken','bearer','credential','ssn','cvv','pin',
+]);
+function stripSensitiveFields(obj, depth = 0) {
+  if (!obj || typeof obj !== 'object' || depth > 8) return obj;
+  if (Array.isArray(obj)) return obj.map(i => stripSensitiveFields(i, depth + 1));
+  const clean = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (SENSITIVE_FIELDS.has(k)) continue;
+    clean[k] = stripSensitiveFields(v, depth + 1);
+  }
+  return clean;
+}
+// Monkey-patch res.json para que siempre pase por el sanitizador en rutas /api
+app.use('/api', (req, res, next) => {
+  const _json = res.json.bind(res);
+  res.json = function(body) {
+    return _json(stripSensitiveFields(body));
+  };
+  next();
+});
+
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const stripe = getStripeClient();
   const signature = req.headers['stripe-signature'];
@@ -2486,6 +2712,10 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/api/admin', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
 app.use('/api/admin',
   (req, res, next) => {
@@ -2668,6 +2898,7 @@ app.post('/auth/email/verify', async (req, res) => {
       user.lastLoginAt = nowIso();
       saveAppUsers();
     }
+    req.session.loginAt = new Date().toISOString();
     req.login({ id: userId }, function(error) {
       if (error) {
         return res.redirect(`/auth?error=register_failed&email=${encodeURIComponent(record.email)}&mode=register`);
@@ -2681,21 +2912,25 @@ app.post('/auth/email/verify', async (req, res) => {
 });
 
 app.post('/auth/email/login', async (req, res) => {
+  const _loginStart = Date.now(); // Para delay mínimo anti-enumeración
   try {
     const email = normalizeEmail(req.body.email);
     const password = String(req.body.password || '');
     const rate = isAuthRateLimited(req, email);
-    if (rate.limited) {
+    if (rate) {
+      await minAuthDelay(_loginStart);
       return res.redirect(`/auth?error=auth_rate_limited&email=${encodeURIComponent(email)}`);
     }
     if (!email || !password) {
       registerAuthFailure(req, email);
+      await minAuthDelay(_loginStart);
       return res.redirect(`/auth?error=missing_credentials&email=${encodeURIComponent(email)}`);
     }
 
     const record = findLocalAuthRecordByEmail(email);
     if (!record || !verifyPasswordHash(password, record.salt, record.passwordHash)) {
       registerAuthFailure(req, email);
+      await minAuthDelay(_loginStart);
       return res.redirect(`/auth?error=invalid_credentials&email=${encodeURIComponent(email)}`);
     }
 
@@ -2721,6 +2956,7 @@ app.post('/auth/email/login', async (req, res) => {
       saveAppUsers();
     }
 
+    req.session.loginAt = new Date().toISOString();
     req.login({ id: userId }, function(error) {
       if (error) {
         registerAuthFailure(req, email);
@@ -2852,6 +3088,7 @@ app.get('/auth/status', (req, res) => {
 });
 
 app.get('/api/session', requireAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const currentUser = rehydrateRequestUser(req) || req.user;
   const effectiveWorkspace = currentUser.workspace ? ensureWorkspaceState(currentUser.workspace) : null;
   if (effectiveWorkspace) {
@@ -2860,7 +3097,12 @@ app.get('/api/session', requireAuth, (req, res) => {
   const membership = currentUser.membership
     ? {
         ...currentUser.membership,
-        role: getEffectiveMembershipRole(currentUser.membership, effectiveWorkspace)
+        role: getMembershipRoleSelection(currentUser.membership, effectiveWorkspace),
+        adminRole: getMembershipAdminRole(currentUser.membership, effectiveWorkspace),
+        accessState: getMembershipAccessState(currentUser.membership, effectiveWorkspace),
+        effectiveRole: getEffectiveMembershipRole(currentUser.membership, effectiveWorkspace),
+        employeeAccessLevel: normalizeEmployeeAccessLevel(currentUser.membership.employeeAccessLevel, getMembershipAdminRole(currentUser.membership, effectiveWorkspace)),
+        employeeAccessPlan: getEmployeeAccessPlanCode(currentUser.membership.employeeAccessLevel, getMembershipAdminRole(currentUser.membership, effectiveWorkspace))
       }
     : null;
   const workspace = sanitizeWorkspace(effectiveWorkspace);
@@ -2869,7 +3111,7 @@ app.get('/api/session', requireAuth, (req, res) => {
     user: sanitizeUser(currentUser),
     membership,
     workspace,
-    permissions: rolePermissions(membership?.role),
+    permissions: rolePermissions(membership?.effectiveRole || membership?.role),
     isPlatformOwner: isPlatformOwner(currentUser)
   });
 });
@@ -3031,6 +3273,13 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
       };
 
       if (shouldActivatePlan) {
+        // SECURITY: solo platform owner o billing pueden activar un plan directamente
+        // Los clientes trial NO pueden auto-activarse un plan de pago
+        const activatorRole = getCurrentUserEffectiveRole(currentUser);
+        const canActivate = isPlatformOwner(currentUser) || ['owner', 'billing'].includes(activatorRole);
+        if (!canActivate) {
+          return res.status(403).json({ error: 'No tienes permiso para activar planes directamente' });
+        }
         const mappedPlan = workspace.commercial.targetPlan;
         if (mappedPlan) {
           workspace.subscription = {
@@ -3038,7 +3287,8 @@ app.patch('/api/workspace-setup', requireAuth, (req, res) => {
             plan: mappedPlan,
             status: mappedPlan === 'trial' ? 'trialing' : 'active',
             activatedAt: workspace.subscription?.activatedAt || nowIso(),
-            source: 'workspace-plan-modal'
+            source: 'workspace-plan-modal',
+            activatedBy: currentUser.id
           };
         }
       }
@@ -3139,12 +3389,17 @@ app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
   const workspace = workspaces[targetWorkspaceId];
   if (!workspace) return res.status(404).json({ error: 'Workspace no encontrado' });
 
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   const workspaceMembers = getWorkspaceMembers(targetWorkspaceId).map(membership => {
     const resolvedRole = getEffectiveMembershipRole(membership, workspace);
     return {
       ...membership,
-      role: resolvedRole,
+      role: getMembershipRoleSelection(membership, workspace),
+      adminRole: getMembershipAdminRole(membership, workspace),
+      accessState: getMembershipAccessState(membership, workspace),
+      effectiveRole: resolvedRole,
+      employeeAccessLevel: normalizeEmployeeAccessLevel(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
+      employeeAccessPlan: getEmployeeAccessPlanCode(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
       plan: workspace?.subscription?.plan || 'trial',
       user: sanitizeUser(appUsers[membership.userId])
     };
@@ -3175,12 +3430,12 @@ app.get('/api/admin/overview', requireAdminPanelAccess, (req, res) => {
     pendingInvites: permissions.canManageUsers ? pendingInvites : [],
     stats: {
       totalMembers: workspaceMembers.length,
-      owners: workspaceMembers.filter(m => m.role === 'owner').length,
-      admins: workspaceMembers.filter(m => m.role === 'admin').length,
+      owners: workspaceMembers.filter(m => m.effectiveRole === 'owner').length,
+      admins: workspaceMembers.filter(m => m.effectiveRole === 'admin').length,
       activeInvites: pendingInvites.length,
       membersByRole,
-      trialUsers: workspaceMembers.filter(m => m.role === 'member_trial').length,
-      paidUsers: workspaceMembers.filter(m => m.role === 'member_paid').length
+      trialUsers: workspaceMembers.filter(m => m.accessState === 'trial').length,
+      paidUsers: workspaceMembers.filter(m => m.accessState === 'paid').length
     },
     permissions,
     aiUsage: canViewAiUsage ? {
@@ -3208,7 +3463,12 @@ app.get('/api/admin/users', requireUserManagement, (req, res) => {
 
   const members = getWorkspaceMembers(targetWorkspaceId).map(membership => ({
     ...membership,
-    role: getEffectiveMembershipRole(membership, workspace),
+    role: getMembershipRoleSelection(membership, workspace),
+    adminRole: getMembershipAdminRole(membership, workspace),
+    accessState: getMembershipAccessState(membership, workspace),
+    effectiveRole: getEffectiveMembershipRole(membership, workspace),
+    employeeAccessLevel: normalizeEmployeeAccessLevel(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
+    employeeAccessPlan: getEmployeeAccessPlanCode(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
     permissions: rolePermissions(getEffectiveMembershipRole(membership, workspace)),
     user: sanitizeUser(appUsers[membership.userId])
   }));
@@ -3236,7 +3496,12 @@ app.get('/api/admin/global-users', requirePlatformOwner, (req, res) => {
         return {
           workspaceId: membership.workspaceId,
           workspaceName: workspace?.name || 'Workspace desconocido',
-          role: getEffectiveMembershipRole(membership, workspace),
+          role: getMembershipRoleSelection(membership, workspace),
+          adminRole: getMembershipAdminRole(membership, workspace),
+          accessState: getMembershipAccessState(membership, workspace),
+          effectiveRole: getEffectiveMembershipRole(membership, workspace),
+          employeeAccessLevel: normalizeEmployeeAccessLevel(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
+          employeeAccessPlan: getEmployeeAccessPlanCode(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
           status: membership.status || 'active',
           plan: workspace?.subscription?.plan || 'trial'
         };
@@ -3267,10 +3532,10 @@ app.post('/api/admin/invite', requireUserManagement, (req, res) => {
     req.body.role || defaultMemberRoleForWorkspace(workspace),
     workspace
   );
-  const validRoles = ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+  const validRoles = ['owner', 'admin', 'billing', 'developer', 'partner', 'member_trial', 'member_paid'];
   if (!email) return res.status(400).json({ error: 'Email requerido' });
   if (!validRoles.includes(role)) return res.status(400).json({ error: 'Rol inválido' });
-  const requesterPermissions = rolePermissions(currentUser.membership?.role);
+  const requesterPermissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   const privilegedRoles = ['owner', 'admin', 'billing'];
   if (role === 'owner' && !canRoleCreateOwner(currentUser)) {
     return res.status(403).json({ error: 'Solo otro dueño puede crear un dueño' });
@@ -3293,6 +3558,13 @@ app.post('/api/admin/invite', requireUserManagement, (req, res) => {
   const existingUser = Object.values(appUsers).find(user => normalizeEmail(user.email) === email);
   if (existingUser) {
     ensureMembership(workspaceId, existingUser.id, role, currentUser.id);
+    // Si es un rol de empleado interno, limpiar membresías trial conflictivas
+    // para evitar que el usuario aparezca como cliente y empleado al mismo tiempo
+    const isInternalRole = ['admin', 'billing', 'developer', 'partner'].includes(role);
+    if (isInternalRole) {
+      archiveConflictingTrialMembershipsForUser(existingUser.id, workspaceId, currentUser.id);
+    }
+    invalidateUserSessions(existingUser.id);
     return res.json({
       success: true,
       attachedExistingUser: true,
@@ -3324,9 +3596,11 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   const targetRole = req.body.role ? String(req.body.role).toLowerCase() : null;
   const targetStatus = req.body.status ? String(req.body.status).toLowerCase() : null;
   const targetPlan = req.body.plan ? String(req.body.plan).toLowerCase() : null;
+  const targetAccessLevel = req.body.accessLevel ? String(req.body.accessLevel).toLowerCase() : null;
   const allowedRoles = ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
   const allowedStatus = ['active', 'suspended'];
   const allowedPlans = ['starter', 'pro', 'agency'];
+  const allowedAccessLevels = ['partial', 'initial', 'full'];
 
   const requestedWorkspaceId = String(req.body.workspaceId || '').trim();
   const workspaceId = requestedWorkspaceId && isPlatformOwner(currentUser)
@@ -3340,7 +3614,8 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   if (targetRole && !allowedRoles.includes(targetRole)) return res.status(400).json({ error: 'Rol inválido' });
   if (targetStatus && !allowedStatus.includes(targetStatus)) return res.status(400).json({ error: 'Estado inválido' });
   if (targetPlan && !allowedPlans.includes(targetPlan)) return res.status(400).json({ error: 'Plan inválido' });
-  const requesterPermissions = rolePermissions(currentUser.membership?.role);
+  if (targetAccessLevel && !allowedAccessLevels.includes(targetAccessLevel)) return res.status(400).json({ error: 'Nivel de acceso inválido' });
+  const requesterPermissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
   const workspace = workspaces[workspaceId];
   const currentRole = getEffectiveMembershipRole(membership, workspace);
   const isWorkspaceOwnerMembership = workspace?.ownerUserId === targetUserId;
@@ -3373,6 +3648,13 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
     }
     if (targetRole === 'member_trial' && workspace?.subscription?.status !== 'trialing') {
       return res.status(400).json({ error: 'Este workspace ya está en plan pago. Cambia primero el plan del workspace si quieres volver a trial.' });
+    }
+  }
+
+  if (targetAccessLevel) {
+    const resolvedRole = targetRole || getMembershipRoleSelection(membership, workspace);
+    if (!['owner', 'admin', 'billing'].includes(resolvedRole)) {
+      return res.status(400).json({ error: 'Solo los roles internos usan niveles de acceso' });
     }
   }
 
@@ -3433,7 +3715,12 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
     }
   }
 
-  if (targetRole) membership.role = targetRole;
+  if (targetRole) applyMembershipRoleSelection(membership, targetRole, workspace);
+  if (['owner', 'admin', 'billing'].includes(getMembershipAdminRole(membership, workspace))) {
+    membership.employeeAccessLevel = normalizeEmployeeAccessLevel(targetAccessLevel || membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace));
+  } else {
+    delete membership.employeeAccessLevel;
+  }
   membership.updatedAt = nowIso();
   if (targetStatus) targetUser.status = targetStatus;
   if (targetRole === 'member_paid' && workspace) {
@@ -3463,6 +3750,9 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
     archiveConflictingTrialMembershipsForUser(targetUserId, workspaceId, currentUser.id);
     saveWorkspaces();
   }
+  if (targetRole === 'member_trial') {
+    applyMembershipRoleSelection(membership, 'member_trial', workspace);
+  }
   if (targetRole === 'owner' && workspaces[workspaceId]) {
     workspaces[workspaceId].ownerUserId = targetUserId;
     workspaces[workspaceId].updatedAt = nowIso();
@@ -3471,11 +3761,18 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
 
   saveMemberships();
   saveAppUsers();
+  invalidateUserSessions(targetUserId);
 
   res.json({
     success: true,
     member: {
       ...membership,
+      role: getMembershipRoleSelection(membership, workspace),
+      adminRole: getMembershipAdminRole(membership, workspace),
+      accessState: getMembershipAccessState(membership, workspace),
+      effectiveRole: getEffectiveMembershipRole(membership, workspace),
+      employeeAccessLevel: normalizeEmployeeAccessLevel(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
+      employeeAccessPlan: getEmployeeAccessPlanCode(membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace)),
       permissions: rolePermissions(getEffectiveMembershipRole(membership, workspace)),
       user: sanitizeUser(targetUser)
     }
@@ -3493,7 +3790,7 @@ app.post('/api/admin/users/:userId/reset-trial', requireUserOperations, (req, re
   const key = membershipKey(workspaceId, targetUserId);
   const membership = memberships[key];
   const targetUser = appUsers[targetUserId];
-  const permissions = rolePermissions(currentUser.membership?.role);
+  const permissions = rolePermissions(getCurrentUserEffectiveRole(currentUser));
 
   if (!workspace || !membership || !targetUser) {
     return res.status(404).json({ error: 'Usuario o workspace no encontrado' });
@@ -3512,12 +3809,13 @@ app.post('/api/admin/users/:userId/reset-trial', requireUserOperations, (req, re
     `Trial reiniciado manualmente para ${targetUser.email || targetUser.name || targetUser.id}`
   );
 
-  membership.role = 'member_trial';
+  applyMembershipRoleSelection(membership, 'member_trial', workspace);
   membership.updatedAt = nowIso();
 
   getWorkspaceMembers(workspaceId).forEach(item => {
-    if (['member_paid', 'member_trial'].includes(item.role)) {
-      item.role = 'member_trial';
+    if (getMembershipAdminRole(item, workspace) === 'member') {
+      item.accessState = 'trial';
+      item.role = 'member';
       item.updatedAt = nowIso();
     }
   });
@@ -3558,9 +3856,23 @@ app.patch('/api/admin/workspace-settings', requireAdminPanelAccess, (req, res) =
   });
 });
 
+// Caché de growth-insights: 1h por workspace — evita llamadas IA en cada reload de panel
+const _growthInsightsCache = new Map();
+const _GROWTH_CACHE_TTL = 60 * 60 * 1000; // 1 hora
+
 app.get('/api/admin/growth-insights', requireGrowthAccess, async (req, res) => {
   const workspace = req.user.workspace;
-  const members = workspace ? getWorkspaceMembers(workspace.id).length : 0;
+  const wsId = workspace?.id || 'unknown';
+  const members = workspace ? getWorkspaceMembers(wsId).length : 0;
+
+  // Solo llamar a la IA cuando el usuario lo pide explícitamente (?refresh=true)
+  // o cuando no hay caché. En reloads automáticos del panel devuelve el caché.
+  const forceRefresh = req.query.refresh === 'true';
+  const cached = _growthInsightsCache.get(wsId);
+  if (!forceRefresh && cached && (Date.now() - cached.ts) < _GROWTH_CACHE_TTL) {
+    return res.json({ insight: cached.insight, fromCache: true, cachedAt: cached.cachedAt });
+  }
+
   const prompt = `Analiza este workspace de BearAds y recomienda cómo escalarlo con autogestión:
 
 Workspace: ${workspace?.name || 'Sin nombre'}
@@ -3582,6 +3894,8 @@ Responde en español, máximo 250 palabras, con:
       prompt,
       500
     );
+    const cachedAt = new Date().toISOString();
+    _growthInsightsCache.set(wsId, { insight, ts: Date.now(), cachedAt });
     res.json({ insight });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -4174,6 +4488,27 @@ async function getGSCData(source, siteUrl) {
   try {
     const auth = await createGoogleOAuthClient(source);
     const webmasters = google.webmasters({ version: 'v3', auth });
+    const normalizeVerifiedSite = value => {
+      const raw = String(value || '').trim().toLowerCase();
+      if (!raw) return '';
+      if (raw.startsWith('sc-domain:')) {
+        return 'sc-domain:' + raw.replace(/^sc-domain:/, '').replace(/^www\./, '').replace(/\/+$/, '');
+      }
+      return raw.replace(/\/+$/, '');
+    };
+    const getComparableDomain = value => {
+      const raw = String(value || '').trim().toLowerCase();
+      if (!raw) return '';
+      if (raw.startsWith('sc-domain:')) {
+        return raw.replace(/^sc-domain:/, '').replace(/^www\./, '').replace(/\/+$/, '');
+      }
+      try {
+        const normalizedUrl = raw.startsWith('http') ? raw : 'https://' + raw;
+        return new URL(normalizedUrl).hostname.replace(/^www\./, '');
+      } catch (error) {
+        return raw.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').replace(/\/+$/, '');
+      }
+    };
 
     // ── Step 1: Get all verified sites from this Google account ──
     let sitesRes;
@@ -4200,29 +4535,60 @@ async function getGSCData(source, siteUrl) {
     // ── Step 2: Find matching site URL (GSC is picky about exact format) ──
     // Build all possible formats for the input URL
     let cleanInput = siteUrl.trim().toLowerCase();
-    if (!cleanInput.startsWith('http')) cleanInput = 'https://' + cleanInput;
-    const urlObj = new URL(cleanInput);
-    const hostname = urlObj.hostname.replace(/^www\./, '');
+    let candidates = [];
 
-    const candidates = [
-      `https://${hostname}/`,
-      `https://${hostname}`,
-      `https://www.${hostname}/`,
-      `https://www.${hostname}`,
-      `http://${hostname}/`,
-      `http://${hostname}`,
-      `http://www.${hostname}/`,
-      `sc-domain:${hostname}`,
-      cleanInput,
-      cleanInput.endsWith('/') ? cleanInput : cleanInput + '/',
-    ];
+    if (cleanInput.startsWith('sc-domain:')) {
+      const domainValue = cleanInput.replace(/^sc-domain:/, '').replace(/^www\./, '');
+      candidates = [
+        `sc-domain:${domainValue}`,
+        `https://${domainValue}/`,
+        `https://${domainValue}`,
+        `https://www.${domainValue}/`,
+        `https://www.${domainValue}`,
+        `http://${domainValue}/`,
+        `http://${domainValue}`,
+        `http://www.${domainValue}/`
+      ];
+    } else {
+      if (!cleanInput.startsWith('http')) cleanInput = 'https://' + cleanInput;
+      const urlObj = new URL(cleanInput);
+      const hostname = urlObj.hostname.replace(/^www\./, '');
+
+      candidates = [
+        `https://${hostname}/`,
+        `https://${hostname}`,
+        `https://www.${hostname}/`,
+        `https://www.${hostname}`,
+        `http://${hostname}/`,
+        `http://${hostname}`,
+        `http://www.${hostname}/`,
+        `sc-domain:${hostname}`,
+        cleanInput,
+        cleanInput.endsWith('/') ? cleanInput : cleanInput + '/',
+      ];
+    }
 
     // Find first candidate that matches a verified site
     let matchedUrl = null;
+    const normalizedVerifiedSites = verifiedSites.map(site => ({
+      raw: site,
+      normalized: normalizeVerifiedSite(site),
+      domain: getComparableDomain(site)
+    }));
     for (const candidate of candidates) {
-      if (verifiedSites.some(s => s.toLowerCase() === candidate.toLowerCase())) {
-        matchedUrl = verifiedSites.find(s => s.toLowerCase() === candidate.toLowerCase());
+      const normalizedCandidate = normalizeVerifiedSite(candidate);
+      const directMatch = normalizedVerifiedSites.find(site => site.normalized === normalizedCandidate);
+      if (directMatch) {
+        matchedUrl = directMatch.raw;
         break;
+      }
+    }
+
+    if (!matchedUrl) {
+      const inputDomain = getComparableDomain(siteUrl);
+      const domainMatch = normalizedVerifiedSites.find(site => site.domain && site.domain === inputDomain);
+      if (domainMatch) {
+        matchedUrl = domainMatch.raw;
       }
     }
 
@@ -4518,16 +4884,46 @@ const PROVIDER_COSTS_PER_1M = {
 const analysisCache = new Map();
 const ANALYSIS_CACHE_TTL = 24 * 60 * 60 * 1000;
 
+// ── Sanitizador de entradas a IA: impide que el input del usuario extraiga datos sensibles ──
+// Bloquea patrones de prompt injection que intentan obtener claves, rutas internas o sesiones.
+const AI_INJECTION_PATTERNS = [
+  /ignore\s+(previous|all|above|prior)\s+(instructions?|prompts?|context)/i,
+  /\bAPI[_\s-]?KEY\b/i,
+  /\bACCESS[_\s-]?TOKEN\b/i,
+  /\bprint\s+(your\s+)?(system\s+)?prompt/i,
+  /\breveal\s+(your\s+)?(instructions?|secrets?|credentials?)/i,
+  /\b(forget|disregard|bypass)\s+(your\s+)?(role|instructions?|rules?)/i,
+  /password\s*(is|=|:)\s*\S+/i,
+  /BEARER\s+[A-Za-z0-9\-._~+/]+=*/,
+];
+
+function sanitizeAiInput(text) {
+  if (typeof text !== 'string') return text;
+  // Truncar a 8000 chars para evitar ataques de consumo de tokens
+  let clean = text.slice(0, 8000);
+  // Bloquear patrones de prompt injection conocidos
+  for (const pattern of AI_INJECTION_PATTERNS) {
+    if (pattern.test(clean)) {
+      console.warn('⚠️ AI input bloqueado por patrón de injection:', pattern.source);
+      clean = clean.replace(pattern, '[contenido bloqueado]');
+    }
+  }
+  return clean;
+}
+
 async function callAI(systemPrompt, userMessage, options = {}) {
   const { planCode = 'trial', maxTokens = 1024, feature = 'default', costTracker = null } = options;
   const chain = PROVIDER_CHAINS[planCode] || PROVIDER_CHAINS.trial;
+
+  // Sanitizar input del usuario antes de enviarlo a cualquier proveedor IA
+  const safeUserMessage = sanitizeAiInput(userMessage);
 
   let lastError;
   for (const key of chain) {
     const provider = AI_PROVIDERS[key];
     if (!process.env[provider.envKey]) continue;
     try {
-      const result = await provider.call(systemPrompt, userMessage, maxTokens);
+      const result = await provider.call(systemPrompt, safeUserMessage, maxTokens);
       const inputEst  = Math.ceil((systemPrompt.length + userMessage.length) / 4);
       const outputEst = Math.ceil(result.length / 4);
       const pricing   = PROVIDER_COSTS_PER_1M[key] || { input: 0, output: 0 };
@@ -4549,6 +4945,9 @@ async function callAI(systemPrompt, userMessage, options = {}) {
 
 // callClaude delega a callAI — retrocompatibilidad para endpoints Pro/Agency
 async function callClaude(systemPrompt, userMessage, maxTokens = 1024) {
+  // Log de diagnóstico: muestra qué endpoint disparó callClaude (feature=legacy)
+  const callerLine = (new Error().stack || '').split('\n')[2] || '';
+  console.log(`🔍 callClaude called from: ${callerLine.trim()}`);
   return callAI(systemPrompt, userMessage, { planCode: 'pro', maxTokens, feature: 'legacy' });
 }
 
@@ -4602,13 +5001,16 @@ try {
   global.getGSCData   = getGSCData;
   global.getGA4Data   = getGA4Data;
 
-  const analyzeRouter = require('./routes/analyze');
-  const adminRouter   = require('./routes/admin');
+  const analyzeRouter  = require('./routes/analyze');
+  const adminRouter    = require('./routes/admin');
+  const employeeRouter = require('./routes/employee');
 
   // El router de analyze reemplaza /api/analyze, /api/analyze/job/:id y /api/analyze/jobs
   app.use(analyzeRouter);
-  // El router de admin agrega /api/admin/platform-costs
+  // El router de admin agrega /api/admin/platform-costs y /api/admin/employees/*
   app.use(adminRouter);
+  // El router de employee agrega /api/employee/* y el tab Equipo del panel admin
+  app.use(employeeRouter);
 
   // Cron diario: purgar jobs completados con > 7 días
   cron.schedule('0 3 * * *', () => {
@@ -4619,7 +5021,7 @@ try {
     } catch(e) { console.warn('Prune jobs error:', e.message); }
   });
 
-  console.log('✅ Phase 7 loaded: SQLite DB · async analyze queue · cross-workspace costs');
+  console.log('✅ Phase 7 loaded: SQLite DB · async analyze queue · cross-workspace costs · employee system');
 } catch(e) {
   console.warn('⚠️ Phase 7 modules failed to load — monolith routes remain active:', e.message);
 }
@@ -5260,7 +5662,7 @@ app.post('/api/generate-image', requireAuth, requirePlanFeature('imageGen'), asy
 // PLAN ESTRATÉGICO COMPLETO (Orgánico + Pago)
 // ══════════════════════════════════════════
 
-app.post('/api/strategic-plan', async (req, res) => {
+async function handleStrategicPlan(req, res) {
   const {
     business,
     product,
@@ -5440,7 +5842,10 @@ Sé muy específico con números reales para LATAM. En español.`;
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
-});
+}
+
+global.handleStrategicPlan = handleStrategicPlan;
+app.post('/api/strategic-plan', handleStrategicPlan);
 
 // ══════════════════════════════════════════
 // CREATIVE GENERATION — Copy + Image
@@ -5690,23 +6095,35 @@ app.post('/api/gads/create-keywords', requireAuth, requirePlanFeature('googleAds
 
 
 // ── TRAFFIC DATA ──
-app.post('/api/traffic-data', async (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.json({ gsc: { connected: false }, ga4: { connected: false }, reason: 'not_authenticated' });
+async function handleTrafficData(req, res) {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(200).json({ gsc: { connected: false }, ga4: { connected: false }, reason: 'not_authenticated' });
+    }
+    const { siteUrl, ga4PropertyId } = req.body || {};
+    const currentUser = rehydrateRequestUser(req) || req.user;
+
+    const [gsc, ga4] = await Promise.allSettled([
+      siteUrl ? getGSCData(currentUser, siteUrl) : Promise.resolve({ connected: false, reason: 'no_url' }),
+      ga4PropertyId ? getGA4Data(currentUser, ga4PropertyId) : Promise.resolve({ connected: false, reason: 'no_property_id' })
+    ]);
+
+    return res.status(200).json({
+      gsc: gsc.status === 'fulfilled' ? gsc.value : { connected: false, error: gsc.reason?.message || 'No pude leer Search Console' },
+      ga4: ga4.status === 'fulfilled' ? ga4.value : { connected: false, error: ga4.reason?.message || 'No pude leer Google Analytics 4' }
+    });
+  } catch (error) {
+    console.error('traffic-data fatal error:', error?.message || error);
+    return res.status(200).json({
+      gsc: { connected: false, error: error?.message || 'No pude leer Search Console' },
+      ga4: { connected: false, error: error?.message || 'No pude leer Google Analytics 4' },
+      fatal: true
+    });
   }
-  const { siteUrl, ga4PropertyId } = req.body;
-  const currentUser = rehydrateRequestUser(req) || req.user;
+}
 
-  const [gsc, ga4] = await Promise.allSettled([
-    siteUrl ? getGSCData(currentUser, siteUrl) : Promise.resolve({ connected: false, reason: 'no_url' }),
-    ga4PropertyId ? getGA4Data(currentUser, ga4PropertyId) : Promise.resolve({ connected: false, reason: 'no_property_id' })
-  ]);
-
-  res.json({
-    gsc: gsc.status === 'fulfilled' ? gsc.value : { connected: false, error: gsc.reason?.message },
-    ga4: ga4.status === 'fulfilled' ? ga4.value : { connected: false, error: ga4.reason?.message }
-  });
-});
+global.handleTrafficData = handleTrafficData;
+app.post('/api/traffic-data', handleTrafficData);
 
 // ── CHAT ──
 app.post('/api/chat', async (req, res) => {
