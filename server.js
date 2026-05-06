@@ -1372,7 +1372,7 @@ function syncMembershipShape(membership, workspace = null) {
 
 function resolveMembershipRole(role, workspace = null) {
   const normalized = String(role || '').toLowerCase();
-  if (['owner', 'admin', 'billing', 'developer'].includes(normalized)) return normalized;
+  if (['owner', 'admin', 'billing', 'developer', 'partner'].includes(normalized)) return normalized;
   if (normalized === 'manager') return 'admin';
   if (normalized === 'viewer') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
   if (normalized === 'member') return workspace?.subscription?.status === 'trialing' ? 'member_trial' : 'member_paid';
@@ -1394,7 +1394,7 @@ function normalizeEmployeeAccessLevel(level, role = null) {
   const normalizedRole = String(role || '').toLowerCase().trim();
   if (normalizedRole === 'owner') return 'full';
   if (['partial', 'initial', 'full'].includes(normalized)) return normalized;
-  if (['owner', 'admin', 'billing', 'developer'].includes(normalizedRole)) return 'initial';
+  if (['owner', 'admin', 'billing', 'developer', 'partner'].includes(normalizedRole)) return 'initial';
   return null;
 }
 
@@ -1449,11 +1449,11 @@ function rolePermissions(role = 'member_trial') {
   return {
     canView: true,
     canEdit: ['owner', 'admin', 'developer', 'billing', 'member_paid', 'member_trial'].includes(resolvedRole),
-    canAccessAdminPanel: ['owner', 'admin', 'billing'].includes(resolvedRole),
+    canAccessAdminPanel: ['owner', 'admin', 'billing', 'developer'].includes(resolvedRole),
     canManageUsers: ['owner', 'admin', 'billing'].includes(resolvedRole),
     canSuspendUsers: ['owner', 'admin', 'billing'].includes(resolvedRole),
     canManageBilling: ['owner', 'billing'].includes(resolvedRole),
-    canAccessTechnical: ['owner'].includes(resolvedRole),
+    canAccessTechnical: ['owner', 'developer'].includes(resolvedRole),
     canAccessGrowth: ['owner', 'admin'].includes(resolvedRole),
     canRunAutomations: ['owner', 'admin'].includes(resolvedRole),
     isOwner: resolvedRole === 'owner',
@@ -3597,7 +3597,7 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   const targetStatus = req.body.status ? String(req.body.status).toLowerCase() : null;
   const targetPlan = req.body.plan ? String(req.body.plan).toLowerCase() : null;
   const targetAccessLevel = req.body.accessLevel ? String(req.body.accessLevel).toLowerCase() : null;
-  const allowedRoles = ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+  const allowedRoles = ['owner', 'admin', 'billing', 'developer', 'partner', 'member_trial', 'member_paid'];
   const allowedStatus = ['active', 'suspended'];
   const allowedPlans = ['starter', 'pro', 'agency'];
   const allowedAccessLevels = ['partial', 'initial', 'full'];
@@ -3628,8 +3628,13 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   }
 
   if (targetRole) {
-    if (!isPlatformOwner(currentUser) && !requesterPermissions.canManageUsers) {
-      return res.status(403).json({ error: 'No puedes cambiar roles' });
+    // Solo owner y admin general pueden cambiar el rol de cualquier usuario.
+    // Billing, developer y partner NO pueden cambiar roles aunque tengan canManageUsers.
+    const effectiveRequesterRole = getCurrentUserEffectiveRole(currentUser);
+    const canChangeRoles = isPlatformOwner(currentUser) ||
+      ['owner', 'admin'].includes(effectiveRequesterRole);
+    if (!canChangeRoles) {
+      return res.status(403).json({ error: 'Solo el dueño o el administrador general pueden cambiar roles' });
     }
     if (targetRole === 'owner' && !canRoleCreateOwner(currentUser)) {
       return res.status(403).json({ error: 'Solo otro dueño puede asignar el rol dueño' });
@@ -3653,7 +3658,8 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
 
   if (targetAccessLevel) {
     const resolvedRole = targetRole || getMembershipRoleSelection(membership, workspace);
-    if (!['owner', 'admin', 'billing'].includes(resolvedRole)) {
+    const internalRoles = ['owner', 'admin', 'billing', 'developer', 'partner'];
+    if (!internalRoles.includes(resolvedRole)) {
       return res.status(400).json({ error: 'Solo los roles internos usan niveles de acceso' });
     }
   }
@@ -3716,8 +3722,10 @@ app.patch('/api/admin/users/:userId', requireUserOperations, (req, res) => {
   }
 
   if (targetRole) applyMembershipRoleSelection(membership, targetRole, workspace);
-  if (['owner', 'admin', 'billing'].includes(getMembershipAdminRole(membership, workspace))) {
-    membership.employeeAccessLevel = normalizeEmployeeAccessLevel(targetAccessLevel || membership.employeeAccessLevel, getMembershipAdminRole(membership, workspace));
+  const _resolvedAdminRole = getMembershipAdminRole(membership, workspace);
+  const _internalRoles = ['owner', 'admin', 'billing', 'developer', 'partner'];
+  if (_internalRoles.includes(_resolvedAdminRole)) {
+    membership.employeeAccessLevel = normalizeEmployeeAccessLevel(targetAccessLevel || membership.employeeAccessLevel, _resolvedAdminRole);
   } else {
     delete membership.employeeAccessLevel;
   }
@@ -4866,11 +4874,11 @@ async function callAnthropicModel(model, systemPrompt, userMessage, maxTokens) {
 }
 
 const PROVIDER_CHAINS = {
-  trial:       ['gemini_flash', 'groq_llama', 'claude_haiku'], // llamadas individuales: gratis primero
-  trial_batch: ['claude_haiku', 'gemini_flash', 'groq_llama'], // 5 agentes en paralelo: estable primero
+  trial:       ['gemini_flash', 'groq_llama', 'claude_haiku'],
+  trial_batch: ['claude_haiku', 'gemini_flash', 'groq_llama'],
   starter:     ['claude_haiku', 'gemini_flash', 'groq_llama'],
-  pro:         ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
-  agency:      ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
+  pro:         ['claude_sonnet', 'claude_haiku', 'gemini_flash', 'groq_llama'],
+  agency:      ['claude_sonnet', 'claude_haiku', 'gemini_flash', 'groq_llama'],
 };
 
 const PROVIDER_COSTS_PER_1M = {
@@ -5742,7 +5750,9 @@ Canales sugeridos: ${(analysisContext.recommendedChannels || []).join(', ')}`;
 - El plan debe hablar de procesos, plantillas, handoff y control por cliente.`
   };
 
-  const prompt = `Crea un plan de marketing digital COMPLETO para ${duration || 90} días:
+  const prompt = `Crea un plan de marketing digital COMPLETO para ${duration || 90} días.
+
+⚠️ MERCADO PRIORITARIO: ${targetCountry || 'el país indicado por el cliente'}${targetRegion ? ` — ${targetRegion}` : ''}. Todas las recomendaciones, plataformas, costos y benchmarks deben ser específicos para ESTE mercado, no para otros países.
 
 NEGOCIO: ${business || product}
 PRODUCTO/SERVICIO: ${product}
@@ -5828,18 +5838,20 @@ Semana a semana: qué lanzar, cuándo y con qué presupuesto
 - Si conviene ir a estrategia organica, creativos, campañas o integraciones
 - Que evidencia deberia revisar antes de avanzar
 
-Sé muy específico con números reales para LATAM. En español.`;
+Sé muy específico con números, plataformas, costos y dinámicas reales del mercado de ${targetCountry || 'el país indicado'}. Usa el idioma que corresponde al mercado: ${primaryLanguage === 'en' ? 'inglés' : primaryLanguage === 'pt' ? 'portugués' : 'español'}.`;
 
   try {
     const planUser = req.isAuthenticated() ? (rehydrateRequestUser(req) || req.user) : null;
     const planWorkspace = planUser ? ensureWorkspaceState(planUser?.workspace || null) : null;
     const planCode = resolveWorkspacePlanCode(planWorkspace);
+    const marketLabel = targetCountry || 'el mercado indicado';
     const reply = await callAI(
-      'Eres el Director Estratégico de BearAds. Creas planes de marketing completos, específicos y ejecutables para PyMEs latinoamericanas. Siempre incluyes números reales, no rangos vagos.',
+      `Eres el Director Estratégico de BearAds. Creas planes de marketing completos, específicos y ejecutables para PyMEs de ${marketLabel}. Adaptas tus recomendaciones, plataformas, costos y benchmarks al mercado real del cliente. Siempre incluyes números reales, no rangos vagos.`,
       prompt, { planCode, maxTokens: 4000, feature: 'strategic-plan' }
     );
     res.json({ plan: reply, generatedAt: new Date().toISOString() });
   } catch(err) {
+    console.error('❌ /api/strategic-plan ERROR:', err.message, err.stack?.split('\n')[1]);
     res.status(500).json({ error: err.message });
   }
 }

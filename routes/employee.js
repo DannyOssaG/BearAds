@@ -310,7 +310,7 @@ router.get('/api/employee/billing-overview', requireAdminPanelAccess, (req, res)
 router.get('/api/employee/system-status', requireEmployeePanelAccess, (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
   const role = currentUser.membership?.role;
-  if (role !== 'developer' && !isPlatformOwner(currentUser))
+  if (!INTERNAL_TEAM_ROLES.includes(role) && !isPlatformOwner(currentUser))
     return res.status(403).json({ error: 'Solo para desarrolladores y platform owners' });
 
   const workspaces   = Object.values(state.workspaces);

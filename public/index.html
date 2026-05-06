@@ -2249,6 +2249,79 @@ tr:hover td { background: var(--surface2); }
 
   <div id="dash-diagnosis-overview" style="margin-bottom:20px;"></div>
 
+  <!-- Cola de Acciones (Fase B) -->
+  <div id="dash-action-queue" style="margin-bottom:20px;display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">PRÓXIMAS ACCIONES</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="dash-aq-stats" style="font-size:10px;color:var(--muted);"></span>
+        <select id="dash-aq-mode-select" onchange="setAgentMode(this.value)" style="font-size:10px;padding:3px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;">
+          <option value="manual">Manual</option>
+          <option value="guiado">🧭 Guiado</option>
+          <option value="mixto">⚙️ Mixto</option>
+          <option value="ia">🤖 Modo IA</option>
+        </select>
+        <button onclick="addActionManual()" style="font-size:10px;padding:3px 10px;background:rgba(123,167,232,0.1);border:1px solid rgba(123,167,232,0.2);border-radius:6px;color:var(--accent);cursor:pointer;font-weight:700;">+ Agregar</button>
+      </div>
+    </div>
+    <!-- Banner Modo IA -->
+    <div id="dash-aq-ia-banner" style="display:none;margin-bottom:12px;padding:10px 14px;background:linear-gradient(90deg,rgba(139,92,246,0.12),rgba(123,167,232,0.08));border:1px solid rgba(139,92,246,0.25);border-radius:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:16px;">🤖</span>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.5px;">MODO IA ACTIVO</div>
+        <div id="dash-aq-ia-status" style="font-size:12px;color:var(--text2);">Revisando categorías aprobadas…</div>
+      </div>
+      <div id="dash-aq-ia-tags" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- C3: Panel permisos por módulo (Modo Mixto) -->
+    <div id="dash-aq-mixto-panel" style="display:none;margin-bottom:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(123,167,232,0.07),rgba(94,201,160,0.05));border:1px solid var(--border);border-radius:12px;">
+      <div style="font-size:11px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:10px;">⚙️ PERMISOS POR MÓDULO — marca los que quieres auto-aplicar</div>
+      <div id="dash-aq-mixto-toggles" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;"></div>
+      <div style="margin-top:10px;font-size:10px;color:var(--muted);">Los módulos activados se procesan automáticamente. El resto pasa por revisión.</div>
+    </div>
+
+    <!-- Lista normal (modo manual) -->
+    <div id="dash-aq-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+    <!-- Wizard paso a paso (modo guiado + IA) -->
+    <div id="dash-aq-wizard" style="display:none;">
+      <div id="dash-aq-wizard-card" style="padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div id="dash-aq-wizard-badge" style="font-size:9px;font-weight:800;padding:3px 9px;border-radius:20px;background:rgba(123,167,232,0.12);color:var(--accent);"></div>
+          <div id="dash-aq-wizard-counter" style="font-size:10px;color:var(--muted);"></div>
+        </div>
+        <div id="dash-aq-wizard-title" style="font-size:15px;font-weight:700;color:var(--text);line-height:1.5;margin-bottom:8px;"></div>
+        <div id="dash-aq-wizard-desc" style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:18px;"></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="dash-aq-wizard-apply" style="flex:1;min-width:100px;padding:10px 14px;background:linear-gradient(90deg,rgba(94,201,160,0.18),rgba(94,201,160,0.08));border:1px solid rgba(94,201,160,0.35);border-radius:10px;color:#5ec9a0;font-size:13px;font-weight:700;cursor:pointer;">🔨 Aplicar</button>
+          <button id="dash-aq-wizard-always" style="flex:1;min-width:100px;padding:10px 14px;background:linear-gradient(90deg,rgba(251,191,36,0.18),rgba(251,191,36,0.08));border:1px solid rgba(251,191,36,0.35);border-radius:10px;color:#d4a843;font-size:13px;font-weight:700;cursor:pointer;">⚡ Siempre</button>
+          <button id="dash-aq-wizard-skip" style="flex:1;min-width:100px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;">→ Omitir</button>
+        </div>
+        <div id="dash-aq-wizard-hint" style="margin-top:10px;font-size:10px;color:var(--muted);text-align:center;"></div>
+      </div>
+      <!-- Nav entre acciones -->
+      <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;" id="dash-aq-wizard-dots"></div>
+    </div>
+
+    <div id="dash-aq-empty" style="display:none;text-align:center;padding:24px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:12px;">
+      <div style="font-size:22px;margin-bottom:6px;">✅</div>
+      Sin acciones pendientes — haz un nuevo análisis para generar recomendaciones.
+    </div>
+  </div>
+
+  <!-- C4: Centro de actividad -->
+  <div id="dash-activity-log" style="margin-bottom:20px;display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">HISTORIAL DE ACTIVIDAD</div>
+      <span id="dash-al-auto-tags" style="display:flex;gap:5px;flex-wrap:wrap;"></span>
+    </div>
+    <div id="dash-al-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <div id="dash-al-empty" style="display:none;text-align:center;padding:16px;background:var(--surface);border:1px dashed var(--border);border-radius:10px;color:var(--muted);font-size:12px;">
+      Aún no hay actividad registrada.
+    </div>
+  </div>
+
   <!-- Main grid: Recent analyses + Deliverables -->
   <div id="dash-main-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
 
@@ -2311,6 +2384,184 @@ tr:hover td { background: var(--surface2); }
     <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:12px;">EVOLUCIÓN DE SCORE</div>
     <div id="dash-score-bars" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
+
+  <!-- Agent Hub — status chips y acceso rápido -->
+  <div style="margin-top:24px;margin-bottom:4px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">🤖 AGENTES IA</div>
+      <div style="display:flex;gap:6px;">
+        <button id="dash-run-all-btn" onclick="runAllAgents()" style="font-size:11px;padding:5px 14px;background:linear-gradient(90deg,rgba(139,92,246,0.18),rgba(96,165,250,0.12));border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:700;cursor:pointer;">⚡ Ejecutar todos</button>
+        <button onclick="exportAgentDigest()" style="font-size:11px;padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-weight:600;cursor:pointer;" title="Copiar resumen de todos los agentes">📋</button>
+      </div>
+    </div>
+    <div id="dash-agent-hub" style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;"></div>
+    <div id="dash-agent-chain-status" style="display:none;margin-top:10px;padding:10px 14px;background:rgba(139,92,246,0.07);border:1px solid rgba(139,92,246,0.2);border-radius:10px;font-size:12px;color:var(--text2);"></div>
+  </div>
+
+  <!-- D1: Agente Estratega — Plan 90 días -->
+  <div id="dash-estratega" style="margin-top:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">🧠 AGENTE ESTRATEGA — PLAN 90 DÍAS</div>
+      <button id="dash-estratega-btn" onclick="runEstrategaAgent()" style="font-size:11px;padding:5px 14px;background:linear-gradient(90deg,rgba(139,92,246,0.15),rgba(123,167,232,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:8px;color:#a78bfa;font-weight:700;cursor:pointer;">✨ Generar plan</button>
+    </div>
+    <!-- Estado: sin plan -->
+    <div id="dash-estratega-empty" style="text-align:center;padding:28px 20px;background:linear-gradient(135deg,rgba(139,92,246,0.05),rgba(123,167,232,0.04));border:1px dashed rgba(139,92,246,0.22);border-radius:14px;color:var(--muted);font-size:12px;">
+      <div style="font-size:26px;margin-bottom:8px;">🧠</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Sin plan 90 días activo</div>
+      <div style="max-width:360px;margin:0 auto;line-height:1.7;">El Agente Estratega analiza tu historial y genera un plan de 3 fases con hitos, KPIs y la acción más urgente de esta semana.</div>
+      <button onclick="runEstrategaAgent()" style="margin-top:14px;padding:9px 18px;background:linear-gradient(90deg,rgba(139,92,246,0.2),rgba(123,167,232,0.1));border:1px solid rgba(139,92,246,0.3);border-radius:10px;color:#a78bfa;font-size:12px;font-weight:800;cursor:pointer;">✨ Crear mi plan 90 días</button>
+    </div>
+    <!-- Estado: cargando -->
+    <div id="dash-estratega-loading" style="display:none;text-align:center;padding:32px;color:var(--muted);font-size:12px;">
+      <div style="font-size:24px;margin-bottom:10px;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Agente Estratega analizando…</div>
+      <div>Revisando historial y generando tu plan de 90 días</div>
+    </div>
+    <!-- Estado: plan activo -->
+    <div id="dash-estratega-plan" style="display:none;"></div>
+  </div>
+
+  <!-- D2: Agente Contenido -->
+  <div id="dash-contenido" style="margin-top:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">✍️ AGENTE CONTENIDO — PIEZAS LISTAS PARA PUBLICAR</div>
+      <button id="dash-contenido-btn" onclick="openContenidoModal()" style="font-size:11px;padding:5px 14px;background:linear-gradient(90deg,rgba(94,201,160,0.15),rgba(123,167,232,0.1));border:1px solid rgba(94,201,160,0.3);border-radius:8px;color:#5ec9a0;font-weight:700;cursor:pointer;">✨ Generar contenido</button>
+    </div>
+    <div id="dash-contenido-empty" style="text-align:center;padding:24px 20px;background:linear-gradient(135deg,rgba(94,201,160,0.05),rgba(123,167,232,0.04));border:1px dashed rgba(94,201,160,0.22);border-radius:14px;color:var(--muted);font-size:12px;">
+      <div style="font-size:24px;margin-bottom:8px;">✍️</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Sin contenido generado aún</div>
+      <div style="max-width:360px;margin:0 auto;line-height:1.7;">El Agente Contenido crea posts de Instagram, artículos de blog y emails listos para copiar y publicar.</div>
+      <button onclick="openContenidoModal()" style="margin-top:12px;padding:9px 18px;background:linear-gradient(90deg,rgba(94,201,160,0.18),rgba(123,167,232,0.1));border:1px solid rgba(94,201,160,0.3);border-radius:10px;color:#5ec9a0;font-size:12px;font-weight:800;cursor:pointer;">✨ Crear mi contenido</button>
+    </div>
+    <div id="dash-contenido-loading" style="display:none;text-align:center;padding:28px;color:var(--muted);font-size:12px;">
+      <div style="font-size:22px;margin-bottom:8px;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Agente Contenido escribiendo…</div>
+      <div>Generando piezas reales para tus plataformas</div>
+    </div>
+    <div id="dash-contenido-result" style="display:none;"></div>
+  </div>
+
+  <!-- Modal configuración Agente Contenido -->
+  <div id="modal-contenido" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:800;color:var(--text);">✍️ Agente Contenido</div>
+        <button onclick="closeContenidoModal()" style="background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;">×</button>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;">NEGOCIO / PRODUCTO (contexto para el copy)</label>
+        <input id="cnt-context" type="text" placeholder="Ej: Cafetería artesanal en NYC, clientes millennials 25-35" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;" />
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;">PLATAFORMAS</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="cnt-platforms">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Instagram" checked> Instagram</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Facebook"> Facebook</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Blog" checked> Blog</label>
+          <label style="display:flex;align-items:center;gap=6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Email" checked> Email</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="TikTok/Reels"> TikTok/Reels</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="LinkedIn"> LinkedIn</label>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;">SEMANAS A CUBRIR</label>
+        <select id="cnt-weeks" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);outline:none;">
+          <option value="1">1 semana</option>
+          <option value="2" selected>2 semanas</option>
+          <option value="3">3 semanas</option>
+          <option value="4">4 semanas (mes completo)</option>
+        </select>
+      </div>
+
+      <button onclick="runContenidoAgent()" style="width:100%;padding:12px;background:linear-gradient(90deg,var(--accent2),var(--accent));border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;">✨ Generar contenido</button>
+    </div>
+  </div>
+
+  <!-- D3: Agente Campañas -->
+  <div id="dash-campanas" style="margin-top:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">📢 AGENTE CAMPAÑAS — PUBLICIDAD LISTA PARA LANZAR</div>
+      <button id="dash-campanas-btn" onclick="openCampanasModal()" style="font-size:11px;padding:5px 14px;background:linear-gradient(90deg,rgba(239,68,68,0.12),rgba(251,191,36,0.1));border:1px solid rgba(239,68,68,0.25);border-radius:8px;color:#f87171;font-weight:700;cursor:pointer;">🚀 Crear campañas</button>
+    </div>
+    <div id="dash-campanas-empty" style="text-align:center;padding:24px 20px;background:linear-gradient(135deg,rgba(239,68,68,0.04),rgba(251,191,36,0.03));border:1px dashed rgba(239,68,68,0.2);border-radius:14px;color:var(--muted);font-size:12px;">
+      <div style="font-size:24px;margin-bottom:8px;">📢</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Sin campañas generadas aún</div>
+      <div style="max-width:360px;margin:0 auto;line-height:1.7;">El Agente Campañas crea anuncios completos para Google Ads, Meta Ads y más — con copy, segmentación y presupuesto.</div>
+      <button onclick="openCampanasModal()" style="margin-top:12px;padding:9px 18px;background:linear-gradient(90deg,rgba(239,68,68,0.15),rgba(251,191,36,0.1));border:1px solid rgba(239,68,68,0.25);border-radius:10px;color:#f87171;font-size:12px;font-weight:800;cursor:pointer;">🚀 Crear mis campañas</button>
+    </div>
+    <div id="dash-campanas-loading" style="display:none;text-align:center;padding:28px;color:var(--muted);font-size:12px;">
+      <div style="font-size:22px;margin-bottom:8px;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Agente Campañas trabajando…</div>
+      <div>Generando anuncios y segmentación real</div>
+    </div>
+    <div id="dash-campanas-result" style="display:none;"></div>
+  </div>
+
+  <!-- Modal configuración Agente Campañas -->
+  <div id="modal-campanas" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="font-size:14px;font-weight:800;color:var(--text);">📢 Agente Campañas</div>
+        <button onclick="closeCampanasModal()" style="background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;">×</button>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;">NEGOCIO / CONTEXTO</label>
+        <input id="cam-contexto" type="text" placeholder="Ej: Tienda de ropa online, productos de $30-$120" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;" />
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;">OBJETIVO DE LA CAMPAÑA</label>
+        <select id="cam-objetivo" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;">
+          <option value="ventas">Ventas / Conversiones</option>
+          <option value="leads">Generación de leads</option>
+          <option value="tráfico">Tráfico al sitio</option>
+          <option value="reconocimiento">Reconocimiento de marca</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px;">PRESUPUESTO MENSUAL</label>
+        <input id="cam-presupuesto" type="text" placeholder="Ej: $500/mes, $1,000, sin definir" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;box-sizing:border-box;" />
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label style="font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:8px;">CANALES DE PUBLICIDAD</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="cam-canales">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Google Ads" checked> Google Ads</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="Meta Ads" checked> Meta Ads</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="TikTok Ads"> TikTok Ads</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;"><input type="checkbox" value="LinkedIn Ads"> LinkedIn Ads</label>
+        </div>
+      </div>
+
+      <button onclick="runCampanasAgent()" style="width:100%;padding:12px;background:linear-gradient(90deg,#ef4444,#f59e0b);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;">🚀 Generar campañas</button>
+    </div>
+  </div>
+
+  <!-- D4: Agente Reportes -->
+  <div id="dash-reportes" style="margin-top:24px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;">📊 AGENTE REPORTES — ANÁLISIS EJECUTIVO</div>
+      <button id="dash-reportes-btn" onclick="runReportesAgent()" style="font-size:11px;padding:5px 14px;background:linear-gradient(90deg,rgba(139,92,246,0.12),rgba(96,165,250,0.1));border:1px solid rgba(139,92,246,0.25);border-radius:8px;color:#a78bfa;font-weight:700;cursor:pointer;">📊 Generar reporte</button>
+    </div>
+    <div id="dash-reportes-empty" style="text-align:center;padding:24px 20px;background:linear-gradient(135deg,rgba(139,92,246,0.04),rgba(96,165,250,0.03));border:1px dashed rgba(139,92,246,0.2);border-radius:14px;color:var(--muted);font-size:12px;">
+      <div style="font-size:24px;margin-bottom:8px;">📊</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;">Sin reporte generado aún</div>
+      <div style="max-width:360px;margin:0 auto;line-height:1.7;">El Agente Reportes analiza tus scores, acciones y proyectos activos para darte un diagnóstico ejecutivo y prioridades.</div>
+      <button onclick="runReportesAgent()" style="margin-top:12px;padding:9px 18px;background:linear-gradient(90deg,rgba(139,92,246,0.15),rgba(96,165,250,0.1));border:1px solid rgba(139,92,246,0.25);border-radius:10px;color:#a78bfa;font-size:12px;font-weight:800;cursor:pointer;">📊 Ver mi reporte</button>
+    </div>
+    <div id="dash-reportes-loading" style="display:none;text-align:center;padding:28px;color:var(--muted);font-size:12px;">
+      <div style="font-size:22px;margin-bottom:8px;animation:spin 1.5s linear infinite;display:inline-block;">⚙️</div>
+      <div style="font-weight:700;color:var(--text);margin-bottom:4px;">Agente Reportes analizando…</div>
+      <div>Consolidando datos de todos tus agentes</div>
+    </div>
+    <div id="dash-reportes-result" style="display:none;"></div>
+  </div>
+
 </div>
 
 
@@ -3997,6 +4248,20 @@ tr:hover td { background: var(--surface2); }
           </div>
 
         </div><!-- /agent-detail-panels -->
+
+        <!-- SÍNTESIS BEARADS — Panel del agente sintetizador -->
+        <div id="synthesis-panel" style="display:none;margin-top:20px;">
+          <div class="card" style="background:linear-gradient(135deg,rgba(124,111,212,0.06),rgba(123,167,232,0.04));border-color:rgba(124,111,212,0.2);">
+            <div class="card-header" style="margin-bottom:14px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:18px;">🧠</span>
+                <div class="card-title">Síntesis BearAds — Prioridades cruzadas</div>
+              </div>
+              <div style="font-size:10px;color:var(--muted);font-weight:600;">Análisis unificado de todos los agentes activos</div>
+            </div>
+            <!-- Populated by renderSynthesis() -->
+          </div>
+        </div>
 
         <!-- CHAT POST-ANÁLISIS -->
         <div id="analysis-chat-section">
@@ -5706,12 +5971,1410 @@ function renderDashboardGuide() {
   });
 }
 
+// ── Fase B + C: Cola de Acciones + Modos de Ejecución ────────────────────────
+const AQ_CATEGORY_LABELS = {
+  organico: '🌱 Orgánico', paid: '📣 Paid', conversion: '🎯 Conversión',
+  prioridad: '⭐ Prioridad', datos: '📊 Datos', general: '📋 General',
+};
+const AQ_STATUS_COLORS = {
+  pending: 'rgba(123,167,232,0.13)', in_progress: 'rgba(251,191,36,0.13)', done: 'rgba(94,201,160,0.13)',
+};
+const AQ_STATUS_LABELS = { pending: 'Pendiente', in_progress: 'En progreso', done: 'Listo', dismissed: 'Descartado' };
+const AQ_DECISION_LABELS = { applied: '🔨 Aplicado', always: '⚡ Siempre', skipped: '→ Omitido', auto: '🤖 Auto-IA' };
+const AQ_DECISION_COLORS = {
+  applied: 'rgba(94,201,160,0.12)', always: 'rgba(251,191,36,0.12)',
+  skipped: 'rgba(100,116,139,0.08)', auto: 'rgba(139,92,246,0.12)',
+};
+
+// Índice del wizard en modo guiado
+var _aqWizardIndex = 0;
+var _aqWizardActions = [];
+
+async function loadActionQueue() {
+  const section    = document.getElementById('dash-action-queue');
+  const list       = document.getElementById('dash-aq-list');
+  const wizard     = document.getElementById('dash-aq-wizard');
+  const iaBanner   = document.getElementById('dash-aq-ia-banner');
+  const empty      = document.getElementById('dash-aq-empty');
+  const stats      = document.getElementById('dash-aq-stats');
+  const modeSelect = document.getElementById('dash-aq-mode-select');
+  if (!section || !list) return;
+
+  try {
+    var res  = await fetch('/api/workspace/action-queue?limit=20', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+
+    const mode = data.agentMode || 'manual';
+    if (modeSelect && data.agentMode) modeSelect.value = data.agentMode;
+
+    // Stats badge
+    const s = data.stats || {};
+    if (stats) stats.textContent = (s.pending||0) + ' pendientes · ' + (s.in_progress||0) + ' en progreso · ' + (s.done||0) + ' listas';
+
+    const pending    = (data.actions || []).filter(a => a.status === 'pending');
+    const inProgress = (data.actions || []).filter(a => a.status === 'in_progress');
+    const active     = pending.concat(inProgress);
+
+    section.style.display = 'block';
+    clearElement(list);
+
+    // Hide all views first
+    list.style.display     = 'none';
+    wizard.style.display   = 'none';
+    iaBanner.style.display = 'none';
+    empty.style.display    = 'none';
+
+    if (!active.length) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    // Mostrar/ocultar panel mixto
+    const mixtoPanel = document.getElementById('dash-aq-mixto-panel');
+    if (mixtoPanel) mixtoPanel.style.display = (mode === 'mixto') ? 'block' : 'none';
+    if (mode === 'mixto') renderMixtoPanel(data.autoApproveCategories || []);
+
+    if (mode === 'guiado') {
+      // C1: Wizard paso a paso
+      _aqWizardActions = pending;
+      if (_aqWizardIndex >= pending.length) _aqWizardIndex = 0;
+      wizard.style.display = 'block';
+      renderWizardCard(pending, _aqWizardIndex, mode);
+
+    } else if (mode === 'mixto') {
+      // C3: Panel de permisos + comportamiento híbrido
+      const autoCategories = data.autoApproveCategories || [];
+      const autoActions    = pending.filter(a => autoCategories.includes(a.category));
+      const manualActions  = pending.filter(a => !autoCategories.includes(a.category));
+
+      if (autoActions.length) {
+        autoActions.forEach(function(a) { decideAction(a.id, 'auto', 'mixto', true); });
+      }
+      if (manualActions.length) {
+        _aqWizardActions = manualActions;
+        if (_aqWizardIndex >= manualActions.length) _aqWizardIndex = 0;
+        wizard.style.display = 'block';
+        renderWizardCard(manualActions, _aqWizardIndex, 'mixto');
+      } else if (!autoActions.length) {
+        empty.style.display = 'block';
+      }
+
+    } else if (mode === 'ia') {
+      // C2: Modo IA — procesar auto-aprobados, wizard para el resto
+      iaBanner.style.display = 'flex';
+      const autoCategories   = data.autoApproveCategories || [];
+      const autoActions      = pending.filter(a => autoCategories.includes(a.category));
+      const manualActions    = pending.filter(a => !autoCategories.includes(a.category));
+
+      // Mostrar tags de categorías auto-aprobadas
+      const tagsEl = document.getElementById('dash-aq-ia-tags');
+      if (tagsEl) {
+        clearElement(tagsEl);
+        autoCategories.forEach(function(cat) {
+          var tag = document.createElement('span');
+          tag.style.cssText = 'font-size:9px;padding:2px 7px;border-radius:20px;background:rgba(139,92,246,0.15);color:#a78bfa;font-weight:700;display:flex;align-items:center;gap:4px;cursor:pointer;';
+          tag.innerHTML = (AQ_CATEGORY_LABELS[cat] || cat) + ' <span title="Quitar auto-aprobación" style="opacity:0.6;">×</span>';
+          tag.querySelector('span').onclick = function(e) { e.stopPropagation(); removeAutoApprove(cat); };
+          tagsEl.appendChild(tag);
+        });
+      }
+
+      // Auto-aplicar acciones en categorías aprobadas (sin intervención)
+      if (autoActions.length) {
+        const statusEl = document.getElementById('dash-aq-ia-status');
+        if (statusEl) statusEl.textContent = 'Auto-aplicando ' + autoActions.length + ' acción(es) en categorías aprobadas…';
+        autoActions.forEach(function(a) {
+          decideAction(a.id, 'auto', 'ia', true /* silently */);
+        });
+      }
+
+      if (manualActions.length) {
+        // Mostrar wizard para acciones que requieren decisión
+        _aqWizardActions = manualActions;
+        if (_aqWizardIndex >= manualActions.length) _aqWizardIndex = 0;
+        wizard.style.display = 'block';
+        renderWizardCard(manualActions, _aqWizardIndex, mode);
+        const statusEl = document.getElementById('dash-aq-ia-status');
+        if (statusEl && !autoActions.length) statusEl.textContent = 'Revisa estas acciones antes de aplicarlas.';
+      } else if (!autoActions.length) {
+        const statusEl = document.getElementById('dash-aq-ia-status');
+        if (statusEl) statusEl.textContent = 'Todo al día ✓';
+      }
+
+    } else {
+      // Manual: lista con botones
+      list.style.display = 'flex';
+      renderAQList(list, active);
+    }
+  } catch(e) {
+    section.style.display = 'none';
+  }
+}
+
+// C1/C2: renderiza una tarjeta del wizard
+function renderWizardCard(actions, idx, mode) {
+  const card    = document.getElementById('dash-aq-wizard-card');
+  const badge   = document.getElementById('dash-aq-wizard-badge');
+  const counter = document.getElementById('dash-aq-wizard-counter');
+  const title   = document.getElementById('dash-aq-wizard-title');
+  const desc    = document.getElementById('dash-aq-wizard-desc');
+  const hint    = document.getElementById('dash-aq-wizard-hint');
+  const dots    = document.getElementById('dash-aq-wizard-dots');
+  const btnApply  = document.getElementById('dash-aq-wizard-apply');
+  const btnAlways = document.getElementById('dash-aq-wizard-always');
+  const btnSkip   = document.getElementById('dash-aq-wizard-skip');
+  if (!card || !actions.length) return;
+
+  const a = actions[idx] || actions[0];
+  if (badge)   badge.textContent   = AQ_CATEGORY_LABELS[a.category] || a.category;
+  if (counter) counter.textContent = (idx + 1) + ' de ' + actions.length + ' pendientes';
+  if (title)   title.textContent   = a.title;
+  if (desc)    { desc.textContent = a.description || ''; desc.style.display = a.description ? 'block' : 'none'; }
+  if (hint)    hint.textContent    = mode === 'ia'
+    ? '"Siempre" → el Modo IA aplicará automáticamente esta categoría en el futuro.'
+    : '"Siempre" → BearAds recordará que esta categoría siempre se aplica.';
+
+  // Dots de navegación
+  if (dots) {
+    clearElement(dots);
+    actions.forEach(function(_, i) {
+      var dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:50%;cursor:pointer;background:' + (i === idx ? 'var(--accent)' : 'var(--border)') + ';';
+      dot.onclick = function() { _aqWizardIndex = i; renderWizardCard(_aqWizardActions, i, mode); };
+      dots.appendChild(dot);
+    });
+  }
+
+  // Botones
+  if (btnApply) {
+    btnApply.onclick = async function() {
+      await decideAction(a.id, 'applied', mode);
+      advanceWizard();
+    };
+  }
+  if (btnAlways) {
+    btnAlways.onclick = async function() {
+      await decideAction(a.id, 'always', mode);
+      advanceWizard();
+    };
+  }
+  if (btnSkip) {
+    btnSkip.onclick = async function() {
+      await decideAction(a.id, 'skipped', mode);
+      advanceWizard();
+    };
+  }
+}
+
+function advanceWizard() {
+  _aqWizardIndex++;
+  // Re-fetch the queue (some actions may have been removed)
+  setTimeout(function() {
+    loadActionQueue();
+    loadActivityLog();
+  }, 300);
+}
+
+// Manual mode: lista clásica con botones
+function renderAQList(list, actions) {
+  actions.slice(0, 10).forEach(function(a) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;border:1px solid var(--border);background:' + (AQ_STATUS_COLORS[a.status] || 'var(--surface)') + ';';
+
+    var catBadge = document.createElement('span');
+    catBadge.style.cssText = 'font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;background:rgba(123,167,232,0.1);color:var(--accent);white-space:nowrap;flex-shrink:0;';
+    catBadge.textContent = AQ_CATEGORY_LABELS[a.category] || a.category;
+
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'flex:1;font-size:12px;font-weight:600;color:var(--text);line-height:1.4;';
+    titleEl.textContent = a.title;
+
+    var btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;gap:5px;flex-shrink:0;';
+
+    if (a.status === 'pending') {
+      var startBtn = document.createElement('button');
+      startBtn.textContent = '▶';
+      startBtn.title = 'Iniciar';
+      startBtn.style.cssText = 'padding:3px 7px;font-size:10px;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:5px;color:#d4a843;cursor:pointer;';
+      startBtn.onclick = (function(id){ return function(){ patchAction(id, 'in_progress'); }; })(a.id);
+      btns.appendChild(startBtn);
+    }
+    if (a.status === 'in_progress') {
+      var doneBtn = document.createElement('button');
+      doneBtn.textContent = '✓';
+      doneBtn.title = 'Marcar como listo';
+      doneBtn.style.cssText = 'padding:3px 7px;font-size:10px;background:rgba(94,201,160,0.1);border:1px solid rgba(94,201,160,0.3);border-radius:5px;color:#5ec9a0;cursor:pointer;';
+      doneBtn.onclick = (function(id){ return function(){ patchAction(id, 'done'); }; })(a.id);
+      btns.appendChild(doneBtn);
+    }
+    var dismissBtn = document.createElement('button');
+    dismissBtn.textContent = '×';
+    dismissBtn.title = 'Descartar';
+    dismissBtn.style.cssText = 'padding:3px 7px;font-size:10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.18);border-radius:5px;color:#f87171;cursor:pointer;';
+    dismissBtn.onclick = (function(id){ return function(){ patchAction(id, 'dismissed'); }; })(a.id);
+    btns.appendChild(dismissBtn);
+
+    row.appendChild(catBadge);
+    row.appendChild(titleEl);
+    row.appendChild(btns);
+    list.appendChild(row);
+  });
+}
+
+async function patchAction(id, status) {
+  try {
+    await fetch('/api/workspace/action-queue/' + id, {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    loadActionQueue();
+    loadActivityLog();
+  } catch(e) { showToast('Error al actualizar acción'); }
+}
+
+// C1/C2: decide sobre una acción (applied | always | skipped | auto)
+async function decideAction(id, decision, mode, silent) {
+  try {
+    await fetch('/api/workspace/action-queue/' + id + '/decide', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, mode: mode || 'manual' })
+    });
+    if (!silent) {
+      const labels = { applied: 'Aplicado ✓', always: 'Categoría auto-aprobada ⚡', skipped: 'Omitido', auto: 'Auto-IA ✓' };
+      showToast(labels[decision] || decision);
+    }
+  } catch(e) {
+    if (!silent) showToast('Error al procesar acción');
+  }
+}
+
+// C2: quitar auto-aprobación de categoría
+async function removeAutoApprove(category) {
+  try {
+    await fetch('/api/workspace/auto-approve/' + encodeURIComponent(category), {
+      method: 'DELETE', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    loadActionQueue();
+    loadActivityLog();
+    showToast('Auto-aprobación quitada para ' + (AQ_CATEGORY_LABELS[category] || category));
+  } catch(e) { showToast('Error'); }
+}
+
+// C3: Panel de permisos por módulo
+function renderMixtoPanel(autoCategories) {
+  const container = document.getElementById('dash-aq-mixto-toggles');
+  if (!container) return;
+  clearElement(container);
+  const ALL_CATS = ['organico','paid','conversion','prioridad','datos','general'];
+  ALL_CATS.forEach(function(cat) {
+    var active = autoCategories.includes(cat);
+    var item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;border:1px solid ' + (active ? 'rgba(94,201,160,0.35)' : 'var(--border)') + ';background:' + (active ? 'rgba(94,201,160,0.08)' : 'var(--surface)') + ';cursor:pointer;transition:all 0.15s;';
+    item.title = active ? 'Click para desactivar auto-aprobación' : 'Click para activar auto-aprobación';
+
+    var tog = document.createElement('span');
+    tog.style.cssText = 'width:28px;height:16px;border-radius:8px;background:' + (active ? '#5ec9a0' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background 0.15s;';
+    var circle = document.createElement('span');
+    circle.style.cssText = 'position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:' + (active ? '14px' : '2px') + ';transition:left 0.15s;';
+    tog.appendChild(circle);
+
+    var label = document.createElement('span');
+    label.style.cssText = 'font-size:11px;font-weight:700;color:' + (active ? 'var(--text)' : 'var(--muted)') + ';';
+    label.textContent = AQ_CATEGORY_LABELS[cat] || cat;
+
+    item.appendChild(tog);
+    item.appendChild(label);
+    item.onclick = function() { toggleMixtoCategory(cat, !active); };
+    container.appendChild(item);
+  });
+}
+
+async function toggleMixtoCategory(cat, enable) {
+  try {
+    if (enable) {
+      // Usar el endpoint de "always" sobre una acción dummy — o mejor: endpoint directo
+      await fetch('/api/workspace/auto-approve/' + encodeURIComponent(cat), {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable: true })
+      });
+    } else {
+      await fetch('/api/workspace/auto-approve/' + encodeURIComponent(cat), {
+        method: 'DELETE', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+    }
+    loadActionQueue();
+  } catch(e) { showToast('Error al cambiar permiso'); }
+}
+
+async function setAgentMode(mode) {
+  try {
+    await fetch('/api/workspace/agent-mode', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agentMode: mode })
+    });
+    _aqWizardIndex = 0;
+    loadActionQueue();
+    const modeNames = { manual: 'Manual', guiado: '🧭 Modo Guiado activado', ia: '🤖 Modo IA activado' };
+    showToast(modeNames[mode] || 'Modo actualizado');
+  } catch(e) { showToast('Error al cambiar modo'); }
+}
+
+function addActionManual() {
+  var title = window.prompt('Nombre de la acción:');
+  if (!title || !title.trim()) return;
+  fetch('/api/workspace/action-queue', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: title.trim(), category: 'general', priority: 50 })
+  }).then(function() { loadActionQueue(); }).catch(function() { showToast('Error al agregar'); });
+}
+
+// C4: Centro de actividad — cargar historial
+async function loadActivityLog() {
+  const section = document.getElementById('dash-activity-log');
+  const alList  = document.getElementById('dash-al-list');
+  const alEmpty = document.getElementById('dash-al-empty');
+  const autoTagsEl = document.getElementById('dash-al-auto-tags');
+  if (!section || !alList) return;
+
+  try {
+    var res  = await fetch('/api/workspace/activity-log?limit=15', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+
+    const log  = data.log || [];
+    const cats = data.autoApproveCategories || [];
+
+    // Auto-approve tags
+    if (autoTagsEl) {
+      clearElement(autoTagsEl);
+      cats.forEach(function(cat) {
+        var tag = document.createElement('span');
+        tag.title = 'Quitar auto-aprobación';
+        tag.style.cssText = 'font-size:9px;padding:2px 8px;border-radius:20px;background:rgba(251,191,36,0.12);color:#d4a843;font-weight:700;cursor:pointer;';
+        tag.textContent = '⚡ ' + (AQ_CATEGORY_LABELS[cat] || cat);
+        tag.onclick = function() { removeAutoApprove(cat); };
+        autoTagsEl.appendChild(tag);
+      });
+    }
+
+    section.style.display = 'block';
+    clearElement(alList);
+
+    if (!log.length) {
+      alList.style.display = 'none';
+      alEmpty.style.display = 'block';
+      return;
+    }
+    alList.style.display = 'flex';
+    alEmpty.style.display = 'none';
+
+    log.forEach(function(entry) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:9px;border:1px solid var(--border);background:' + (AQ_DECISION_COLORS[entry.decision] || 'var(--surface)') + ';';
+
+      var decisionBadge = document.createElement('span');
+      decisionBadge.style.cssText = 'font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;background:rgba(0,0,0,0.06);color:var(--text2);white-space:nowrap;flex-shrink:0;margin-top:1px;';
+      decisionBadge.textContent = AQ_DECISION_LABELS[entry.decision] || entry.decision;
+
+      var body = document.createElement('div');
+      body.style.cssText = 'flex:1;min-width:0;';
+
+      var entryTitle = document.createElement('div');
+      entryTitle.style.cssText = 'font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      entryTitle.textContent = entry.title;
+
+      var meta = document.createElement('div');
+      meta.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+      var timeAgo = formatTimeAgo(entry.created_at);
+      meta.textContent = (AQ_CATEGORY_LABELS[entry.category] || entry.category) + ' · ' + (entry.mode === 'ia' ? '🤖 IA' : entry.mode === 'guiado' ? '🧭 Guiado' : 'Manual') + ' · ' + timeAgo;
+
+      body.appendChild(entryTitle);
+      body.appendChild(meta);
+      row.appendChild(decisionBadge);
+      row.appendChild(body);
+      alList.appendChild(row);
+    });
+  } catch(e) {
+    // Silently ignore — optional widget
+  }
+}
+
+function formatTimeAgo(isoString) {
+  if (!isoString) return '';
+  try {
+    var diff = (Date.now() - new Date(isoString).getTime()) / 1000;
+    if (diff < 60)   return 'hace un momento';
+    if (diff < 3600) return 'hace ' + Math.round(diff / 60) + ' min';
+    if (diff < 86400) return 'hace ' + Math.round(diff / 3600) + 'h';
+    return 'hace ' + Math.round(diff / 86400) + 'd';
+  } catch(_) { return ''; }
+}
+
+// ── D1: Agente Estratega ──────────────────────────────────────────────────────
+var _estrategaRunning = false;
+
+async function runEstrategaAgent(context) {
+  if (!requirePlanFeature('agentsAccess', { targetPlan: 'starter', message: 'El Agente Estratega está disponible desde BearAds Starter.' })) return;
+  if (_estrategaRunning) return;
+  _estrategaRunning = true;
+  const emptyEl   = document.getElementById('dash-estratega-empty');
+  const loadingEl = document.getElementById('dash-estratega-loading');
+  const planEl    = document.getElementById('dash-estratega-plan');
+  const btn       = document.getElementById('dash-estratega-btn');
+
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (planEl)    planEl.style.display    = 'none';
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (btn)       btn.disabled = true;
+
+  try {
+    var res = await fetch('/api/workspace/agent/estratega', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context: context || '' })
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    renderEstrategaPlan(data.plan);
+    showToast('🧠 Plan 90 días generado');
+    loadActionQueue(); // Puede haber acción nueva de prioridad inmediata
+  } catch(e) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    showToast('Error al generar el plan: ' + (e.message || 'intenta de nuevo'));
+  } finally {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (btn)       btn.disabled = false;
+    _estrategaRunning = false;
+  }
+}
+
+async function loadEstrategaPlan() {
+  try {
+    var res  = await fetch('/api/workspace/agent/estratega', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (data.project && data.project.plan) {
+      renderEstrategaPlan(data.project.plan);
+    }
+  } catch(_) {}
+}
+
+function renderEstrategaPlan(plan) {
+  const emptyEl = document.getElementById('dash-estratega-empty');
+  const planEl  = document.getElementById('dash-estratega-plan');
+  if (!planEl || !plan) return;
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const PHASE_COLORS = ['rgba(123,167,232,0.12)', 'rgba(251,191,36,0.12)', 'rgba(94,201,160,0.12)'];
+  const PHASE_BORDER = ['rgba(123,167,232,0.3)', 'rgba(251,191,36,0.3)', 'rgba(94,201,160,0.3)'];
+  const PHASE_TEXT   = ['var(--accent)', '#d4a843', '#5ec9a0'];
+
+  var html = '';
+
+  // Header
+  if (plan.titulo || plan.objetivo) {
+    html += '<div style="margin-bottom:16px;padding:14px 16px;background:linear-gradient(135deg,rgba(139,92,246,0.1),rgba(123,167,232,0.07));border:1px solid rgba(139,92,246,0.22);border-radius:12px;">';
+    if (plan.titulo) html += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:5px;">' + escHtml(plan.titulo) + '</div>';
+    if (plan.objetivo) html += '<div style="font-size:12px;color:var(--text2);line-height:1.6;">' + escHtml(plan.objetivo) + '</div>';
+    if (plan.resumen) html += '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">' + escHtml(plan.resumen) + '</div>';
+    html += '</div>';
+  }
+
+  // Prioridad inmediata
+  if (plan.prioridad_inmediata) {
+    html += '<div style="margin-bottom:14px;padding:12px 14px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:10px;display:flex;gap:10px;align-items:flex-start;">';
+    html += '<span style="font-size:16px;flex-shrink:0;">🚨</span>';
+    html += '<div><div style="font-size:10px;font-weight:800;color:#f87171;letter-spacing:0.5px;margin-bottom:3px;">ESTA SEMANA — MÁXIMA PRIORIDAD</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:var(--text);">' + escHtml(plan.prioridad_inmediata) + '</div></div>';
+    html += '</div>';
+  }
+
+  // 3 fases
+  if (Array.isArray(plan.fases) && plan.fases.length) {
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px;">';
+    plan.fases.forEach(function(fase, fi) {
+      var bg  = PHASE_COLORS[fi] || 'var(--surface)';
+      var bdr = PHASE_BORDER[fi] || 'var(--border)';
+      var clr = PHASE_TEXT[fi]   || 'var(--text2)';
+      html += '<div style="padding:13px;background:' + bg + ';border:1px solid ' + bdr + ';border-radius:11px;">';
+      html += '<div style="font-size:9px;font-weight:800;color:' + clr + ';letter-spacing:0.5px;margin-bottom:5px;">FASE ' + fase.numero + ' · Semanas ' + (fase.semanas || '') + '</div>';
+      html += '<div style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:5px;">' + escHtml(fase.nombre || '') + '</div>';
+      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">' + escHtml(fase.objetivo || '') + '</div>';
+      if (Array.isArray(fase.hitos)) {
+        fase.hitos.slice(0, 3).forEach(function(h) {
+          html += '<div style="display:flex;gap:5px;font-size:10px;color:var(--muted);margin-bottom:3px;line-height:1.4;"><span style="flex-shrink:0;color:' + clr + ';">→</span><span>' + escHtml(h) + '</span></div>';
+        });
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // KPIs
+  if (Array.isArray(plan.kpis) && plan.kpis.length) {
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;">KPIs</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    plan.kpis.forEach(function(k) {
+      html += '<div style="padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:11px;">';
+      html += '<span style="font-weight:700;color:var(--text);">' + escHtml(k.nombre || '') + ':</span> ';
+      html += '<span style="color:var(--text2);">' + escHtml(k.meta || '') + '</span>';
+      if (k.plazo) html += ' <span style="color:var(--muted);font-size:10px;">(' + escHtml(k.plazo) + ')</span>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Riesgos
+  if (Array.isArray(plan.riesgos) && plan.riesgos.length) {
+    html += '<div style="padding:10px 12px;background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.18);border-radius:9px;margin-bottom:10px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:#d4a843;letter-spacing:0.5px;margin-bottom:5px;">⚠️ RIESGOS</div>';
+    plan.riesgos.forEach(function(r) {
+      html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px;">• ' + escHtml(r) + '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Botón regenerar
+  html += '<div style="text-align:right;margin-top:8px;">';
+  html += '<button onclick="runEstrategaAgent()" style="font-size:10px;padding:4px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;">↺ Regenerar plan</button>';
+  html += '</div>';
+
+  planEl.innerHTML = html;
+  planEl.style.display = 'block';
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── D2: Agente Contenido ──────────────────────────────────────────────────
+function openContenidoModal() {
+  var m = document.getElementById('modal-contenido');
+  if (m) { m.style.display = 'flex'; }
+}
+
+function closeContenidoModal() {
+  var m = document.getElementById('modal-contenido');
+  if (m) { m.style.display = 'none'; }
+}
+
+async function runContenidoAgent() {
+  if (!requirePlanFeature('agentsAccess', { targetPlan: 'starter', message: 'El Agente Contenido está disponible desde BearAds Starter.' })) return;
+  var contextInput = document.getElementById('cnt-context');
+  var weeksSelect  = document.getElementById('cnt-weeks');
+  var platformsDiv = document.getElementById('cnt-platforms');
+
+  var platforms = [];
+  if (platformsDiv) {
+    platformsDiv.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb) {
+      platforms.push(cb.value);
+    });
+  }
+  if (!platforms.length) { showToast('Selecciona al menos una plataforma'); return; }
+
+  var weeks   = weeksSelect ? parseInt(weeksSelect.value, 10) : 2;
+  var context = contextInput ? contextInput.value.trim() : '';
+
+  closeContenidoModal();
+
+  var emptyEl   = document.getElementById('dash-contenido-empty');
+  var loadingEl = document.getElementById('dash-contenido-loading');
+  var resultEl  = document.getElementById('dash-contenido-result');
+
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (resultEl)  resultEl.style.display  = 'none';
+  if (loadingEl) loadingEl.style.display = 'block';
+
+  try {
+    var payload = { platforms: platforms, weeks: weeks };
+    if (context) payload.context = context;
+
+    var res  = await fetch('/api/workspace/agent/contenido', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (!res.ok || data.error) {
+      showToast(data.error || 'Error al generar contenido');
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+
+    if (data.content) {
+      renderContenidoResult(data.content);
+      showToast('✍️ Contenido generado');
+    }
+  } catch(e) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl)   emptyEl.style.display   = 'block';
+    showToast('Error de conexión');
+  }
+}
+
+async function loadContenidoPlan() {
+  try {
+    var res  = await fetch('/api/workspace/agent/contenido', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (data.project && data.project.plan) {
+      renderContenidoResult(data.project.plan);
+    }
+  } catch(_) {}
+}
+
+function renderContenidoResult(content) {
+  var emptyEl   = document.getElementById('dash-contenido-empty');
+  var loadingEl = document.getElementById('dash-contenido-loading');
+  var resultEl  = document.getElementById('dash-contenido-result');
+
+  if (!resultEl || !content) return;
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  var PLATFORM_COLORS = {
+    'Instagram':   { bg: 'rgba(236,72,153,0.09)',  border: 'rgba(236,72,153,0.22)',  text: '#ec4899', icon: '📸' },
+    'Facebook':    { bg: 'rgba(59,130,246,0.09)',   border: 'rgba(59,130,246,0.22)',  text: '#3b82f6', icon: '👍' },
+    'Blog':        { bg: 'rgba(139,92,246,0.09)',   border: 'rgba(139,92,246,0.22)',  text: '#8b5cf6', icon: '📝' },
+    'Email':       { bg: 'rgba(251,191,36,0.09)',   border: 'rgba(251,191,36,0.22)',  text: '#d4a843', icon: '✉️' },
+    'TikTok/Reels':{ bg: 'rgba(0,0,0,0.05)',        border: 'rgba(0,0,0,0.12)',        text: '#374151', icon: '🎬' },
+    'LinkedIn':    { bg: 'rgba(14,165,233,0.09)',   border: 'rgba(14,165,233,0.22)',  text: '#0ea5e9', icon: '💼' }
+  };
+  var DEFAULT_COLOR = { bg: 'rgba(94,201,160,0.09)', border: 'rgba(94,201,160,0.22)', text: '#5ec9a0', icon: '📄' };
+
+  var html = '';
+
+  // Semanas / weeks
+  var semanas = Array.isArray(content.semanas) ? content.semanas :
+                Array.isArray(content.weeks)   ? content.weeks   : [];
+
+  // Fallback: flat list of piezas
+  var piezas = Array.isArray(content.piezas) ? content.piezas :
+               Array.isArray(content.pieces) ? content.pieces : [];
+
+  // Título/resumen del plan
+  if (content.titulo || content.resumen) {
+    html += '<div style="margin-bottom:14px;padding:12px 14px;background:linear-gradient(135deg,rgba(94,201,160,0.08),rgba(123,167,232,0.06));border:1px solid rgba(94,201,160,0.2);border-radius:11px;">';
+    if (content.titulo)  html += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">' + escHtml(content.titulo) + '</div>';
+    if (content.resumen) html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;">' + escHtml(content.resumen) + '</div>';
+    var meta = [content.tono && ('Tono: ' + content.tono), content.frecuencia && ('Frecuencia: ' + content.frecuencia)].filter(Boolean).join(' · ');
+    if (meta) html += '<div style="font-size:10px;color:var(--muted);margin-top:4px;">' + escHtml(meta) + '</div>';
+    html += '</div>';
+  }
+
+  if (semanas.length) {
+    semanas.forEach(function(sem, si) {
+      var semNum   = sem.numero || (si + 1);
+      var semTema  = sem.tema   || sem.week || sem.semana || '';
+      var semLabel = 'Semana ' + semNum + (semTema ? ' — ' + semTema : '');
+      html += '<div style="margin-bottom:18px;">';
+      html += '<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:0.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);">📅 ' + escHtml(semLabel).toUpperCase() + '</div>';
+
+      var items = Array.isArray(sem.piezas)  ? sem.piezas  :
+                  Array.isArray(sem.pieces)  ? sem.pieces  :
+                  Array.isArray(sem.content) ? sem.content : [];
+
+      items.forEach(function(pieza, pi) {
+        html += renderPiezaCard(pieza, pi, PLATFORM_COLORS, DEFAULT_COLOR);
+      });
+      html += '</div>';
+    });
+  } else if (piezas.length) {
+    piezas.forEach(function(pieza, pi) {
+      html += renderPiezaCard(pieza, pi, PLATFORM_COLORS, DEFAULT_COLOR);
+    });
+  } else {
+    // Raw string fallback
+    var raw = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+    html += '<pre style="font-size:11px;color:var(--text2);white-space:pre-wrap;line-height:1.6;background:var(--surface2);padding:14px;border-radius:10px;">' + escHtml(raw) + '</pre>';
+  }
+
+  // Botón regenerar
+  html += '<div style="text-align:right;margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">';
+  html += '<button onclick="openContenidoModal()" style="font-size:10px;padding:4px 12px;background:linear-gradient(90deg,rgba(94,201,160,0.15),rgba(123,167,232,0.1));border:1px solid rgba(94,201,160,0.3);border-radius:6px;color:#5ec9a0;font-weight:700;cursor:pointer;">+ Generar más</button>';
+  html += '<button onclick="runContenidoAgent()" style="font-size:10px;padding:4px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;">↺ Regenerar</button>';
+  html += '</div>';
+
+  resultEl.innerHTML = html;
+  resultEl.style.display = 'block';
+}
+
+function renderPiezaCard(pieza, idx, PLATFORM_COLORS, DEFAULT_COLOR) {
+  var platform = pieza.plataforma || pieza.platform || pieza.canal || '';
+  var c = PLATFORM_COLORS[platform] || DEFAULT_COLOR;
+  var title   = pieza.titulo || pieza.title || pieza.asunto || ('Pieza ' + (idx + 1));
+  var body    = pieza.cuerpo || pieza.body  || pieza.contenido || pieza.content || pieza.copy || pieza.texto || '';
+  var caption = pieza.caption || '';
+  var hashtags= pieza.hashtags || pieza.tags || '';
+  var cta     = pieza.cta     || '';
+  var tipo    = pieza.tipo    || pieza.type || pieza.formato || '';
+
+  var copyText = [title, body || caption, hashtags, cta].filter(Boolean).join('\n\n');
+  var safeIdx  = 'pieza-' + idx + '-' + Date.now();
+
+  var h = '';
+  h += '<div id="' + safeIdx + '" style="margin-bottom:12px;padding:14px 16px;background:' + c.bg + ';border:1px solid ' + c.border + ';border-radius:12px;">';
+
+  // Header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;flex-wrap:wrap;">';
+  h += '<div style="display:flex;align-items:center;gap:8px;">';
+  if (platform) h += '<span style="font-size:11px;font-weight:800;color:' + c.text + ';background:' + c.bg + ';padding:2px 8px;border-radius:5px;border:1px solid ' + c.border + ';">' + c.icon + ' ' + escHtml(platform) + '</span>';
+  if (tipo)     h += '<span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">' + escHtml(tipo) + '</span>';
+  h += '</div>';
+  h += '<button onclick="copyPieza(\'' + safeIdx + '\')" style="font-size:10px;padding:3px 10px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--muted);cursor:pointer;flex-shrink:0;">📋 Copiar</button>';
+  h += '</div>';
+
+  // Título / asunto
+  if (title) {
+    h += '<div data-copy="' + escHtml(title) + '" style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px;">' + escHtml(title) + '</div>';
+  }
+
+  // Cuerpo principal
+  if (body) {
+    h += '<div data-copy="' + escHtml(body) + '" style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;margin-bottom:6px;">' + escHtml(body) + '</div>';
+  }
+  if (caption && caption !== body) {
+    h += '<div data-copy="' + escHtml(caption) + '" style="font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-wrap;margin-bottom:6px;font-style:italic;">' + escHtml(caption) + '</div>';
+  }
+
+  // Hashtags
+  if (hashtags) {
+    var tagStr = Array.isArray(hashtags) ? hashtags.join(' ') : hashtags;
+    h += '<div data-copy="' + escHtml(tagStr) + '" style="font-size:11px;color:' + c.text + ';margin-top:4px;word-break:break-word;">' + escHtml(tagStr) + '</div>';
+  }
+
+  // CTA
+  if (cta) {
+    h += '<div style="margin-top:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;"><span style="color:' + c.text + ';">→</span> <span data-copy="' + escHtml(cta) + '">' + escHtml(cta) + '</span></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+function copyPieza(elId) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var parts = Array.from(el.querySelectorAll('[data-copy]')).map(function(e) { return e.dataset.copy; }).filter(Boolean);
+  navigator.clipboard.writeText(parts.join('\n\n')).then(function() { showToast('✅ Copiado'); }).catch(function() { showToast('No se pudo copiar'); });
+}
+// ── /D2 ──────────────────────────────────────────────────────────────────
+
+// ── D3: Agente Campañas ───────────────────────────────────────────────────
+function openCampanasModal() {
+  var m = document.getElementById('modal-campanas');
+  if (m) { m.style.display = 'flex'; }
+}
+function closeCampanasModal() {
+  var m = document.getElementById('modal-campanas');
+  if (m) { m.style.display = 'none'; }
+}
+
+async function runCampanasAgent() {
+  if (!requirePlanFeature('campaignBuilder', { targetPlan: 'pro', message: 'El Agente Campañas está disponible desde BearAds Pro.' })) return;
+  var contextoInput   = document.getElementById('cam-contexto');
+  var objetivoSelect  = document.getElementById('cam-objetivo');
+  var presupuestoInput= document.getElementById('cam-presupuesto');
+  var canalesDiv      = document.getElementById('cam-canales');
+
+  var canales = [];
+  if (canalesDiv) {
+    canalesDiv.querySelectorAll('input[type=checkbox]:checked').forEach(function(cb) { canales.push(cb.value); });
+  }
+  if (!canales.length) { showToast('Selecciona al menos un canal'); return; }
+
+  closeCampanasModal();
+
+  var emptyEl   = document.getElementById('dash-campanas-empty');
+  var loadingEl = document.getElementById('dash-campanas-loading');
+  var resultEl  = document.getElementById('dash-campanas-result');
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (resultEl)  resultEl.style.display  = 'none';
+  if (loadingEl) loadingEl.style.display = 'block';
+
+  try {
+    var payload = {
+      canales:     canales,
+      objetivo:    objetivoSelect  ? objetivoSelect.value      : 'ventas',
+      presupuesto: presupuestoInput ? presupuestoInput.value.trim() : '',
+      contexto:    contextoInput   ? contextoInput.value.trim() : '',
+    };
+    var res  = await fetch('/api/workspace/agent/campanas', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var data = await res.json();
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (!res.ok || data.error) {
+      showToast(data.error || 'Error al generar campañas');
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    if (data.campanas) { renderCampanasResult(data.campanas); showToast('📢 Campañas generadas'); }
+  } catch(e) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl)   emptyEl.style.display   = 'block';
+    showToast('Error de conexión');
+  }
+}
+
+async function loadCampanasPlan() {
+  try {
+    var res  = await fetch('/api/workspace/agent/campanas', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (data.project && data.project.plan) renderCampanasResult(data.project.plan);
+  } catch(_) {}
+}
+
+function renderCampanasResult(c) {
+  var emptyEl   = document.getElementById('dash-campanas-empty');
+  var loadingEl = document.getElementById('dash-campanas-loading');
+  var resultEl  = document.getElementById('dash-campanas-result');
+  if (!resultEl || !c) return;
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  var PLAT = {
+    'Google Ads':  { icon: '🔍', color: '#4285f4', bg: 'rgba(66,133,244,0.08)',  border: 'rgba(66,133,244,0.22)' },
+    'Meta Ads':    { icon: '📘', color: '#1877f2', bg: 'rgba(24,119,242,0.08)',  border: 'rgba(24,119,242,0.22)' },
+    'TikTok Ads':  { icon: '🎬', color: '#010101', bg: 'rgba(0,0,0,0.05)',        border: 'rgba(0,0,0,0.14)' },
+    'LinkedIn Ads':{ icon: '💼', color: '#0a66c2', bg: 'rgba(10,102,194,0.08)',  border: 'rgba(10,102,194,0.22)' },
+  };
+  var DEF = { icon: '📢', color: '#f87171', bg: 'rgba(239,68,68,0.07)', border: 'rgba(239,68,68,0.2)' };
+
+  var html = '';
+
+  // Header
+  if (c.titulo || c.resumen) {
+    html += '<div style="margin-bottom:14px;padding:12px 14px;background:linear-gradient(135deg,rgba(239,68,68,0.07),rgba(251,191,36,0.06));border:1px solid rgba(239,68,68,0.18);border-radius:11px;">';
+    if (c.titulo)            html += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:4px;">' + escHtml(c.titulo) + '</div>';
+    if (c.resumen)           html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;">' + escHtml(c.resumen) + '</div>';
+    if (c.presupuesto_total) html += '<div style="font-size:11px;color:#f87171;font-weight:700;margin-top:5px;">💰 ' + escHtml(c.presupuesto_total) + '</div>';
+    if (c.cronograma)        html += '<div style="font-size:10px;color:var(--muted);margin-top:4px;">📅 ' + escHtml(c.cronograma) + '</div>';
+    html += '</div>';
+  }
+
+  // Advertencia
+  if (c.advertencia) {
+    html += '<div style="margin-bottom:12px;padding:10px 12px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:9px;font-size:11px;color:#d4a843;">⚠️ ' + escHtml(c.advertencia) + '</div>';
+  }
+
+  // Campañas
+  var campanas = Array.isArray(c.campanas) ? c.campanas : [];
+  campanas.forEach(function(cam, ci) {
+    var pStyle = PLAT[cam.plataforma] || DEF;
+    html += '<div style="margin-bottom:16px;border:1px solid ' + pStyle.border + ';border-radius:13px;overflow:hidden;">';
+
+    // Cabecera de la campaña
+    html += '<div style="padding:12px 14px;background:' + pStyle.bg + ';display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;">';
+    html += '<span style="font-size:16px;">' + pStyle.icon + '</span>';
+    html += '<div>';
+    html += '<div style="font-size:12px;font-weight:800;color:var(--text);">' + escHtml(cam.nombre || cam.plataforma) + '</div>';
+    html += '<div style="font-size:10px;color:var(--muted);">' + escHtml(cam.plataforma) + ' · ' + escHtml(cam.objetivo || '') + '</div>';
+    html += '</div></div>';
+    html += '<div style="display:flex;gap:8px;align-items:center;">';
+    if (cam.presupuesto) html += '<span style="font-size:11px;font-weight:700;color:' + pStyle.color + ';background:var(--surface);padding:3px 9px;border-radius:6px;border:1px solid ' + pStyle.border + ';">💰 ' + escHtml(cam.presupuesto) + '</span>';
+    if (cam.kpi_esperado) html += '<span style="font-size:10px;color:var(--muted);">🎯 ' + escHtml(cam.kpi_esperado) + '</span>';
+    html += '</div></div>';
+
+    // Público
+    if (cam.publico) {
+      html += '<div style="padding:10px 14px;border-top:1px solid ' + pStyle.border + ';background:var(--surface);">';
+      html += '<div style="font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">AUDIENCIA</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      if (cam.publico.segmento)  html += '<span style="font-size:11px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);">👥 ' + escHtml(cam.publico.segmento) + '</span>';
+      if (cam.publico.edad)      html += '<span style="font-size:11px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);">🎂 ' + escHtml(cam.publico.edad) + '</span>';
+      if (cam.publico.ubicacion) html += '<span style="font-size:11px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text2);">📍 ' + escHtml(cam.publico.ubicacion) + '</span>';
+      if (Array.isArray(cam.publico.intereses)) {
+        cam.publico.intereses.slice(0, 3).forEach(function(int) {
+          html += '<span style="font-size:11px;padding:2px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--muted);">' + escHtml(int) + '</span>';
+        });
+      }
+      html += '</div></div>';
+    }
+
+    // Anuncios
+    var anuncios = Array.isArray(cam.anuncios) ? cam.anuncios : [];
+    if (anuncios.length) {
+      html += '<div style="padding:10px 14px;border-top:1px solid ' + pStyle.border + ';background:var(--surface);">';
+      html += '<div style="font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;">ANUNCIOS</div>';
+      anuncios.forEach(function(ad, ai) {
+        var adId = 'ad-' + ci + '-' + ai + '-' + Date.now();
+        html += '<div id="' + adId + '" style="margin-bottom:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+        html += '<span style="font-size:9px;font-weight:800;color:' + pStyle.color + ';text-transform:uppercase;letter-spacing:0.5px;">' + escHtml(ad.tipo || '') + '</span>';
+        html += '<button onclick="copyPieza(\'' + adId + '\')" style="font-size:9px;padding:2px 8px;background:var(--surface);border:1px solid var(--border2);border-radius:5px;color:var(--muted);cursor:pointer;">📋 Copiar</button>';
+        html += '</div>';
+        if (ad.titulo)       html += '<div data-copy="' + escHtml(ad.titulo) + '" style="font-size:12px;font-weight:800;color:var(--text);margin-bottom:4px;">' + escHtml(ad.titulo) + '</div>';
+        if (Array.isArray(ad.titulos_adicionales) && ad.titulos_adicionales.length) {
+          html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;">';
+          ad.titulos_adicionales.forEach(function(t) {
+            html += '<span data-copy="' + escHtml(t) + '" style="font-size:10px;padding:2px 7px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text2);">' + escHtml(t) + '</span>';
+          });
+          html += '</div>';
+        }
+        if (ad.descripcion)  html += '<div data-copy="' + escHtml(ad.descripcion) + '" style="font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:5px;">' + escHtml(ad.descripcion) + '</div>';
+        if (ad.cta)          html += '<div style="font-size:11px;font-weight:700;color:' + pStyle.color + ';">→ <span data-copy="' + escHtml(ad.cta) + '">' + escHtml(ad.cta) + '</span></div>';
+        if (ad.url_destino)  html += '<div style="font-size:10px;color:var(--muted);margin-top:3px;">🔗 ' + escHtml(ad.url_destino) + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Palabras clave
+    var kws = Array.isArray(cam.palabras_clave) ? cam.palabras_clave : [];
+    if (kws.length) {
+      html += '<div style="padding:9px 14px;border-top:1px solid ' + pStyle.border + ';background:var(--surface);">';
+      html += '<div style="font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:6px;">PALABRAS CLAVE</div>';
+      html += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+      kws.slice(0, 10).forEach(function(kw) {
+        html += '<span style="font-size:11px;padding:2px 8px;background:rgba(66,133,244,0.07);border:1px solid rgba(66,133,244,0.18);border-radius:5px;color:#4285f4;">' + escHtml(kw) + '</span>';
+      });
+      html += '</div></div>';
+    }
+
+    // Estrategia de puja
+    if (cam.estrategia_puja) {
+      html += '<div style="padding:9px 14px;border-top:1px solid ' + pStyle.border + ';background:var(--surface);font-size:11px;color:var(--muted);">⚡ Estrategia de puja: <strong style="color:var(--text2);">' + escHtml(cam.estrategia_puja) + '</strong></div>';
+    }
+
+    html += '</div>'; // fin campaña
+  });
+
+  // Botones
+  html += '<div style="text-align:right;margin-top:10px;display:flex;gap:8px;justify-content:flex-end;">';
+  html += '<button onclick="openCampanasModal()" style="font-size:10px;padding:4px 12px;background:linear-gradient(90deg,rgba(239,68,68,0.12),rgba(251,191,36,0.08));border:1px solid rgba(239,68,68,0.22);border-radius:6px;color:#f87171;font-weight:700;cursor:pointer;">+ Nueva campaña</button>';
+  html += '<button onclick="runCampanasAgent()" style="font-size:10px;padding:4px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;">↺ Regenerar</button>';
+  html += '</div>';
+
+  resultEl.innerHTML = html;
+  resultEl.style.display = 'block';
+}
+// ── /D3 ──────────────────────────────────────────────────────────────────
+
+// ── D4: Agente Reportes ───────────────────────────────────────────────────
+async function runReportesAgent() {
+  if (!requirePlanFeature('downloadReports', { targetPlan: 'pro', message: 'El Agente Reportes está disponible desde BearAds Pro.' })) return;
+  var emptyEl   = document.getElementById('dash-reportes-empty');
+  var loadingEl = document.getElementById('dash-reportes-loading');
+  var resultEl  = document.getElementById('dash-reportes-result');
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (resultEl)  resultEl.style.display  = 'none';
+  if (loadingEl) loadingEl.style.display = 'block';
+
+  try {
+    var res  = await fetch('/api/workspace/agent/reportes', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    var data = await res.json();
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (!res.ok || data.error) {
+      showToast(data.error || 'Error al generar reporte');
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    if (data.reporte) { renderReportesResult(data.reporte); showToast('📊 Reporte generado'); }
+  } catch(e) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl)   emptyEl.style.display   = 'block';
+    showToast('Error de conexión');
+  }
+}
+
+async function loadReportesPlan() {
+  try {
+    var res  = await fetch('/api/workspace/agent/reportes', { credentials: 'same-origin', cache: 'no-store' });
+    var data = await res.json();
+    if (data.project && data.project.plan) renderReportesResult(data.project.plan);
+  } catch(_) {}
+}
+
+function renderReportesResult(r) {
+  var emptyEl   = document.getElementById('dash-reportes-empty');
+  var loadingEl = document.getElementById('dash-reportes-loading');
+  var resultEl  = document.getElementById('dash-reportes-result');
+  if (!resultEl || !r) return;
+  if (emptyEl)   emptyEl.style.display   = 'none';
+  if (loadingEl) loadingEl.style.display = 'none';
+
+  var ESTADO_MAP = {
+    verde:    { color: '#16a34a', bg: 'rgba(22,163,74,0.1)',  border: 'rgba(22,163,74,0.25)',  icon: '✅', label: 'SALUDABLE' },
+    amarillo: { color: '#d97706', bg: 'rgba(217,119,6,0.1)',  border: 'rgba(217,119,6,0.25)',  icon: '⚠️', label: 'ATENCIÓN REQUERIDA' },
+    rojo:     { color: '#dc2626', bg: 'rgba(220,38,38,0.1)',  border: 'rgba(220,38,38,0.25)',  icon: '🚨', label: 'ACCIÓN URGENTE' },
+  };
+  var CANAL_SCORE_COLOR = function(s) {
+    if (!s && s !== 0) return 'var(--muted)';
+    return s >= 70 ? '#16a34a' : s >= 50 ? '#d97706' : '#dc2626';
+  };
+  var TENDENCIA_ICON = { subiendo: '↑', estable: '→', bajando: '↓' };
+  var TENDENCIA_COLOR = { subiendo: '#16a34a', estable: 'var(--muted)', bajando: '#dc2626' };
+
+  var estado = ESTADO_MAP[r.estado_general] || ESTADO_MAP.amarillo;
+  var html   = '';
+
+  // Header ejecutivo
+  html += '<div style="margin-bottom:16px;padding:16px;background:' + estado.bg + ';border:1px solid ' + estado.border + ';border-radius:13px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">';
+  html += '<div>';
+  if (r.titulo)  html += '<div style="font-size:14px;font-weight:800;color:var(--text);">' + escHtml(r.titulo) + '</div>';
+  if (r.periodo) html += '<div style="font-size:10px;color:var(--muted);margin-top:2px;">📅 ' + escHtml(r.periodo) + '</div>';
+  html += '</div>';
+  html += '<div style="padding:5px 12px;background:' + estado.bg + ';border:1px solid ' + estado.border + ';border-radius:20px;font-size:11px;font-weight:800;color:' + estado.color + ';">' + estado.icon + ' ' + estado.label + '</div>';
+  html += '</div>';
+  if (r.resumen_ejecutivo) {
+    html += '<div style="font-size:12px;color:var(--text2);line-height:1.7;">' + escHtml(r.resumen_ejecutivo) + '</div>';
+  }
+  html += '</div>';
+
+  // Canales
+  var canales = Array.isArray(r.canales) ? r.canales : [];
+  if (canales.length) {
+    html += '<div style="margin-bottom:14px;">';
+    html += '<div style="font-size:10px;font-weight:800;color:var(--muted);letter-spacing:0.5px;margin-bottom:8px;">CANALES</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">';
+    canales.forEach(function(ch) {
+      var sc  = typeof ch.score === 'number' ? ch.score : null;
+      var scC = CANAL_SCORE_COLOR(sc);
+      var tend = ch.tendencia || 'estable';
+      html += '<div style="padding:11px 13px;background:var(--surface);border:1px solid var(--border);border-radius:10px;">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">';
+      html += '<span style="font-size:11px;font-weight:800;color:var(--text);">' + escHtml(ch.nombre || '') + '</span>';
+      html += '<div style="display:flex;align-items:center;gap:5px;">';
+      if (sc !== null) html += '<span style="font-size:13px;font-weight:900;color:' + scC + ';">' + sc + '</span>';
+      html += '<span style="font-size:12px;font-weight:800;color:' + (TENDENCIA_COLOR[tend]||'var(--muted)') + ';">' + (TENDENCIA_ICON[tend]||'→') + '</span>';
+      html += '</div></div>';
+      if (ch.hallazgo_clave)      html += '<div style="font-size:10px;color:var(--text2);line-height:1.5;margin-bottom:4px;">' + escHtml(ch.hallazgo_clave) + '</div>';
+      if (ch.accion_recomendada)  html += '<div style="font-size:10px;color:var(--accent);font-weight:600;">→ ' + escHtml(ch.accion_recomendada) + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Logros y problemas
+  var logros    = Array.isArray(r.logros)    ? r.logros    : [];
+  var problemas = Array.isArray(r.problemas) ? r.problemas : [];
+  if (logros.length || problemas.length) {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">';
+    if (logros.length) {
+      html += '<div style="padding:12px 14px;background:rgba(22,163,74,0.06);border:1px solid rgba(22,163,74,0.2);border-radius:10px;">';
+      html += '<div style="font-size:9px;font-weight:800;color:#16a34a;letter-spacing:0.5px;margin-bottom:7px;">✅ LOGROS</div>';
+      logros.forEach(function(l) { html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5;">• ' + escHtml(l) + '</div>'; });
+      html += '</div>';
+    }
+    if (problemas.length) {
+      html += '<div style="padding:12px 14px;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:10px;">';
+      html += '<div style="font-size:9px;font-weight:800;color:#dc2626;letter-spacing:0.5px;margin-bottom:7px;">🚨 PROBLEMAS</div>';
+      problemas.forEach(function(p) { html += '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;line-height:1.5;">• ' + escHtml(p) + '</div>'; });
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Métricas de cola
+  if (r.metricas_cola) {
+    var mc = r.metricas_cola;
+    html += '<div style="margin-bottom:14px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;display:flex;gap:16px;flex-wrap:wrap;">';
+    html += '<div style="font-size:9px;font-weight:800;color:var(--muted);letter-spacing:0.5px;width:100%;margin-bottom:4px;">COLA DE ACCIONES</div>';
+    if (mc.acciones_completadas !== undefined) html += '<div style="font-size:12px;"><span style="font-weight:800;color:#16a34a;">' + mc.acciones_completadas + '</span> <span style="color:var(--muted);">completadas</span></div>';
+    if (mc.acciones_pendientes  !== undefined) html += '<div style="font-size:12px;"><span style="font-weight:800;color:#d97706;">' + mc.acciones_pendientes  + '</span> <span style="color:var(--muted);">pendientes</span></div>';
+    if (mc.tasa_ejecucion) html += '<div style="font-size:12px;"><span style="font-weight:800;color:var(--accent);">' + escHtml(mc.tasa_ejecucion) + '</span> <span style="color:var(--muted);">ejecución</span></div>';
+    html += '</div>';
+  }
+
+  // Próximos 30 días
+  var proximos = Array.isArray(r.proximos_30_dias) ? r.proximos_30_dias : [];
+  if (proximos.length) {
+    html += '<div style="margin-bottom:14px;padding:12px 14px;background:rgba(96,165,250,0.06);border:1px solid rgba(96,165,250,0.2);border-radius:10px;">';
+    html += '<div style="font-size:9px;font-weight:800;color:var(--accent);letter-spacing:0.5px;margin-bottom:8px;">🎯 PRÓXIMOS 30 DÍAS</div>';
+    proximos.forEach(function(p, i) {
+      html += '<div style="display:flex;gap:8px;font-size:11px;color:var(--text2);margin-bottom:5px;line-height:1.5;">';
+      html += '<span style="flex-shrink:0;font-weight:800;color:var(--accent);">' + (i + 1) + '.</span>';
+      html += '<span>' + escHtml(p) + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  // Conclusión
+  if (r.conclusion) {
+    html += '<div style="padding:11px 14px;background:linear-gradient(135deg,rgba(139,92,246,0.07),rgba(96,165,250,0.05));border:1px solid rgba(139,92,246,0.18);border-radius:10px;font-size:12px;color:var(--text2);font-style:italic;line-height:1.6;">💬 ' + escHtml(r.conclusion) + '</div>';
+  }
+
+  // Botón regenerar
+  html += '<div style="text-align:right;margin-top:10px;">';
+  html += '<button onclick="runReportesAgent()" style="font-size:10px;padding:4px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;">↺ Actualizar reporte</button>';
+  html += '</div>';
+
+  resultEl.innerHTML = html;
+  resultEl.style.display = 'block';
+}
+// ── /D4 ──────────────────────────────────────────────────────────────────
+
+// ── Agent Chain — run all available agents in sequence ────────────────────
+var _agentChainRunning = false;
+
+async function runAllAgents() {
+  if (_agentChainRunning) return;
+  if (!requirePlanFeature('agentsAccess', { targetPlan: 'starter', message: 'Los agentes están disponibles desde BearAds Starter.' })) return;
+
+  _agentChainRunning = true;
+  var btn     = document.getElementById('dash-run-all-btn');
+  var statusEl = document.getElementById('dash-agent-chain-status');
+  var hasCampaigns = canUseFeature('campaignBuilder');
+  var hasReports   = canUseFeature('downloadReports');
+
+  if (btn)     { btn.disabled = true; btn.textContent = '⚙️ Ejecutando…'; }
+  if (statusEl) { statusEl.style.display = 'block'; }
+
+  var steps = [
+    { label: '🧠 Agente Estratega', fn: async function() {
+        var r = await fetch('/api/workspace/agent/estratega', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:'{}' });
+        var d = await r.json();
+        if (d.plan) renderEstrategaPlan(d.plan);
+    }},
+    { label: '✍️ Agente Contenido', fn: async function() {
+        var r = await fetch('/api/workspace/agent/contenido', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ platforms:['Instagram','Blog','Email'], weeks:2 }) });
+        var d = await r.json();
+        if (d.content) renderContenidoResult(d.content);
+    }},
+  ];
+
+  if (hasCampaigns) steps.push({ label: '📢 Agente Campañas', fn: async function() {
+    var r = await fetch('/api/workspace/agent/campanas', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ canales:['Google Ads','Meta Ads'], objetivo:'ventas' }) });
+    var d = await r.json();
+    if (d.campanas) renderCampanasResult(d.campanas);
+  }});
+
+  if (hasReports) steps.push({ label: '📊 Agente Reportes', fn: async function() {
+    var r = await fetch('/api/workspace/agent/reportes', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:'{}' });
+    var d = await r.json();
+    if (d.reporte) renderReportesResult(d.reporte);
+  }});
+
+  var completed = 0;
+  var errors    = [];
+
+  for (var i = 0; i < steps.length; i++) {
+    var step = steps[i];
+    if (statusEl) statusEl.innerHTML = '⚙️ ' + step.label + ' (' + (i+1) + '/' + steps.length + ')…';
+    try {
+      await step.fn();
+      completed++;
+    } catch(e) {
+      errors.push(step.label + ': ' + (e.message || 'error'));
+    }
+    refreshAgentHub();
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = '⚡ Ejecutar todos'; }
+  _agentChainRunning = false;
+
+  if (errors.length) {
+    if (statusEl) statusEl.innerHTML = '⚠️ ' + completed + '/' + steps.length + ' agentes completados. Errores: ' + errors.join(', ');
+    showToast('⚠️ Algunos agentes fallaron');
+  } else {
+    if (statusEl) {
+      statusEl.innerHTML = '✅ Todos los agentes completados (' + completed + '/' + steps.length + ')';
+      setTimeout(function() { if (statusEl) statusEl.style.display = 'none'; }, 5000);
+    }
+    showToast('✅ Todos los agentes ejecutados');
+    loadActionQueue();
+  }
+}
+async function exportAgentDigest() {
+  if (!requirePlanFeature('agentsAccess', { targetPlan: 'starter', message: 'Disponible desde BearAds Starter.' })) return;
+  showToast('📋 Compilando resumen…');
+  try {
+    var parts = ['=== BEARADS AGENT DIGEST ===', 'Generado: ' + new Date().toLocaleString('es-MX'), ''];
+
+    var [e, c, ca, r] = await Promise.allSettled([
+      fetch('/api/workspace/agent/estratega', { credentials: 'same-origin', cache: 'no-store' }).then(function(x){ return x.json(); }),
+      fetch('/api/workspace/agent/contenido',  { credentials: 'same-origin', cache: 'no-store' }).then(function(x){ return x.json(); }),
+      fetch('/api/workspace/agent/campanas',   { credentials: 'same-origin', cache: 'no-store' }).then(function(x){ return x.json(); }),
+      fetch('/api/workspace/agent/reportes',   { credentials: 'same-origin', cache: 'no-store' }).then(function(x){ return x.json(); }),
+    ]);
+
+    function val(settled) { return settled.status === 'fulfilled' ? settled.value : null; }
+
+    var estratega = val(e)?.project?.plan;
+    var contenido = val(c)?.project?.plan;
+    var campanas  = val(ca)?.project?.plan;
+    var reportes  = val(r)?.project?.plan;
+
+    if (estratega) {
+      parts.push('--- PLAN ESTRATÉGICO 90 DÍAS ---');
+      if (estratega.titulo)            parts.push('Título: ' + estratega.titulo);
+      if (estratega.objetivo)          parts.push('Objetivo: ' + estratega.objetivo);
+      if (estratega.prioridad_inmediata) parts.push('Prioridad inmediata: ' + estratega.prioridad_inmediata);
+      if (Array.isArray(estratega.fases)) {
+        estratega.fases.forEach(function(f) {
+          parts.push('  Fase ' + f.numero + ' (sem ' + f.semanas + '): ' + f.nombre + ' — ' + f.objetivo);
+        });
+      }
+      parts.push('');
+    }
+
+    if (contenido) {
+      parts.push('--- PLAN DE CONTENIDO ---');
+      if (contenido.titulo)  parts.push('Título: ' + contenido.titulo);
+      if (contenido.resumen) parts.push('Resumen: ' + contenido.resumen);
+      if (contenido.tono)    parts.push('Tono: ' + contenido.tono);
+      if (Array.isArray(contenido.semanas)) {
+        contenido.semanas.forEach(function(sem) {
+          parts.push('  Semana ' + sem.numero + ': ' + (sem.tema || ''));
+          if (Array.isArray(sem.piezas)) {
+            sem.piezas.forEach(function(p) {
+              parts.push('    [' + (p.tipo||'') + '] ' + (p.titulo||''));
+              if (p.copy) parts.push('    ' + p.copy.slice(0, 200) + (p.copy.length > 200 ? '…' : ''));
+              if (Array.isArray(p.hashtags)) parts.push('    ' + p.hashtags.join(' '));
+              if (p.cta)  parts.push('    CTA: ' + p.cta);
+              parts.push('');
+            });
+          }
+        });
+      }
+      parts.push('');
+    }
+
+    if (campanas) {
+      parts.push('--- CAMPAÑAS PUBLICITARIAS ---');
+      if (campanas.titulo) parts.push('Título: ' + campanas.titulo);
+      if (campanas.presupuesto_total) parts.push('Presupuesto total: ' + campanas.presupuesto_total);
+      if (Array.isArray(campanas.campanas)) {
+        campanas.campanas.forEach(function(cam) {
+          parts.push('  [' + cam.plataforma + '] ' + cam.nombre + ' · ' + cam.presupuesto);
+          parts.push('  Objetivo: ' + cam.objetivo + ' · KPI: ' + (cam.kpi_esperado||''));
+          if (Array.isArray(cam.anuncios)) {
+            cam.anuncios.forEach(function(ad) {
+              parts.push('    Anuncio: ' + (ad.titulo||''));
+              if (ad.descripcion) parts.push('    ' + ad.descripcion);
+              if (ad.cta)         parts.push('    CTA: ' + ad.cta);
+            });
+          }
+          parts.push('');
+        });
+      }
+      parts.push('');
+    }
+
+    if (reportes) {
+      parts.push('--- REPORTE EJECUTIVO ---');
+      if (reportes.titulo)           parts.push('Título: ' + reportes.titulo);
+      if (reportes.estado_general)   parts.push('Estado: ' + reportes.estado_general.toUpperCase());
+      if (reportes.resumen_ejecutivo)parts.push('Resumen: ' + reportes.resumen_ejecutivo);
+      if (Array.isArray(reportes.logros))   { parts.push('Logros:');   reportes.logros.forEach(function(l)   { parts.push('  + ' + l); }); }
+      if (Array.isArray(reportes.problemas)){ parts.push('Problemas:');reportes.problemas.forEach(function(p){ parts.push('  ! ' + p); }); }
+      if (Array.isArray(reportes.proximos_30_dias)) {
+        parts.push('Próximos 30 días:');
+        reportes.proximos_30_dias.forEach(function(p, i) { parts.push('  ' + (i+1) + '. ' + p); });
+      }
+    }
+
+    parts.push('', '=== FIN DEL DIGEST ===');
+    await navigator.clipboard.writeText(parts.join('\n'));
+    showToast('✅ Digest copiado al portapapeles');
+  } catch(e) {
+    showToast('Error al exportar: ' + (e.message || 'intenta de nuevo'));
+  }
+}
+// ── /Agent Chain ──────────────────────────────────────────────────────────
+
+function refreshAgentHub() {
+  var planCode    = getCurrentPlanCode();
+  var hasAgents   = canUseFeature('agentsAccess');
+  var hasCampaigns = canUseFeature('campaignBuilder');
+  var hasReports  = canUseFeature('downloadReports');
+
+  // Agent Hub status chips (top of agent section)
+  var hubEl = document.getElementById('dash-agent-hub');
+  if (hubEl) {
+    var db_estratega  = document.getElementById('dash-estratega-plan')?.style.display !== 'none' && document.getElementById('dash-estratega-plan')?.innerHTML.trim().length > 0;
+    var db_contenido  = document.getElementById('dash-contenido-result')?.style.display !== 'none';
+    var db_campanas   = document.getElementById('dash-campanas-result')?.style.display !== 'none';
+    var db_reportes   = document.getElementById('dash-reportes-result')?.style.display !== 'none';
+
+    var chipStyle = function(active, locked) {
+      if (locked) return 'padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;';
+      return active
+        ? 'padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(22,163,74,0.1);border:1px solid rgba(22,163,74,0.25);color:#16a34a;cursor:default;'
+        : 'padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;background:var(--surface2);border:1px dashed var(--border2);color:var(--muted);cursor:pointer;';
+    };
+
+    var chips = '';
+    chips += '<span onclick="' + (hasAgents   ? 'runEstrategaAgent()' : 'requirePlanFeature(\'agentsAccess\',{targetPlan:\'starter\'})') + '" style="' + chipStyle(db_estratega, !hasAgents) + '">' + (hasAgents ? (db_estratega ? '✅' : '○') : '🔒') + ' Estratega</span>';
+    chips += '<span onclick="' + (hasAgents   ? 'openContenidoModal()' : 'requirePlanFeature(\'agentsAccess\',{targetPlan:\'starter\'})') + '" style="' + chipStyle(db_contenido, !hasAgents) + '">' + (hasAgents ? (db_contenido ? '✅' : '○') : '🔒') + ' Contenido</span>';
+    chips += '<span onclick="' + (hasCampaigns? 'openCampanasModal()' : 'requirePlanFeature(\'campaignBuilder\',{targetPlan:\'pro\'})') + '" style="' + chipStyle(db_campanas, !hasCampaigns) + '">' + (hasCampaigns ? (db_campanas ? '✅' : '○') : '🔒') + ' Campañas</span>';
+    chips += '<span onclick="' + (hasReports  ? 'runReportesAgent()' : 'requirePlanFeature(\'downloadReports\',{targetPlan:\'pro\'})') + '" style="' + chipStyle(db_reportes, !hasReports) + '">' + (hasReports ? (db_reportes ? '✅' : '○') : '🔒') + ' Reportes</span>';
+    hubEl.innerHTML = chips;
+  }
+
+  // Locked banners for gated sections
+  function renderLockedBanner(emptyId, feature, targetPlan, agentName, agentIcon, agentDesc) {
+    var emptyEl = document.getElementById(emptyId);
+    if (!emptyEl) return;
+    if (canUseFeature(feature)) return; // has access, leave normal empty state
+    emptyEl.innerHTML = [
+      '<div style="font-size:28px;margin-bottom:8px;">' + agentIcon + '</div>',
+      '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px;">🔒 ' + agentName + '</div>',
+      '<div style="max-width:340px;margin:0 auto;line-height:1.7;margin-bottom:12px;">' + agentDesc + '</div>',
+      '<button onclick="requirePlanFeature(\'' + feature + '\',{targetPlan:\'' + targetPlan + '\',message:\'Disponible desde BearAds ' + (targetPlan === 'starter' ? 'Starter' : 'Pro') + '.\'})" style="padding:9px 18px;background:linear-gradient(90deg,var(--accent2),var(--accent));border:none;border-radius:10px;color:#fff;font-size:12px;font-weight:800;cursor:pointer;">🔓 Ver planes →</button>',
+    ].join('');
+  }
+
+  renderLockedBanner('dash-estratega-empty', 'agentsAccess', 'starter', 'Agente Estratega', '🧠',
+    'El Agente Estratega crea tu plan de marketing de 90 días. Disponible desde <strong>BearAds Starter</strong>.');
+  renderLockedBanner('dash-contenido-empty', 'agentsAccess', 'starter', 'Agente Contenido', '✍️',
+    'El Agente Contenido genera posts, blogs y emails listos para publicar. Disponible desde <strong>BearAds Starter</strong>.');
+  renderLockedBanner('dash-campanas-empty', 'campaignBuilder', 'pro', 'Agente Campañas', '📢',
+    'El Agente Campañas genera anuncios reales para Google y Meta Ads. Disponible desde <strong>BearAds Pro</strong>.');
+  renderLockedBanner('dash-reportes-empty', 'downloadReports', 'pro', 'Agente Reportes', '📊',
+    'El Agente Reportes analiza todo tu contexto y genera un diagnóstico ejecutivo. Disponible desde <strong>BearAds Pro</strong>.');
+
+  // Lock/unlock header buttons based on plan
+  configurePlanLockedButton('dash-estratega-btn', 'agentsAccess',   '🔒 Starter', runEstrategaAgent);
+  configurePlanLockedButton('dash-contenido-btn', 'agentsAccess',   '🔒 Starter', openContenidoModal);
+  configurePlanLockedButton('dash-campanas-btn',  'campaignBuilder', '🔒 Pro',     openCampanasModal);
+  configurePlanLockedButton('dash-reportes-btn',  'downloadReports', '🔒 Pro',     runReportesAgent);
+  configurePlanLockedButton('dash-run-all-btn',   'agentsAccess',   '🔒 Starter', runAllAgents);
+}
+
 function refreshDashboard() {
   const analyses = getAnalysisHistory();
   const deliverables = getDeliverables();
   const $ = id => document.getElementById(id);
 
   renderDashboardGuide();
+  loadActionQueue();
+  loadActivityLog();
+  var _planHasAgents    = canUseFeature('agentsAccess');
+  var _planHasCampaigns = canUseFeature('campaignBuilder');
+  var _planHasReports   = canUseFeature('downloadReports');
+  if (_planHasAgents)    { loadEstrategaPlan(); loadContenidoPlan(); }
+  if (_planHasCampaigns) { loadCampanasPlan(); }
+  if (_planHasReports)   { loadReportesPlan(); }
+  refreshAgentHub();
 
   if ($('dash-kpi-analyses')) $('dash-kpi-analyses').textContent = analyses.length;
   if ($('dash-kpi-deliverables')) $('dash-kpi-deliverables').textContent = deliverables.length;
@@ -7409,7 +9072,17 @@ async function startAnalysis() {
     const ga4Input = document.getElementById('ga4-property-id');
     const defaultSelection = getDefaultGoogleAnalysisSelection();
     const ga4PropertyId = ga4Input ? (ga4Input.value.trim() || defaultSelection.ga4PropertyId || '') : (defaultSelection.ga4PropertyId || '');
-    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,ga4PropertyId:ga4PropertyId||undefined})});
+    // Derivar routeMode desde el onboarding del workspace para que solo corran los agentes relevantes
+    const _ob = (window.currentSession?.workspace?.onboarding) || {};
+    const _routeMode = (function() {
+      if (_ob.knowledgeLevel === 'agencia') return 'agencia';
+      const hasBudget = _ob.budgetRange && _ob.budgetRange !== 'sin-presupuesto';
+      const hasMarket = Boolean(_ob.targetCountry && _ob.growthScope);
+      if (hasBudget && hasMarket) return 'ads';
+      if (hasBudget) return 'organico';
+      return 'arranque';
+    })();
+    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,ga4PropertyId:ga4PropertyId||undefined,routeMode:_routeMode})});
     if (!res.ok) {
       let err = {};
       try { err = await res.json(); } catch (e) {}
@@ -7889,6 +9562,140 @@ function renderResults(data) {
   if (data.trafficData) {
     renderRealData(data.trafficData);
   }
+
+  // ── Síntesis BearAds ──────────────────────────────────────────────────────
+  (function renderSynthesis(synthesis, activeAgents) {
+    var container = document.getElementById('synthesis-panel');
+    if (!container) return;
+    clearElement(container);
+    container.style.display = synthesis ? 'block' : 'none';
+    if (!synthesis) return;
+
+    // Badge de agentes activos
+    if (Array.isArray(activeAgents) && activeAgents.length < 5) {
+      var badgeRow = document.createElement('div');
+      badgeRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;';
+      var label = document.createElement('span');
+      label.style.cssText = 'font-size:10px;color:var(--muted);align-self:center;';
+      label.textContent = 'Agentes activos:';
+      badgeRow.appendChild(label);
+      var AGENT_ICONS = { seo:'🔍', sem:'💰', contenido:'✍️', cro:'🎯', trafico:'📈' };
+      activeAgents.forEach(function(key) {
+        var b = document.createElement('span');
+        b.style.cssText = 'font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(123,167,232,0.12);border:1px solid rgba(123,167,232,0.2);color:var(--accent);font-weight:700;';
+        b.textContent = (AGENT_ICONS[key] || '') + ' ' + key.toUpperCase();
+        badgeRow.appendChild(b);
+      });
+      container.appendChild(badgeRow);
+    }
+
+    // Resumen ejecutivo
+    if (synthesis.resumen_ejecutivo) {
+      var resumeBox = document.createElement('div');
+      resumeBox.style.cssText = 'padding:12px 14px;background:rgba(123,167,232,0.07);border:1px solid rgba(123,167,232,0.15);border-radius:10px;font-size:12px;color:var(--text);line-height:1.55;margin-bottom:14px;';
+      var resumeIcon = document.createElement('span');
+      resumeIcon.style.cssText = 'font-size:14px;margin-right:6px;';
+      resumeIcon.textContent = '🧠';
+      resumeBox.appendChild(resumeIcon);
+      resumeBox.appendChild(document.createTextNode(String(synthesis.resumen_ejecutivo)));
+      container.appendChild(resumeBox);
+    }
+
+    // Prioridades rankeadas
+    var priorities = Array.isArray(synthesis.prioridades) ? synthesis.prioridades : [];
+    if (priorities.length) {
+      var pTitle = document.createElement('div');
+      pTitle.style.cssText = 'font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;';
+      pTitle.textContent = 'Prioridades por impacto';
+      container.appendChild(pTitle);
+
+      var IMPACT_COLORS = { alto:'#5ec9a0', medio:'#f59e0b', bajo:'#94a3b8' };
+      var EFFORT_COLORS = { bajo:'#5ec9a0', medio:'#f59e0b', alto:'#f87171' };
+      priorities.slice(0, 5).forEach(function(p) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;align-items:flex-start;';
+
+        var rankBadge = document.createElement('div');
+        rankBadge.style.cssText = 'width:22px;height:22px;border-radius:50%;background:rgba(123,167,232,0.15);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--accent);flex-shrink:0;margin-top:1px;';
+        rankBadge.textContent = String(p.rank || '');
+
+        var body = document.createElement('div');
+        body.style.cssText = 'flex:1;min-width:0;';
+
+        var accion = document.createElement('div');
+        accion.style.cssText = 'font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;';
+        accion.textContent = String(p.accion || '');
+
+        var metaRow = document.createElement('div');
+        metaRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;';
+        var agenteBadge = document.createElement('span');
+        agenteBadge.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(124,111,212,0.12);color:#a78bfa;font-weight:700;text-transform:uppercase;';
+        agenteBadge.textContent = String(p.agente || '');
+        var impactBadge = document.createElement('span');
+        impactBadge.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(0,0,0,0.04);font-weight:700;color:' + (IMPACT_COLORS[p.impacto] || '#94a3b8') + ';';
+        impactBadge.textContent = '⬆ ' + String(p.impacto || '');
+        var effortBadge = document.createElement('span');
+        effortBadge.style.cssText = 'font-size:9px;padding:1px 6px;border-radius:10px;background:rgba(0,0,0,0.04);font-weight:700;color:' + (EFFORT_COLORS[p.esfuerzo] || '#94a3b8') + ';';
+        effortBadge.textContent = '⚙ esfuerzo ' + String(p.esfuerzo || '');
+        metaRow.appendChild(agenteBadge);
+        metaRow.appendChild(impactBadge);
+        metaRow.appendChild(effortBadge);
+
+        var razon = document.createElement('div');
+        razon.style.cssText = 'font-size:10px;color:var(--muted);line-height:1.45;';
+        razon.textContent = String(p.razon || '');
+
+        body.appendChild(accion);
+        body.appendChild(metaRow);
+        body.appendChild(razon);
+        row.appendChild(rankBadge);
+        row.appendChild(body);
+        container.appendChild(row);
+      });
+    }
+
+    // Conflictos entre agentes
+    var conflicts = Array.isArray(synthesis.conflictos) ? synthesis.conflictos : [];
+    if (conflicts.length) {
+      var cTitle = document.createElement('div');
+      cTitle.style.cssText = 'font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 8px;';
+      cTitle.textContent = 'Conflictos detectados';
+      container.appendChild(cTitle);
+      conflicts.forEach(function(c) {
+        var cRow = document.createElement('div');
+        cRow.style.cssText = 'display:flex;gap:8px;padding:9px 12px;background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.15);border-radius:8px;font-size:11px;color:var(--text);margin-bottom:6px;';
+        var cIcon = document.createElement('span');
+        cIcon.style.cssText = 'color:#f87171;flex-shrink:0;';
+        cIcon.textContent = '⚡';
+        var cText = document.createElement('span');
+        cText.textContent = String(c || '');
+        cRow.appendChild(cIcon);
+        cRow.appendChild(cText);
+        container.appendChild(cRow);
+      });
+    }
+
+    // Siguiente paso BearAds
+    if (synthesis.siguiente_paso_bearads) {
+      var nextBox = document.createElement('div');
+      nextBox.style.cssText = 'margin-top:12px;padding:10px 14px;background:rgba(94,201,160,0.08);border:1px solid rgba(94,201,160,0.2);border-radius:10px;display:flex;gap:8px;align-items:center;';
+      var nextIcon = document.createElement('span');
+      nextIcon.style.cssText = 'font-size:14px;flex-shrink:0;';
+      nextIcon.textContent = '🚀';
+      var nextText = document.createElement('div');
+      var nextLabel = document.createElement('div');
+      nextLabel.style.cssText = 'font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;';
+      nextLabel.textContent = 'Siguiente paso BearAds';
+      var nextVal = document.createElement('div');
+      nextVal.style.cssText = 'font-size:12px;font-weight:700;color:var(--success);';
+      nextVal.textContent = String(synthesis.siguiente_paso_bearads);
+      nextText.appendChild(nextLabel);
+      nextText.appendChild(nextVal);
+      nextBox.appendChild(nextIcon);
+      nextBox.appendChild(nextText);
+      container.appendChild(nextBox);
+    }
+  })(data.synthesis, data.activeAgents);
   // Reset and init specialized agents
   activeAgentChats = {};
   currentAgentId = null;
@@ -9455,13 +11262,14 @@ function applyProfileToUI(profile, workspace) {
 
 const SA_TABS = ['audit', 'qa', 'ai', 'users', 'growth', 'billing', 'equipo'];
 const SA_ROLE_LABELS = {
-  owner: 'Dueño',
-  admin: 'Administrador',
-  developer: 'Desarrollador',
-  billing: 'Facturación',
-  member: 'Usuario',
+  owner:        'Dueño / Super Admin',
+  admin:        'Admin General',
+  developer:    'Técnico / Desarrollador',
+  billing:      'Finanzas',
+  partner:      'Partner / Colaborador',
+  member:       'Usuario',
   member_trial: 'Usuario Trial',
-  member_paid: 'Usuario Pago'
+  member_paid:  'Usuario Pago'
 };
 
 const EMPLOYEE_ACCESS_LABELS = {
@@ -9481,35 +11289,32 @@ function getResolvedSessionRole(session = appSession) {
 }
 
 function getResolvedSessionPermissions(session = appSession) {
+  if (session?.permissions) {
+    // Enriquecer con campos que no vienen del servidor pero se derivan del rol
+    const role = getResolvedSessionRole(session);
+    const p = session.permissions;
+    if (p.canChangeRoles === undefined) {
+      p.canChangeRoles = ['owner', 'admin'].includes(role) || !!(session?.isPlatformOwner);
+    }
+    return p;
+  }
   const role = getResolvedSessionRole(session);
   const moduleScopes = {
     owner: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-users', 'admin-billing', 'admin-growth', 'admin-qa', 'admin-ai'],
     admin: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning', 'admin-users', 'admin-growth'],
     billing: ['dashboard', 'integrations', 'strategy', 'learning', 'admin-users', 'admin-billing'],
     developer: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning', 'admin-qa', 'admin-ai'],
+    partner: ['dashboard', 'integrations', 'strategy', 'learning'],
     member_paid: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning'],
     member_trial: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning']
   };
-  const planScopeMap = {
-    trial: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'strategy', 'learning'],
-    starter: ['dashboard', 'analyze', 'strategic-plan', 'integrations', 'agents', 'strategy', 'learning'],
-    pro: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning'],
-    agency: ['dashboard', 'analyze', 'strategic-plan', 'campaigns', 'creatives', 'integrations', 'agents', 'strategy', 'weekly-score', 'learning']
-  };
-  const employeePlan = getEmployeeAccessPlanCode(session);
-  const roleScopes = moduleScopes[role] || moduleScopes.member_trial;
-  const mergedScopes = Array.from(new Set([
-    ...roleScopes,
-    ...((['owner', 'admin', 'billing', 'developer'].includes(role) && employeePlan) ? (planScopeMap[employeePlan] || []) : [])
-  ]));
-  const basePermissions = session?.permissions || {};
   return {
-    ...basePermissions,
     canView: true,
     canEdit: ['owner', 'admin', 'developer', 'billing', 'partner', 'member_paid', 'member_trial'].includes(role),
     canAccessAdminPanel:   ['owner', 'admin', 'billing'].includes(role),
     canAccessEmployeePanel:['owner', 'admin', 'billing', 'developer', 'partner'].includes(role),
     canManageUsers:        ['owner', 'admin', 'billing'].includes(role),
+    canChangeRoles:        ['owner', 'admin'].includes(role),   // solo owner y admin pueden cambiar el rol de un usuario
     canSuspendUsers:       ['owner', 'admin', 'billing'].includes(role),
     canManageBilling:      ['owner', 'billing'].includes(role),
     canAccessTechnical:    ['owner'].includes(role),
@@ -9519,7 +11324,7 @@ function getResolvedSessionPermissions(session = appSession) {
     isEmployee: ['admin', 'billing', 'developer', 'partner'].includes(role),
     isPartner:  role === 'partner',
     role: role,
-    moduleScopes: mergedScopes
+    moduleScopes: moduleScopes[role] || moduleScopes.member_trial
   };
 }
 
@@ -9905,17 +11710,22 @@ function renderRuntimeState(session = appSession) {
 }
 
 function getAssignableRoles(session = appSession) {
+  // Roles de empleado (panel interno BearAds)
+  const EMPLOYEE_ROLES = ['admin', 'billing', 'developer', 'partner'];
+  // Roles de cliente (workspace propio)
+  const CLIENT_ROLES   = ['member_trial', 'member_paid'];
+
   if (isPrimaryRootOwner(session)) {
-    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+    return ['owner', ...EMPLOYEE_ROLES, ...CLIENT_ROLES];
   }
   if (session?.permissions?.isOwner) {
-    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+    return ['owner', ...EMPLOYEE_ROLES, ...CLIENT_ROLES];
   }
   if (isGlobalOwner(session)) {
-    return ['owner', 'admin', 'billing', 'member_trial', 'member_paid'];
+    return ['owner', ...EMPLOYEE_ROLES, ...CLIENT_ROLES];
   }
   if (session?.permissions?.canManageUsers) {
-    return ['admin', 'billing', 'member_trial', 'member_paid'];
+    return [...EMPLOYEE_ROLES, ...CLIENT_ROLES];
   }
   return [];
 }
@@ -9953,7 +11763,8 @@ function toggleSAPlanSelect(containerId, role) {
 function toggleSAEmployeeAccessSelect(containerId, role) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  container.style.display = ['owner', 'admin', 'billing'].includes(String(role || '').toLowerCase()) ? 'block' : 'none';
+  const EMPLOYEE_ROLES = ['owner', 'admin', 'billing', 'developer', 'partner'];
+  container.style.display = EMPLOYEE_ROLES.includes(String(role || '').toLowerCase()) ? 'block' : 'none';
 }
 
 async function handleAdminUserRoleChange(userId, workspaceId, role, planInputId, planContainerId, accessInputId, accessContainerId) {
@@ -9977,7 +11788,8 @@ async function handleAdminUserPlanChange(userId, workspaceId, role, planInputId,
 
 async function handleAdminEmployeeAccessChange(userId, workspaceId, role, planInputId, accessInputId) {
   const normalizedRole = String(role || '').toLowerCase();
-  if (!['owner', 'admin', 'billing'].includes(normalizedRole)) return;
+  const EMPLOYEE_ROLES = ['owner', 'admin', 'billing', 'developer', 'partner'];
+  if (!EMPLOYEE_ROLES.includes(normalizedRole)) return;
   await updateAdminUserRole(userId, normalizedRole, workspaceId, planInputId, accessInputId);
 }
 
@@ -9994,15 +11806,45 @@ function syncInviteRoleOptions() {
   const select = document.getElementById('sa-invite-role');
   if (!select) return;
   const previousValue = select.value;
-  const options = getAssignableRoles();
+  const allRoles = getAssignableRoles();
   clearElement(select);
-  options.forEach(function(role) {
-    var option = document.createElement('option');
-    option.value = role;
-    option.textContent = formatSARole(role).toUpperCase();
-    select.appendChild(option);
-  });
-  select.value = options.includes(previousValue) ? previousValue : options[0];
+
+  const EMPLOYEE_ROLES = ['owner', 'admin', 'billing', 'developer', 'partner'];
+  const CLIENT_ROLES   = ['member_trial', 'member_paid'];
+  const EMPLOYEE_LABELS = {
+    owner: 'SUPER ADMIN / DUEÑO', admin: 'ADMIN GENERAL',
+    billing: 'FINANZAS', developer: 'TÉCNICO / DESARROLLADOR', partner: 'PARTNER / COLABORADOR'
+  };
+  const CLIENT_LABELS = { member_trial: 'USUARIO TRIAL', member_paid: 'USUARIO PAGO' };
+
+  const empRoles = allRoles.filter(r => EMPLOYEE_ROLES.includes(r));
+  const cliRoles = allRoles.filter(r => CLIENT_ROLES.includes(r));
+
+  if (empRoles.length) {
+    var grpEmp = document.createElement('optgroup');
+    grpEmp.label = '── Empleados internos ──';
+    empRoles.forEach(function(role) {
+      var opt = document.createElement('option');
+      opt.value = role;
+      opt.textContent = EMPLOYEE_LABELS[role] || formatSARole(role).toUpperCase();
+      grpEmp.appendChild(opt);
+    });
+    select.appendChild(grpEmp);
+  }
+  if (cliRoles.length) {
+    var grpCli = document.createElement('optgroup');
+    grpCli.label = '── Clientes ──';
+    cliRoles.forEach(function(role) {
+      var opt = document.createElement('option');
+      opt.value = role;
+      opt.textContent = CLIENT_LABELS[role] || formatSARole(role).toUpperCase();
+      grpCli.appendChild(opt);
+    });
+    select.appendChild(grpCli);
+  }
+
+  const fallback = cliRoles[0] || allRoles[0];
+  select.value = allRoles.includes(previousValue) ? previousValue : (fallback || '');
 }
 
 function renderSAAccess() {
@@ -11524,6 +13366,8 @@ async function loadSAPlatformStats() {
 function renderSAUsers() {
   const list = document.getElementById('sa-users-list');
   if (!list) return;
+  // Declarar permisos aquí para que ambos bloques del map puedan acceder sin TDZ
+  const canChangeRoles = !!getCurrentSAPermissions().canChangeRoles;
   const isPlatformOwnerUser = isGlobalOwner();
   if (isPlatformOwnerUser) {
     const results = saGlobalUsersData.filter(function(item) {
@@ -11556,7 +13400,7 @@ function renderSAUsers() {
               + '<div style="font-size:10px;color:#64748b;margin-top:3px;">Nivel de acceso: <strong style="color:#0f172a;">' + esc(membership.employeeAccessLevel ? formatEmployeeAccessLevel(membership.employeeAccessLevel) : formatSAAccessState(membership.accessState)) + '</strong></div>'
               + '<div style="font-size:10px;color:#94a3b8;margin-top:3px;">ID dependencia: ' + esc(membership.workspaceId || '') + '</div>'
               + '<div style="display:flex;gap:6px;align-items:center;margin-top:8px;">'
-              + '<select onchange="handleAdminUserRoleChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + ((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (((isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
+              + '<select onchange="handleAdminUserRoleChange(\'' + user.id + '\', \'' + membership.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + ((!canChangeRoles || (isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'disabled ' : '') + 'style="flex:1;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + ((!canChangeRoles || (isOwnerMembership && !isPrimaryRootOwner()) || !roleOptions || isDannyProtected) ? 'opacity:0.55;cursor:not-allowed;' : '') + '">' + (roleOptions || '<option>' + esc(formatSARole(membership.role)).toUpperCase() + '</option>') + '</select>'
               + '<button onclick="resetAdminUserTrial(\'' + user.id + '\', \'' + membership.workspaceId + '\')" ' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? '' : 'disabled ') + 'style="padding:6px 8px;background:rgba(123,167,232,0.08);border:1px solid rgba(123,167,232,0.18);border-radius:6px;font-size:10px;color:#35507f;' + ((canResetTrialsFromAdmin() && !isDannyProtected) ? 'cursor:pointer;' : 'opacity:0.55;cursor:not-allowed;') + '">Reiniciar trial</button>'
               + '</div>'
               + '<div id="' + planContainerId + '" style="margin-top:8px;' + (membership.role === 'member_paid' ? '' : 'display:none;') + '">'
@@ -11593,6 +13437,7 @@ function renderSAUsers() {
     return;
   }
   const canManageUsers = !!getCurrentSAPermissions().canManageUsers;
+  // canChangeRoles ya declarado al inicio de renderSAUsers()
   const canSuspend = canSuspendProfiles();
   const canResetTrials = canResetTrialsFromAdmin();
   list.innerHTML = filteredMembers.map(function(member) {
@@ -11612,7 +13457,7 @@ function renderSAUsers() {
       + '<div style="font-size:11px;color:#64748b;"><div>Rol interno</div><div style="margin-top:4px;color:#0f172a;font-weight:700;">' + esc(formatSARole(member.role)) + '</div><div style="margin-top:6px;">Nivel de acceso</div><div style="margin-top:4px;color:#35507f;font-weight:700;">' + esc(member.employeeAccessLevel ? formatEmployeeAccessLevel(member.employeeAccessLevel) : formatSAAccessState(member.accessState)) + '</div><div style="margin-top:6px;color:' + (user.status === 'suspended' ? '#e07070' : '#5ec9a0') + ';font-weight:700;">' + esc(status) + '</div></div>'
       + '<div style="font-size:11px;color:#64748b;"><div>Plan comercial</div><div style="margin-top:4px;color:#0f172a;font-weight:700;">' + esc(getWorkspaceCommercialPlanLabel(member.plan)) + '</div><div style="margin-top:6px;">Workspace</div><div style="margin-top:4px;">' + esc(member.workspaceId || '') + '</div></div>'
       + '<div>'
-      + '<select onchange="handleAdminUserRoleChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canManageUsers && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
+      + '<select onchange="handleAdminUserRoleChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', this.value, \'' + planInputId + '\', \'' + planContainerId + '\', \'' + accessInputId + '\', \'' + accessContainerId + '\')" ' + (canChangeRoles && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'disabled ') + 'style="width:100%;background:#fff;border:1px solid rgba(224,112,112,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;' + (canChangeRoles && !isProtectedOwner && roleOptions && !isDannyProtected ? '' : 'opacity:0.55;cursor:not-allowed;') + '">' + (roleOptions || '<option>' + esc(formatSARole(member.role)).toUpperCase() + '</option>') + '</select>'
       + '<div id="' + planContainerId + '" style="margin-top:6px;' + (member.role === 'member_paid' ? '' : 'display:none;') + '">'
       + '<div style="font-size:10px;color:#64748b;margin-bottom:4px;">Plan del usuario pago</div>'
       + '<select id="' + planInputId + '" onchange="handleAdminUserPlanChange(\'' + member.userId + '\', \'' + member.workspaceId + '\', \'' + member.role + '\', \'' + planInputId + '\', \'' + accessInputId + '\')" style="width:100%;background:#fff;border:1px solid rgba(94,201,160,0.18);border-radius:6px;padding:6px 8px;font-size:11px;color:#0f172a;">' + buildPlanOptions(defaultPlan) + '</select>'
@@ -11678,7 +13523,8 @@ async function updateAdminUserRole(userId, role, workspaceId, planInputId, acces
     }
     payload.plan = selectedPlan;
   }
-  if (['owner', 'admin', 'billing'].includes(String(role || '').toLowerCase())) {
+  const EMPLOYEE_ROLES = ['owner', 'admin', 'billing', 'developer', 'partner'];
+  if (EMPLOYEE_ROLES.includes(String(role || '').toLowerCase())) {
     payload.accessLevel = document.getElementById(accessInputId || '')?.value || 'initial';
   }
   const res = await fetch('/api/admin/users/' + userId, {
@@ -17538,8 +19384,8 @@ async function runQACustom() {
           <input id="sa-invite-name" type="text" placeholder="Nombre" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <input id="sa-invite-email" type="email" placeholder="usuario@empresa.com" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;"/>
           <select id="sa-invite-role" style="background:rgba(224,112,112,0.05);border:1px solid rgba(224,112,112,0.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);outline:none;">
+            <!-- Opciones generadas dinámicamente por syncInviteRoleOptions() -->
             <option value="member_trial">USUARIO TRIAL</option>
-            <option value="member_paid">USUARIO PAGO</option>
           </select>
           <button onclick="inviteAdminUser()" style="padding:9px 14px;background:#e07070;border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;font-weight:700;">Invitar</button>
         </div>

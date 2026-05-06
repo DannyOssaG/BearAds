@@ -87,8 +87,8 @@ const PROVIDER_CHAINS = {
   trial:       ['gemini_flash', 'groq_llama', 'claude_haiku'],
   trial_batch: ['claude_haiku', 'gemini_flash', 'groq_llama'],
   starter:     ['claude_haiku', 'gemini_flash', 'groq_llama'],
-  pro:         ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
-  agency:      ['claude_sonnet', 'claude_haiku', 'gemini_flash'],
+  pro:         ['claude_sonnet', 'claude_haiku', 'gemini_flash', 'groq_llama'],
+  agency:      ['claude_sonnet', 'claude_haiku', 'gemini_flash', 'groq_llama'],
 };
 
 const PROVIDER_COSTS_PER_1M = {
@@ -340,6 +340,11 @@ Evalúa si hubo progreso respecto a esos scores.`
     workspace.updatedAt = nowIso();
     state.saveWorkspaces();
 
+    // Fase B: importar acciones del análisis a la cola del workspace
+    try {
+      db.importActionsFromAnalysis(workspaceId, jobId, agentResults, nowIso());
+    } catch(e) { console.warn('⚠️ importActionsFromAnalysis:', e.message); }
+
     const cacheKey = `${workspaceId}:${cleanUrl}:${todayKey}`;
     analysisCache.set(cacheKey, { result: results, ts: Date.now() });
 
@@ -494,13 +499,21 @@ RESPONDE en español con: resumen ejecutivo, 3 estrategias prioritarias con KPIs
 // ── POST /api/chat ────────────────────────────────────────────────────────────
 router.post('/api/chat', requireAuth, async (req, res) => {
   try {
-    const { message, context } = req.body;
-    if (!message) return res.status(400).json({ error: 'message requerido' });
+    const { message, messages, context, systemPrompt: customSystemPrompt } = req.body;
+    // Acepta tanto { message } (string) como { messages } (array de OpenAI)
+    const userMessage = message
+      || (Array.isArray(messages) ? messages[messages.length - 1]?.content : null)
+      || (typeof messages === 'string' ? messages : null);
+    if (!userMessage) return res.status(400).json({ error: 'message requerido' });
+
     const currentUser = rehydrateRequestUser(req) || req.user;
     const workspace   = ensureWorkspaceState(currentUser?.workspace || null);
     const planCode    = resolveWorkspacePlanCode(workspace);
-    const systemPrompt = `Eres el asistente de marketing digital de BearAds. Responde en español de forma concisa y accionable. Contexto del cliente: ${JSON.stringify(context || {}).slice(0, 1000)}`;
-    const reply = await callAIText(systemPrompt, message, { planCode, maxTokens: 1000, feature: 'chat' });
+
+    const defaultSystemPrompt = `Eres el asistente de marketing digital de BearAds. Responde en español de forma concisa y accionable. Contexto del cliente: ${JSON.stringify(context || {}).slice(0, 1000)}`;
+    const systemPrompt = customSystemPrompt || defaultSystemPrompt;
+
+    const reply = await callAIText(systemPrompt, userMessage, { planCode, maxTokens: 1500, feature: 'chat' });
     res.json({ reply });
   } catch(err) {
     res.status(err.statusCode || 500).json({ error: err.message });
@@ -543,6 +556,647 @@ router.post('/api/traffic-data', requireAuth, async (req, res) => {
       fatal: true
     });
   }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE B — Cola de Acciones (/api/workspace/action-queue)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VALID_ACTION_AGENTS     = ['seo','sem','contenido','cro','trafico','synthesis','manual'];
+const VALID_ACTION_CATEGORIES = ['organico','paid','conversion','prioridad','datos','general'];
+const VALID_ACTION_STATUSES   = ['pending','in_progress','done','dismissed'];
+const VALID_AGENT_MODES       = ['manual','guiado','ia','mixto'];
+
+// ── GET /api/workspace/action-queue — lista la cola del workspace ─────────────
+router.get('/api/workspace/action-queue', requireAuth, (req, res) => {
+  const user        = rehydrateRequestUser(req) || req.user;
+  const workspace   = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const limit   = Math.min(100, Math.max(1, parseInt(req.query.limit || '50', 10)));
+  const actions = db.getActions(workspace.id, limit);
+  const stats   = db.getActionStats(workspace.id);
+  const agentMode            = workspace.agentMode || 'manual';
+  const autoApproveCategories = workspace.autoApproveCategories || [];
+
+  res.json({ actions, stats, agentMode, autoApproveCategories });
+});
+
+// ── POST /api/workspace/action-queue — crea acción manual ────────────────────
+router.post('/api/workspace/action-queue', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { title, description, agent, category, priority } = req.body;
+  if (!title || !String(title).trim()) return res.status(400).json({ error: 'title requerido' });
+
+  const now = nowIso();
+  db.createAction({
+    id:          crypto.randomUUID(),
+    workspaceId: workspace.id,
+    agent:       VALID_ACTION_AGENTS.includes(agent) ? agent : 'manual',
+    category:    VALID_ACTION_CATEGORIES.includes(category) ? category : 'general',
+    title:       String(title).trim().slice(0, 200),
+    description: description ? String(description).slice(0, 500) : null,
+    priority:    Math.min(100, Math.max(0, parseInt(priority ?? 50, 10))),
+    source:      'manual',
+    analysisId:  null,
+    createdAt:   now,
+  });
+
+  res.status(201).json({ created: true });
+});
+
+// ── PATCH /api/workspace/action-queue/:id — cambia estado ───────────────────
+router.patch('/api/workspace/action-queue/:id', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { id } = req.params;
+  const { status } = req.body;
+  if (!VALID_ACTION_STATUSES.includes(status))
+    return res.status(400).json({ error: 'status inválido: pending | in_progress | done | dismissed' });
+
+  const existing = db.getAction(id, workspace.id);
+  if (!existing) return res.status(404).json({ error: 'Acción no encontrada' });
+
+  db.updateActionStatus(id, workspace.id, status, nowIso());
+  res.json({ updated: true });
+});
+
+// ── DELETE /api/workspace/action-queue/:id — elimina acción ─────────────────
+router.delete('/api/workspace/action-queue/:id', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  db.deleteAction(req.params.id, workspace.id);
+  res.json({ deleted: true });
+});
+
+// ── POST /api/workspace/action-queue/from-analysis — importa desde análisis ──
+router.post('/api/workspace/action-queue/from-analysis', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { analysisId, agents } = req.body;
+  if (!agents || typeof agents !== 'object')
+    return res.status(400).json({ error: 'agents requerido' });
+
+  const count = db.importActionsFromAnalysis(workspace.id, analysisId || null, agents, nowIso());
+  res.status(201).json({ created: count });
+});
+
+// ── POST /api/workspace/action-queue/:id/decide — Guiado/IA decide sobre acción ──
+router.post('/api/workspace/action-queue/:id/decide', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { id } = req.params;
+  // decision: 'applied' → in_progress, 'always' → in_progress + auto-approve category,
+  //           'skipped' → dismissed, 'auto' → done (IA automático)
+  const { decision, mode, notes } = req.body;
+  if (!['applied', 'always', 'skipped', 'auto'].includes(decision))
+    return res.status(400).json({ error: 'decision inválida: applied | always | skipped | auto' });
+
+  const action = db.getAction(id, workspace.id);
+  if (!action) return res.status(404).json({ error: 'Acción no encontrada' });
+
+  const now       = nowIso();
+  const newStatus = decision === 'skipped' ? 'dismissed'
+                  : decision === 'auto'    ? 'done'
+                  : 'in_progress';
+
+  db.updateActionStatus(id, workspace.id, newStatus, now);
+
+  // 'always' → guardar categoría en auto-approve del workspace
+  if (decision === 'always') {
+    if (!Array.isArray(workspace.autoApproveCategories)) workspace.autoApproveCategories = [];
+    if (!workspace.autoApproveCategories.includes(action.category)) {
+      workspace.autoApproveCategories.push(action.category);
+      state.saveWorkspaces();
+    }
+  }
+
+  // Registrar en historial
+  db.logActivity({
+    id:          crypto.randomUUID(),
+    workspaceId: workspace.id,
+    actionId:    id,
+    title:       action.title,
+    category:    action.category,
+    agent:       action.agent,
+    decision,
+    mode:        mode || workspace.agentMode || 'manual',
+    notes:       notes || null,
+    createdAt:   now,
+  });
+
+  res.json({ updated: true, newStatus, decision });
+});
+
+// ── GET /api/workspace/activity-log — historial de actividad (C4) ─────────────
+router.get('/api/workspace/activity-log', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const limit = Math.min(50, parseInt(req.query.limit || '20', 10));
+  const log   = db.getActivityLog(workspace.id, limit);
+  res.json({
+    log,
+    autoApproveCategories: workspace.autoApproveCategories || [],
+    total: db.countActivityLog(workspace.id),
+  });
+});
+
+// ── POST /api/workspace/auto-approve/:category — activar auto-aprobación ─────
+router.post('/api/workspace/auto-approve/:category', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { category } = req.params;
+  if (!VALID_ACTION_CATEGORIES.includes(category))
+    return res.status(400).json({ error: 'Categoría inválida' });
+
+  if (!Array.isArray(workspace.autoApproveCategories)) workspace.autoApproveCategories = [];
+  if (!workspace.autoApproveCategories.includes(category)) {
+    workspace.autoApproveCategories.push(category);
+    state.saveWorkspaces();
+  }
+  res.json({ updated: true, autoApproveCategories: workspace.autoApproveCategories });
+});
+
+// ── DELETE /api/workspace/auto-approve/:category — quitar auto-aprobación ────
+router.delete('/api/workspace/auto-approve/:category', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  if (Array.isArray(workspace.autoApproveCategories)) {
+    workspace.autoApproveCategories = workspace.autoApproveCategories.filter(c => c !== req.params.category);
+    state.saveWorkspaces();
+  }
+  res.json({ updated: true, autoApproveCategories: workspace.autoApproveCategories || [] });
+});
+
+// ── PATCH /api/workspace/agent-mode — cambia el modo del agente ──────────────
+router.patch('/api/workspace/agent-mode', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { agentMode } = req.body;
+  if (!VALID_AGENT_MODES.includes(agentMode))
+    return res.status(400).json({ error: 'agentMode inválido: manual | guiado | ia' });
+
+  workspace.agentMode = agentMode;
+  state.saveWorkspaces();
+  res.json({ updated: true, agentMode });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE D — Agentes de Proyecto
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── POST /api/workspace/agent/estratega — genera plan 90 días (D1) ───────────
+router.post('/api/workspace/agent/estratega', requireAuth, async (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const planCode  = resolveWorkspacePlanCode(workspace);
+  if (planCode === 'trial') return res.status(403).json({ error: 'Los agentes están disponibles desde BearAds Starter. Actualiza tu plan para continuar.' });
+  const { context = '' } = req.body;
+
+  // Recoger historial de análisis y acciones recientes para dar contexto al agente
+  const recentJobs   = db.getRecentJobs(workspace.id, 5);
+  const recentActions = db.getActions(workspace.id, 20);
+  const activityLog  = db.getActivityLog(workspace.id, 10);
+
+  const contextSummary = [
+    context && `Contexto adicional del usuario: ${context}`,
+    recentJobs.length && `Análisis recientes (${recentJobs.length}): ${recentJobs.map(j => j.url + ' (' + j.status + ')').join(', ')}`,
+    recentActions.length && `Acciones en cola (${recentActions.length}): ${recentActions.slice(0,5).map(a => a.title).join('; ')}`,
+    activityLog.length && `Historial de decisiones: ${activityLog.slice(0,5).map(a => a.decision + ':' + a.title).join('; ')}`,
+  ].filter(Boolean).join('\n');
+
+  const systemPrompt = `Eres el Agente Estratega de BearAds, especialista en marketing digital para PyMEs LATAM.
+Tu tarea es generar un plan de 90 días accionable, dividido en 3 fases de 30 días.
+Usa la información de análisis y acciones previas para dar recomendaciones específicas.
+
+INSTRUCCIÓN CRÍTICA: Responde SOLO con JSON válido. Sin explicación fuera del JSON.
+
+Estructura requerida:
+{
+  "titulo": "string — nombre del plan",
+  "objetivo": "string — objetivo principal en 1-2 oraciones",
+  "resumen": "string — diagnóstico en 2-3 oraciones",
+  "fases": [
+    {
+      "numero": 1,
+      "nombre": "string",
+      "objetivo": "string",
+      "semanas": "1-4",
+      "hitos": ["string", "string", "string"],
+      "agente_principal": "seo|sem|contenido|cro|trafico"
+    },
+    { "numero": 2, ... },
+    { "numero": 3, ... }
+  ],
+  "kpis": [
+    { "nombre": "string", "meta": "string", "plazo": "30d|60d|90d" }
+  ],
+  "prioridad_inmediata": "string — la 1 cosa más urgente esta semana",
+  "riesgos": ["string", "string"]
+}`;
+
+  const userMessage = contextSummary
+    ? `Genera el plan 90 días con este contexto:\n${contextSummary}`
+    : 'Genera un plan 90 días de marketing digital para este workspace, basado en las mejores prácticas para PyMEs LATAM.';
+
+  try {
+    const raw  = await callAIText(systemPrompt, userMessage, { planCode, maxTokens: 2000, feature: 'estratega' });
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) throw new Error('Respuesta no tiene JSON');
+    const plan = JSON.parse(json);
+
+    // Guardar / actualizar en BD
+    db.upsertAgentProject({
+      workspaceId: workspace.id,
+      type:        'estratega',
+      title:       plan.titulo || 'Plan 90 días',
+      plan,
+      metadata:    { generatedAt: nowIso(), planCode },
+      createdAt:   nowIso(),
+    });
+
+    // Agregar acciones del plan a la cola de acciones (las de prioridad inmediata)
+    if (plan.prioridad_inmediata) {
+      db.createAction({
+        id:          crypto.randomUUID(),
+        workspaceId: workspace.id,
+        agent:       'synthesis',
+        category:    'prioridad',
+        title:       plan.prioridad_inmediata,
+        description: 'Prioridad inmediata — Agente Estratega',
+        priority:    95,
+        source:      'estratega',
+        analysisId:  null,
+        createdAt:   nowIso(),
+      });
+    }
+
+    res.json({ ok: true, plan });
+  } catch(e) {
+    console.error('❌ Agente Estratega:', e.message);
+    res.status(500).json({ error: 'Error al generar el plan: ' + e.message });
+  }
+});
+
+// ── GET /api/workspace/agent/estratega — obtiene el plan guardado ─────────────
+router.get('/api/workspace/agent/estratega', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const project = db.getAgentProject(workspace.id, 'estratega');
+  res.json({ project });
+});
+
+// ── D2: Agente Contenido ──────────────────────────────────────────────────────
+router.post('/api/workspace/agent/contenido', requireAuth, async (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const planCode = resolveWorkspacePlanCode(workspace);
+  if (planCode === 'trial') return res.status(403).json({ error: 'El Agente Contenido está disponible desde BearAds Starter.' });
+
+  const { context = '', platforms = [], weeks = 2 } = req.body;
+
+  // Tomar contexto del proyecto estratega si existe
+  const estratega = db.getAgentProject(workspace.id, 'estratega');
+  const recentActions = db.getActions(workspace.id, 10);
+
+  const estrategaCtx = estratega?.plan
+    ? `Plan estratégico activo: "${estratega.plan.titulo}". Objetivo: ${estratega.plan.objetivo}. Prioridad inmediata: ${estratega.plan.prioridad_inmediata || 'no definida'}.`
+    : '';
+
+  const platformList = platforms.length
+    ? platforms.join(', ')
+    : 'Instagram, Facebook, Blog, Email';
+
+  const systemPrompt = `Eres el Agente de Contenido de BearAds. Generas piezas de contenido reales y listas para publicar — no consejos genéricos.
+Cada pieza debe ser específica al negocio del cliente, con copy completo, CTAs concretos y adaptada a la plataforma.
+
+INSTRUCCIÓN CRÍTICA: Responde SOLO con JSON válido. Sin texto fuera del JSON.
+
+Estructura requerida:
+{
+  "titulo": "string",
+  "resumen": "string — 1 oración sobre el enfoque del contenido",
+  "semanas": [
+    {
+      "numero": 1,
+      "tema": "string — tema central de la semana",
+      "piezas": [
+        {
+          "tipo": "instagram_post|facebook_post|blog_articulo|email|story|reel_idea",
+          "titulo": "string",
+          "copy": "string — el texto COMPLETO listo para publicar",
+          "hashtags": ["string"],
+          "cta": "string",
+          "nota": "string — tip de publicación (opcional)"
+        }
+      ]
+    }
+  ],
+  "tono": "string — voz y tono de la marca",
+  "frecuencia": "string — cuántas veces por semana publicar en cada plataforma"
+}`;
+
+  const userMessage = [
+    context && `Negocio: ${context}`,
+    estrategaCtx,
+    recentActions.length && `Acciones en cola: ${recentActions.slice(0, 3).map(a => a.title).join('; ')}`,
+    `Plataformas: ${platformList}`,
+    `Semanas a cubrir: ${Math.min(4, weeks)}`,
+    `Genera ${Math.min(4, weeks)} semanas con 3-4 piezas reales por semana.`,
+  ].filter(Boolean).join('\n');
+
+  try {
+    const raw  = await callAIText(systemPrompt, userMessage, { planCode, maxTokens: 3000, feature: 'contenido' });
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) throw new Error('Respuesta sin JSON válido');
+    const content = JSON.parse(json);
+
+    db.upsertAgentProject({
+      workspaceId: workspace.id,
+      type:        'contenido',
+      title:       content.titulo || 'Plan de Contenido',
+      plan:        content,
+      metadata:    { generatedAt: nowIso(), planCode, platforms: platformList },
+      createdAt:   nowIso(),
+    });
+
+    // Crear acción en la cola: publicar primera pieza
+    const primeraPieza = content.semanas?.[0]?.piezas?.[0];
+    if (primeraPieza) {
+      db.createAction({
+        id:          crypto.randomUUID(),
+        workspaceId: workspace.id,
+        agent:       'contenido',
+        category:    'organico',
+        title:       `Publicar: ${primeraPieza.titulo || primeraPieza.tipo}`,
+        description: primeraPieza.copy?.slice(0, 150) || null,
+        priority:    75,
+        source:      'contenido',
+        analysisId:  null,
+        createdAt:   nowIso(),
+      });
+    }
+
+    res.json({ ok: true, content });
+  } catch(e) {
+    console.error('❌ Agente Contenido:', e.message);
+    res.status(500).json({ error: 'Error al generar contenido: ' + e.message });
+  }
+});
+
+router.get('/api/workspace/agent/contenido', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const project = db.getAgentProject(workspace.id, 'contenido');
+  res.json({ project });
+});
+
+// ── D3: Agente Campañas ───────────────────────────────────────────────────────
+router.post('/api/workspace/agent/campanas', requireAuth, async (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const planCode = resolveWorkspacePlanCode(workspace);
+  if (['trial', 'starter'].includes(planCode)) return res.status(403).json({ error: 'El Agente Campañas está disponible desde BearAds Pro.' });
+
+  const { canales = [], presupuesto = '', objetivo = '', contexto = '' } = req.body;
+
+  const estratega   = db.getAgentProject(workspace.id, 'estratega');
+  const contenido   = db.getAgentProject(workspace.id, 'contenido');
+  const lastAnalysis = workspace.lastAnalysis;
+
+  const canalList = canales.length ? canales.join(', ') : 'Google Ads, Meta Ads';
+
+  const estrategaCtx = estratega?.plan
+    ? `Plan estratégico: "${estratega.plan.titulo}". Prioridad: ${estratega.plan.prioridad_inmediata || 'no definida'}.`
+    : '';
+  const analysisCtx = lastAnalysis?.scores
+    ? `Scores actuales — SEO:${lastAnalysis.scores.seo??'--'} SEM:${lastAnalysis.scores.sem??'--'} CRO:${lastAnalysis.scores.cro??'--'}`
+    : '';
+
+  const systemPrompt = `Eres el Agente de Campañas de BearAds. Generas campañas de publicidad paga listas para activar — copy real, presupuestos reales, segmentación específica.
+Cada campaña incluye anuncios completos listos para subir a la plataforma. Sin consejos genéricos.
+
+INSTRUCCIÓN CRÍTICA: Responde SOLO con JSON válido. Sin texto fuera del JSON.
+
+Estructura requerida:
+{
+  "titulo": "string",
+  "resumen": "string — 1 oración",
+  "presupuesto_total": "string — ej: $500/mes distribuidos",
+  "campanas": [
+    {
+      "plataforma": "Google Ads|Meta Ads|TikTok Ads|LinkedIn Ads",
+      "nombre": "string",
+      "objetivo": "string — tráfico|leads|ventas|reconocimiento",
+      "presupuesto": "string — ej: $200/mes",
+      "publico": {
+        "segmento": "string",
+        "edad": "string",
+        "intereses": ["string"],
+        "ubicacion": "string"
+      },
+      "anuncios": [
+        {
+          "tipo": "string — búsqueda|display|video|carrusel|historia",
+          "titulo": "string — headline principal (30 chars máx para Google)",
+          "titulos_adicionales": ["string"],
+          "descripcion": "string — descripción del anuncio",
+          "cta": "string",
+          "url_destino": "string — ej: /productos o /landing-oferta"
+        }
+      ],
+      "palabras_clave": ["string"],
+      "estrategia_puja": "string",
+      "kpi_esperado": "string — ej: 3% CTR, CPA < $15"
+    }
+  ],
+  "cronograma": "string — cuándo lanzar y en qué orden",
+  "advertencia": "string — riesgo principal o punto crítico (opcional)"
+}`;
+
+  const userMessage = [
+    contexto   && `Negocio / contexto: ${contexto}`,
+    objetivo   && `Objetivo principal: ${objetivo}`,
+    presupuesto && `Presupuesto disponible: ${presupuesto}`,
+    `Canales a activar: ${canalList}`,
+    estrategaCtx,
+    analysisCtx,
+    contenido?.plan?.tono && `Tono de marca: ${contenido.plan.tono}`,
+    'Genera 1-2 campañas por canal seleccionado, con anuncios completos y segmentación real.',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const raw  = await callAIText(systemPrompt, userMessage, { planCode, maxTokens: 3000, feature: 'campanas' });
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) throw new Error('Respuesta sin JSON válido');
+    const campanas = JSON.parse(json);
+
+    db.upsertAgentProject({
+      workspaceId: workspace.id,
+      type:        'campanas',
+      title:       campanas.titulo || 'Plan de Campañas',
+      plan:        campanas,
+      metadata:    { generatedAt: nowIso(), planCode, canales: canalList },
+      createdAt:   nowIso(),
+    });
+
+    // Acción en la cola: lanzar primera campaña
+    const primera = campanas.campanas?.[0];
+    if (primera) {
+      db.createAction({
+        id:          crypto.randomUUID(),
+        workspaceId: workspace.id,
+        agent:       'sem',
+        category:    'paid',
+        title:       `Lanzar campaña: ${primera.nombre || primera.plataforma}`,
+        description: `${primera.plataforma} · ${primera.presupuesto} · ${primera.objetivo}`,
+        priority:    85,
+        source:      'campanas',
+        analysisId:  null,
+        createdAt:   nowIso(),
+      });
+    }
+
+    res.json({ ok: true, campanas });
+  } catch(e) {
+    console.error('❌ Agente Campañas:', e.message);
+    res.status(500).json({ error: 'Error al generar campañas: ' + e.message });
+  }
+});
+
+router.get('/api/workspace/agent/campanas', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  const project = db.getAgentProject(workspace.id, 'campanas');
+  res.json({ project });
+});
+
+// ── D4: Agente Reportes ───────────────────────────────────────────────────────
+router.post('/api/workspace/agent/reportes', requireAuth, async (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const planCode = resolveWorkspacePlanCode(workspace);
+  if (['trial', 'starter'].includes(planCode)) return res.status(403).json({ error: 'El Agente Reportes está disponible desde BearAds Pro.' });
+
+  // Recopilar todo el contexto disponible
+  const lastAnalysis  = workspace.lastAnalysis;
+  const actionStats   = db.getActionStats(workspace.id);
+  const activityLog   = db.getActivityLog(workspace.id, 20);
+  const estratega     = db.getAgentProject(workspace.id, 'estratega');
+  const campanas      = db.getAgentProject(workspace.id, 'campanas');
+  const contenido     = db.getAgentProject(workspace.id, 'contenido');
+
+  const scoresCtx = lastAnalysis?.scores
+    ? `SEO:${lastAnalysis.scores.seo??'N/A'} SEM:${lastAnalysis.scores.sem??'N/A'} Contenido:${lastAnalysis.scores.contenido??'N/A'} CRO:${lastAnalysis.scores.cro??'N/A'} Tráfico:${lastAnalysis.scores.trafico??'N/A'} Global:${lastAnalysis.globalScore??'N/A'}`
+    : 'Sin análisis disponible';
+
+  const actionsCtx = `Acciones totales: ${actionStats.total||0}, completadas: ${actionStats.done||0}, pendientes: ${actionStats.pending||0}, descartadas: ${actionStats.dismissed||0}`;
+
+  const recentDecisions = activityLog.slice(0, 10).map(a => `[${a.decision}] ${a.title} (${a.agent})`).join('\n') || 'Sin actividad reciente';
+
+  const systemPrompt = `Eres el Agente de Reportes de BearAds. Generas reportes ejecutivos claros y accionables basados en los datos reales del workspace.
+El reporte debe ser honesto: si hay problemas, los nombras. Si hay avances, los reconoces.
+Incluye insights reales, no frases genéricas de consultoría.
+
+INSTRUCCIÓN CRÍTICA: Responde SOLO con JSON válido. Sin texto fuera del JSON.
+
+Estructura requerida:
+{
+  "titulo": "string",
+  "periodo": "string — ej: Mayo 2026",
+  "resumen_ejecutivo": "string — 2-3 oraciones sobre el estado actual",
+  "estado_general": "verde|amarillo|rojo",
+  "canales": [
+    {
+      "nombre": "string — SEO|SEM|Contenido|CRO|Tráfico",
+      "score": number,
+      "tendencia": "subiendo|estable|bajando",
+      "hallazgo_clave": "string",
+      "accion_recomendada": "string"
+    }
+  ],
+  "logros": ["string"],
+  "problemas": ["string"],
+  "metricas_cola": {
+    "acciones_completadas": number,
+    "acciones_pendientes": number,
+    "tasa_ejecucion": "string — ej: 67%"
+  },
+  "proximos_30_dias": ["string — acción concreta"],
+  "conclusion": "string — 1 oración de cierre motivadora pero realista"
+}`;
+
+  const userMessage = [
+    `Scores del último análisis: ${scoresCtx}`,
+    actionsCtx,
+    `Decisiones recientes:\n${recentDecisions}`,
+    estratega?.plan  && `Plan estratégico activo: "${estratega.plan.titulo}"`,
+    campanas?.plan   && `Campañas generadas: "${campanas.plan.titulo}"`,
+    contenido?.plan  && `Contenido generado: "${contenido.plan.titulo}"`,
+    lastAnalysis?.url && `Sitio analizado: ${lastAnalysis.url}`,
+    'Genera un reporte ejecutivo honesto y accionable basado en estos datos.',
+  ].filter(Boolean).join('\n');
+
+  try {
+    const raw  = await callAIText(systemPrompt, userMessage, { planCode, maxTokens: 2000, feature: 'reportes' });
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) throw new Error('Respuesta sin JSON válido');
+    const reporte = JSON.parse(json);
+
+    db.upsertAgentProject({
+      workspaceId: workspace.id,
+      type:        'reportes',
+      title:       reporte.titulo || 'Reporte Ejecutivo',
+      plan:        reporte,
+      metadata:    { generatedAt: nowIso(), planCode },
+      createdAt:   nowIso(),
+    });
+
+    res.json({ ok: true, reporte });
+  } catch(e) {
+    console.error('❌ Agente Reportes:', e.message);
+    res.status(500).json({ error: 'Error al generar reporte: ' + e.message });
+  }
+});
+
+router.get('/api/workspace/agent/reportes', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  const project = db.getAgentProject(workspace.id, 'reportes');
+  res.json({ project });
 });
 
 // Export callAI and callClaude so server.js can still use them

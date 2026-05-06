@@ -2261,3 +2261,141 @@ Solo por invitación manual desde el panel SA → tab Equipo. No hay auto-upgrad
 1. Se le asigna la nueva membresía con el rol indicado.
 2. Se archivan sus membresías trial conflictivas.
 3. Se invalidan sus sesiones activas (forzando re-login con el nuevo rol).
+
+---
+
+## 2026-05-04 — Fase A: Motor de Agentes (completado)
+
+### Resumen
+
+Se confirmó que el backend de los 4 features del plan de agentes ya estaba implementado en `routes/analyze.js`. Se implementaron las dos piezas faltantes del frontend.
+
+### Estado final de Fase A
+
+| Feature | Backend | Frontend |
+|---------|---------|----------|
+| A1 — ROUTE_AGENTS (filtrado por ruta del cliente) | ✅ `routes/analyze.js` | ✅ `routeMode` derivado de onboarding y enviado en fetch |
+| A2 — Agente Sintetizador | ✅ `AGENT_PROMPTS.synthesis` + llamada post-agentes | ✅ Panel `#synthesis-panel` + `renderSynthesis()` |
+| A3 — Memoria delta | ✅ `deltaContext` + `workspace.lastAnalysis` | — (backend only) |
+| A4 — Registro de costos | ✅ `PROVIDER_COSTS_PER_1M` + `costTracker` + SQLite `recordCostEvent` | — (backend only) |
+
+### Cambios en `public/index.html`
+
+#### 1. Derivación de `routeMode` desde onboarding (línea ~7412)
+```js
+const _ob = (window.currentSession?.workspace?.onboarding) || {};
+const _routeMode = (function() {
+  if (_ob.knowledgeLevel === 'agencia') return 'agencia';
+  const hasBudget = _ob.budgetRange && _ob.budgetRange !== 'sin-presupuesto';
+  const hasMarket = Boolean(_ob.targetCountry && _ob.growthScope);
+  if (hasBudget && hasMarket) return 'ads';
+  if (hasBudget) return 'organico';
+  return 'arranque';
+})();
+// enviado en el body del fetch de /api/analyze
+```
+
+Mapa de rutas:
+- `agencia` → 5 agentes (seo, sem, contenido, cro, trafico)
+- `ads` → 3 agentes (sem, trafico, cro)
+- `organico` → 3 agentes (seo, contenido, cro)
+- `arranque` → 3 agentes (contenido, cro, trafico)
+
+#### 2. Panel de síntesis `#synthesis-panel`
+
+Nuevo div insertado antes del chat post-análisis. Contenido dinámico vía `renderSynthesis()`:
+- **Badge de agentes activos** — muestra cuáles corrieron (solo si < 5 agentes)
+- **Resumen ejecutivo** — texto unificado del sintetizador
+- **Prioridades rankeadas** — máx. 5, con: acción, agente origen, impacto (⬆), esfuerzo (⚙), razón
+- **Conflictos detectados** — cuando dos agentes tienen recomendaciones contradictorias
+- **Siguiente paso BearAds** — acción concreta con la que BearAds puede ayudar
+
+### Próxima fase
+
+**Fase B — Cola de Acciones**: tabla `action_queue` en SQLite + clasificación de acciones + API CRUD + `agentMode` por workspace. Prerrequisito para Modo Guiado y Modo IA.
+
+---
+
+## Roadmap de Agentes IA — Fases A → D
+
+### 🔴 Fase A — Motor base (completada 2026-05-04)
+
+Sin esto, los modos de ejecución no tienen nada que ejecutar.
+
+| # | Qué | Por qué primero |
+|---|-----|-----------------|
+| A1 | ROUTE_AGENTS — filtrar agentes por ruta del cliente (arranque, organico, ads) | Evita gastar tokens en agentes irrelevantes |
+| A2 | Agente Sintetizador — un 6to agente que unifica outputs y prioriza por impacto | Sin esto los resultados son 5 silos sin conexión |
+| A3 | Memoria delta — inyectar scores anteriores + guardar `lastAnalysis` | Los agentes necesitan contexto histórico para medir progreso |
+| A4 | Registro de costos — log de tokens + acumulador mensual en workspace | Saber cuánto cuesta antes de escalar |
+
+Resultado: Los 5+1 agentes corren de forma inteligente, con memoria y contexto compartido.
+
+Estado: ✅ Completada.
+
+---
+
+### 🟡 Fase B — Cola de acciones (completada 2026-05-04)
+
+La infraestructura que hace posible los 3 modos de ejecución.
+
+| # | Qué | Por qué |
+|---|-----|---------|
+| B1 | Tabla `action_queue` en SQLite — schema + CRUD | Base de datos para guardar lo que los agentes quieren hacer |
+| B2 | Clasificación de acciones — cada recomendación tiene `agent`, `category`, `priority`, `status` | Sin esto no se puede decidir cuándo pausar o ejecutar |
+| B3 | API de acciones — `GET /api/workspace/action-queue`, `PATCH /:id`, `DELETE /:id`, `PATCH /agent-mode` | El frontend necesita estos endpoints |
+| B4 | `agentMode` en workspace — `manual`, `guiado`, `ia` | Prerrequisito para los modos de ejecución de Fase C |
+
+Resultado: El sistema genera una lista de acciones pendientes desde cada análisis y el usuario puede aprobar/rechazar/descartar cada una desde el dashboard.
+
+Estado: ✅ Completada.
+
+---
+
+### 🟢 Fase C — Modos de ejecución ✅ Completada (2026-05-05)
+
+El producto que ve el usuario final.
+
+| # | Qué | Por qué | Estado |
+|---|-----|---------|--------|
+| C1 | Modo Guiado — wizard paso a paso con "🔨 Aplicar / ⚡ Siempre / → Omitir" + dots de navegación | Usuarios nuevos que quieren control | ✅ |
+| C2 | Modo IA — auto-aplica categorías aprobadas, wizard para el resto + banner de estado | Usuarios avanzados que quieren velocidad | ✅ |
+| C3 | Modo Mixto — panel de permisos con toggles por categoría | Usuarios que confían en contenido pero no en ads | ✅ |
+| C4 | Centro de actividad — historial de decisiones (applied/always/skipped/auto) con timeline | Auditoría y confianza | ✅ |
+
+**Detalles técnicos:**
+- `activity_log` table en SQLite: registra cada decisión con workspace_id, action_id, decision, mode, created_at
+- `POST /api/workspace/action-queue/:id/decide` — decide applied | always | skipped | auto
+- `GET /api/workspace/activity-log` — historial de actividad con autoApproveCategories
+- `DELETE /api/workspace/auto-approve/:category` — revoca auto-aprobación de una categoría
+- `autoApproveCategories[]` guardado en workspace state (persistido en JSON)
+- Wizard en `#dash-aq-wizard` con `renderWizardCard()` + dots de navegación
+- Modo IA: auto-decide acciones en categorías aprobadas sin intervención del usuario
+- Historial `#dash-activity-log` con badges de decisión + timeAgo + modo
+
+Resultado: El cliente puede elegir su modo, aprobar o rechazar acciones, y ver el historial completo.
+
+Estado: ✅ Fase C completa — C1, C2, C3 y C4 implementados.
+
+---
+
+### 🔵 Fase D — Agentes de Proyecto (en progreso)
+
+De análisis puntual a trabajo continuo de 30-90 días.
+
+| # | Qué | Estado |
+|---|-----|--------|
+| D1 | Agente Estratega — plan de 90 días con 3 fases, KPIs y prioridad inmediata | ✅ 2026-05-05 |
+| D2 | Agente Contenido — genera y programa piezas reales | 🔲 |
+| D3 | Agente Campañas — estructura de ads lista para subir | 🔲 |
+| D4 | Agente Reportes — resumen semanal automático | 🔲 |
+
+**D1 detalles:**
+- `agent_projects` table en SQLite: id, workspace_id, type, title, plan (JSON), metadata, created_at
+- `POST /api/workspace/agent/estratega` — genera plan con IA usando historial de análisis y cola
+- `GET /api/workspace/agent/estratega` — trae el plan guardado
+- Plan incluye: título, objetivo, resumen, 3 fases (nombre, objetivo, semanas, hitos, agente_principal), KPIs, prioridad_inmediata, riesgos
+- Al generar: auto-crea acción de "prioridad inmediata" en la cola
+- Widget en dashboard: empty state → loading → plan renderizado con grid de fases + KPIs + riesgos
+
+Estado: 🟡 D1 completado. D2/D3/D4 pendientes.
