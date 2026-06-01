@@ -2764,7 +2764,17 @@ passport.use(new GoogleStrategy({
 app.get('/auth', (req, res) => {
   rehydrateRequestUser(req);
   if (req.isAuthenticated()) {
+    // Si viene con plan, redirigir con él
+    const plan = String(req.query.plan || '').trim().toLowerCase();
+    if (plan && ['starter','pro','agency'].includes(plan)) {
+      return res.redirect(`/?plan=${plan}`);
+    }
     return res.redirect('/');
+  }
+  // Guardar plan pendiente en sesión para pasarlo después del login
+  const pendingPlan = String(req.query.plan || '').trim().toLowerCase();
+  if (pendingPlan && ['starter','pro','agency'].includes(pendingPlan)) {
+    req.session.pendingPlan = pendingPlan;
   }
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Content-Security-Policy', "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline' 'self'; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; connect-src 'self'; script-src 'none'");
@@ -2903,7 +2913,9 @@ app.post('/auth/email/verify', async (req, res) => {
       if (error) {
         return res.redirect(`/auth?error=register_failed&email=${encodeURIComponent(record.email)}&mode=register`);
       }
-      return res.redirect('/?connected=email');
+      const pendingPlan = req.session.pendingPlan || '';
+      if (pendingPlan) delete req.session.pendingPlan;
+      return res.redirect(pendingPlan ? `/?connected=email&plan=${pendingPlan}` : '/?connected=email');
     });
   } catch (error) {
     console.error('Email verification error:', error.message);
@@ -2963,7 +2975,9 @@ app.post('/auth/email/login', async (req, res) => {
         return res.redirect(`/auth?error=login_failed&email=${encodeURIComponent(email)}`);
       }
       clearAuthFailures(req, email);
-      return res.redirect('/?connected=email');
+      const pendingPlan = req.session.pendingPlan || '';
+      if (pendingPlan) delete req.session.pendingPlan;
+      return res.redirect(pendingPlan ? `/?connected=email&plan=${pendingPlan}` : '/?connected=email');
     });
   } catch (error) {
     console.error('Email login error:', error.message);
@@ -3065,8 +3079,1340 @@ app.get('/auth/google', passport.authenticate('google', {
 
 app.get('/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/?error=auth' }),
-  (req, res) => res.redirect('/?connected=google')
+  (req, res) => {
+    const pendingPlan = req.session.pendingPlan || '';
+    if (pendingPlan) delete req.session.pendingPlan;
+    return res.redirect(pendingPlan ? `/?connected=google&plan=${pendingPlan}` : '/?connected=google');
+  }
 );
+
+// ── META ADS OAUTH 2.0 ────────────────────────────────────────────────────────
+// Flujo: usuario hace clic en "Conectar con Meta" → se genera state → redirige
+// a Facebook OAuth → Facebook redirige de vuelta con código → BearAds intercambia
+// código por token de larga duración (60 días) → token se guarda en el workspace.
+//
+// Variables de entorno requeridas:
+//   META_APP_ID     — App ID de tu Meta App (Meta Developers)
+//   META_APP_SECRET — App Secret de tu Meta App
+//   APP_BASE_URL    — URL base del servidor (ej: https://tudominio.com)
+//
+// En Meta Developers → Facebook Login → Valid OAuth Redirect URIs, agrega:
+//   http://localhost:3000/api/auth/meta/callback   (dev)
+//   https://tudominio.com/api/auth/meta/callback   (prod)
+
+// Mínimo necesario para leer métricas de campañas.
+// ads_read es el único permiso requerido para /me/adaccounts + insights.
+// ads_management y business_management requieren App Review adicional — se agregan después.
+// public_profile + email siempre disponibles sin App Review.
+// ads_read requiere producto "Marketing API" en Meta App Dashboard → Agregar producto.
+// Permisos habilitados en Casos de uso → Personalizar del App Dashboard de Meta:
+// - public_profile, email → caso de uso "Facebook Login"
+// - ads_read, ads_management → caso de uso "Marketing API" → Personalizar
+// ads_management necesario para Fase M (pausar, escalar, duplicar, crear campañas)
+const META_SCOPES = 'public_profile,email,ads_read,ads_management';
+
+// Store en memoria para states OAuth (evita dependencia de sesión con FileSessionStore)
+// key: state hex → { workspaceId, createdAt }  |  TTL: 10 min
+const metaOAuthStates = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000;
+  for (const [k, v] of metaOAuthStates) {
+    if (v.createdAt < cutoff) metaOAuthStates.delete(k);
+  }
+}, 60 * 1000);
+
+// GET /api/auth/meta/connect — inicia el flujo OAuth
+app.get('/api/auth/meta/connect', (req, res) => {
+  if (!req.isAuthenticated()) return res.redirect('/auth?error=not_authenticated');
+  const META_APP_ID = process.env.META_APP_ID;
+  if (!META_APP_ID) return res.status(500).send('META_APP_ID no configurado en el servidor.');
+
+  // Generar state anti-CSRF y guardarlo en Map en memoria (no depende de sesión)
+  const state = crypto.randomBytes(16).toString('hex');
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspaceId = currentUser?.workspace?.id || null;
+  metaOAuthStates.set(state, { workspaceId, createdAt: Date.now() });
+
+  const BASE_URL_CONNECT = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const redirectUri   = encodeURIComponent(`${BASE_URL_CONNECT}/api/auth/meta/callback`);
+  const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?`
+    + `client_id=${META_APP_ID}`
+    + `&redirect_uri=${redirectUri}`
+    + `&scope=${encodeURIComponent(META_SCOPES)}`
+    + `&response_type=code`
+    + `&state=${state}`;
+
+  res.redirect(authUrl);
+});
+
+// GET /api/auth/meta/callback — Facebook redirige aquí con el código
+app.get('/api/auth/meta/callback', async (req, res) => {
+  const { code, state, error, error_description } = req.query;
+
+  if (error) {
+    console.warn('[Meta OAuth] Error en callback — error:', error, '| description:', error_description, '| query:', JSON.stringify(req.query));
+    return res.redirect('/?meta_error=' + encodeURIComponent(error_description || error));
+  }
+
+  // Validar state anti-CSRF usando Map en memoria
+  const stateEntry = state ? metaOAuthStates.get(state) : null;
+  console.log('[Meta OAuth] callback — state recibido:', state, '| encontrado en Map:', !!stateEntry);
+  if (!stateEntry) {
+    console.warn('[Meta OAuth] State inválido o expirado. state:', state);
+    return res.redirect('/?meta_error=invalid_state');
+  }
+  metaOAuthStates.delete(state); // usar solo una vez
+
+  const META_APP_ID     = process.env.META_APP_ID;
+  const META_APP_SECRET = process.env.META_APP_SECRET;
+  const BASE_URL        = (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const redirectUri     = `${BASE_URL}/api/auth/meta/callback`;
+  const workspaceId     = stateEntry.workspaceId;
+
+  if (!META_APP_ID || !META_APP_SECRET) {
+    return res.redirect('/?meta_error=server_config');
+  }
+
+  try {
+    // 1. Intercambiar código por token de corta duración
+    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token`
+      + `?client_id=${META_APP_ID}`
+      + `&client_secret=${META_APP_SECRET}`
+      + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+      + `&code=${code}`;
+
+    const tokenResp = await fetch(tokenUrl, { signal: AbortSignal.timeout(10000) });
+    const tokenData = await tokenResp.json();
+    if (tokenData.error) throw new Error(tokenData.error.message || 'Token exchange failed');
+
+    // 2. Intercambiar por token de larga duración (60 días)
+    const longUrl = `https://graph.facebook.com/v19.0/oauth/access_token`
+      + `?grant_type=fb_exchange_token`
+      + `&client_id=${META_APP_ID}`
+      + `&client_secret=${META_APP_SECRET}`
+      + `&fb_exchange_token=${tokenData.access_token}`;
+
+    const longResp = await fetch(longUrl, { signal: AbortSignal.timeout(10000) });
+    const longData = await longResp.json();
+    if (longData.error) throw new Error(longData.error.message || 'Long token exchange failed');
+
+    const accessToken = longData.access_token || tokenData.access_token;
+    const expiresIn   = longData.expires_in || 5183944; // ~60 días en segundos
+    const expiresAt   = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+    // 3. Consultas paralelas: /me, /me/adaccounts, /me/businesses
+    const GQL_BASE = 'https://graph.facebook.com/v19.0';
+    const [meRes, accsRes, bizRes] = await Promise.allSettled([
+      fetch(`${GQL_BASE}/me?fields=id,name,email&access_token=${accessToken}`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${GQL_BASE}/me/adaccounts?fields=id,name,account_status,currency&limit=50&access_token=${accessToken}`, { signal: AbortSignal.timeout(10000) }),
+      fetch(`${GQL_BASE}/me/businesses?fields=id,name&limit=10&access_token=${accessToken}`, { signal: AbortSignal.timeout(10000) }),
+    ]);
+
+    const meData   = meRes.status   === 'fulfilled' ? await meRes.value.json()   : {};
+    const accsData = accsRes.status === 'fulfilled' ? await accsRes.value.json() : {};
+    const bizData  = bizRes.status  === 'fulfilled' ? await bizRes.value.json()  : {};
+
+    if (meData.error)   console.warn('[Meta OAuth] /me error:',          meData.error.message);
+    if (accsData.error) console.warn('[Meta OAuth] /me/adaccounts error:', accsData.error.message);
+    if (bizData.error)  console.warn('[Meta OAuth] /me/businesses error:', bizData.error.message);
+
+    const adAccounts  = (!accsData.error && accsData.data) ? accsData.data.map(a => ({ id: a.id, name: a.name, status: a.account_status, currency: a.currency })) : [];
+    const businesses  = (!bizData.error  && bizData.data)  ? bizData.data.map(b => ({ id: b.id, name: b.name })) : [];
+    const activeAccts = adAccounts.filter(a => a.status === 1);
+
+    // 4. Clasificación inteligente del tipo de cuenta
+    let accountType = 'personal'; // personal | business | agency
+    if (businesses.length > 0 && activeAccts.length > 3)  accountType = 'agency';
+    else if (businesses.length > 0)                        accountType = 'business';
+
+    // Auto-selección si solo tiene una cuenta activa
+    const autoSelected = activeAccts.length === 1 ? activeAccts[0] : null;
+
+    console.log(`[Meta OAuth] ${meData.name} | tipo: ${accountType} | cuentas: ${activeAccts.length} | BMs: ${businesses.length}`);
+
+    // 5. Guardar todo en el workspace
+    if (workspaceId && workspaces[workspaceId]) {
+      const ws = ensureWorkspaceState(workspaces[workspaceId]);
+      ws.metaIntegration = {
+        connected:    true,
+        accessToken,
+        expiresAt,
+        metaUserId:   meData.id    || null,
+        metaUserName: meData.name  || null,
+        metaEmail:    meData.email || null,
+        accountType,                          // personal | business | agency
+        businesses,                           // lista de BMs
+        adAccounts,                           // todas las cuentas (para el selector)
+        accountId:    autoSelected?.id   || null,   // auto-selección si hay una sola
+        accountName:  autoSelected?.name || null,
+        connectedAt:  new Date().toISOString(),
+      };
+      saveWorkspaces();
+    } else {
+      req.session.metaPendingToken = {
+        accessToken, expiresAt, metaUserId: meData.id, metaUserName: meData.name,
+        accountType, adAccounts, businesses,
+        accountId: autoSelected?.id || null, accountName: autoSelected?.name || null,
+      };
+    }
+
+    res.redirect('/?meta_connected=1');
+  } catch (err) {
+    console.error('[Meta OAuth] Error:', err.message);
+    res.redirect('/?meta_error=' + encodeURIComponent(err.message));
+  }
+});
+
+// GET /api/workspace/meta/status — estado de la conexión (sin exponer el token)
+app.get('/api/workspace/meta/status', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const mi = workspace.metaIntegration || {};
+  if (!mi.connected || !mi.accessToken) {
+    return res.json({ connected: false });
+  }
+  const expired = mi.expiresAt && new Date(mi.expiresAt) < new Date();
+  res.json({
+    connected:    !expired,
+    expired:      expired || false,
+    metaUserName: mi.metaUserName || null,
+    accountId:    mi.accountId    || null,
+    accountName:  mi.accountName  || null,
+    expiresAt:    mi.expiresAt    || null,
+    connectedAt:  mi.connectedAt  || null,
+  });
+});
+
+// GET /api/workspace/meta/accounts — lista cuentas publicitarias disponibles
+app.get('/api/workspace/meta/accounts', async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const mi = workspace.metaIntegration || {};
+  const activeToken = mi.systemUserToken || mi.accessToken;
+  if (!mi.connected || !activeToken) return res.status(400).json({ error: 'Meta no conectado' });
+
+  try {
+    // Si ya tenemos cuentas cacheadas del callback OAuth, las servimos directamente
+    // a menos que el cliente pida refresh explícito (?refresh=1)
+    if (mi.adAccounts?.length && req.query.refresh !== '1') {
+      const accounts = mi.adAccounts.map(a => ({
+        id:       a.id,
+        name:     a.name,
+        status:   a.status === 1 ? 'activa' : (a.status === 'activa' ? 'activa' : 'inactiva'),
+        currency: a.currency || '',
+      }));
+      return res.json({ accounts, selected: mi.accountId || null, accountType: mi.accountType || 'personal', cached: true });
+    }
+
+    // Sin caché o refresh solicitado → llamar a Meta
+    const url = `https://graph.facebook.com/v19.0/me/adaccounts`
+      + `?fields=id,name,account_status,currency`
+      + `&access_token=${activeToken}&limit=50`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    const data = await resp.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    const accounts = (data.data || []).map(a => ({
+      id:       a.id,
+      name:     a.name,
+      status:   a.account_status === 1 ? 'activa' : 'inactiva',
+      currency: a.currency || '',
+    }));
+
+    // Actualizar caché en workspace
+    workspace.metaIntegration.adAccounts = data.data || [];
+    saveWorkspaces();
+
+    res.json({ accounts, selected: mi.accountId || null, accountType: mi.accountType || 'personal', cached: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/workspace/meta/select-account — guarda la cuenta elegida
+app.patch('/api/workspace/meta/select-account', express.json(), (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { accountId, accountName } = req.body;
+  if (!accountId) return res.status(400).json({ error: 'accountId requerido' });
+
+  if (!workspace.metaIntegration) return res.status(400).json({ error: 'Meta no conectado' });
+  workspace.metaIntegration.accountId   = accountId;
+  workspace.metaIntegration.accountName = accountName || accountId;
+  saveWorkspaces();
+  res.json({ ok: true, accountId, accountName: workspace.metaIntegration.accountName });
+});
+
+// DELETE /api/workspace/meta/disconnect — desconectar Meta
+app.delete('/api/workspace/meta/disconnect', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  delete workspace.metaIntegration;
+  saveWorkspaces();
+  res.json({ ok: true });
+});
+// POST /api/meta-check-access — detección inteligente de ruta disponible
+// Revisa qué método de acceso tiene el workspace: system_user_token, oauth, o ninguno
+app.post('/api/meta-check-access', express.json(), (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const mi = workspace.metaIntegration || {};
+
+  // Ruta 1: System User Token (Business Manager delegado — más segura para agencias)
+  if (mi.systemUserToken) {
+    return res.json({
+      route:       'business_manager',
+      connected:   true,
+      accountId:   mi.accountId   || null,
+      accountName: mi.accountName || null,
+      method:      'system_user_token',
+      label:       'Acceso vía Business Manager',
+    });
+  }
+
+  // Ruta 2: OAuth token existente y válido
+  if (mi.connected && mi.accessToken) {
+    const expired = mi.expiresAt && new Date(mi.expiresAt) < new Date();
+    if (!expired) {
+      const daysLeft = mi.expiresAt
+        ? Math.round((new Date(mi.expiresAt) - Date.now()) / 86400000)
+        : null;
+      return res.json({
+        route:        'oauth',
+        connected:    true,
+        accountId:    mi.accountId    || null,
+        accountName:  mi.accountName  || null,
+        metaUserName: mi.metaUserName || null,
+        metaEmail:    mi.metaEmail    || null,
+        expiresAt:    mi.expiresAt    || null,
+        daysLeft,
+        accountType:  mi.accountType  || 'personal',
+        adAccounts:   mi.adAccounts   || [],
+        businesses:   mi.businesses   || [],
+        method:       'oauth',
+        label:        'Cuenta conectada vía OAuth',
+      });
+    }
+    // Token expirado
+    return res.json({ route: 'oauth', connected: false, expired: true, method: 'oauth_expired' });
+  }
+
+  // Sin acceso previo → necesita OAuth
+  return res.json({ route: 'oauth', connected: false, method: 'none' });
+});
+
+// PATCH /api/workspace/meta/system-token — guardar System User Token (Business Manager)
+// Para agencias que tienen a BearAds como partner en su Meta Business Manager
+app.patch('/api/workspace/meta/system-token', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = user?.workspace ? ensureWorkspaceState(user.workspace) : null;
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { systemUserToken } = req.body;
+  if (!systemUserToken) return res.status(400).json({ error: 'systemUserToken requerido' });
+
+  // Verificar que el token es válido consultando /me antes de guardarlo
+  try {
+    const testResp = await fetch(
+      `https://graph.facebook.com/v19.0/me?fields=id,name&access_token=${systemUserToken}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    const testData = await testResp.json();
+    if (testData.error) return res.status(400).json({ error: 'Token inválido: ' + testData.error.message });
+
+    workspace.metaIntegration = {
+      ...(workspace.metaIntegration || {}),
+      connected:       true,
+      systemUserToken,
+      metaUserId:      testData.id   || null,
+      metaUserName:    testData.name || null,
+      connectedAt:     new Date().toISOString(),
+      // Sin expiresAt — los system user tokens no expiran si son de larga duración
+      expiresAt:       null,
+    };
+    saveWorkspaces();
+    res.json({ ok: true, metaUserName: testData.name, metaUserId: testData.id });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+// ── FASE M — Campaign Manager IA (Meta Ads) ──────────────────────────────────
+// Helper: obtener credenciales Meta del workspace
+function _getMetaCreds(workspace) {
+  const mi = workspace?.metaIntegration || {};
+  if (!mi.connected) return null;
+  return { token: mi.systemUserToken || mi.accessToken, accountId: mi.accountId };
+}
+const GQL_META = 'https://graph.facebook.com/v19.0';
+
+// M1a: GET /api/workspace/meta/campaigns/live — lista campañas en tiempo real
+app.get('/api/workspace/meta/campaigns/live', async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds || !creds.token || !creds.accountId)
+    return res.status(400).json({ error: 'Meta no conectado o sin cuenta seleccionada' });
+
+  const { token, accountId } = creds;
+  try {
+    const preset = req.query.preset || 'last_30d';
+    const url = `${GQL_META}/${encodeURIComponent(accountId)}/campaigns`
+      + `?fields=id,name,status,objective,daily_budget,lifetime_budget,`
+      + `insights.date_preset(${preset}){spend,clicks,impressions,ctr,cpc,frequency,actions,action_values}`
+      + `&access_token=${token}&limit=50`;
+
+    const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    const data = await resp.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    const campaigns = (data.data || []).map(c => {
+      const ins       = c.insights?.data?.[0] || {};
+      const spend     = parseFloat(ins.spend || 0);
+      const clicks    = parseInt(ins.clicks || 0);
+      const impr      = parseInt(ins.impressions || 0);
+      const revenue   = (ins.action_values || []).filter(a => a.action_type === 'purchase')
+                          .reduce((s, a) => s + parseFloat(a.value || 0), 0);
+      const convs     = (ins.actions || []).filter(a => ['purchase','lead','complete_registration'].includes(a.action_type))
+                          .reduce((s, a) => s + parseInt(a.value || 0), 0);
+      return {
+        id:           c.id,
+        name:         c.name,
+        status:       c.status,   // ACTIVE | PAUSED | ARCHIVED | DELETED
+        objective:    c.objective,
+        dailyBudget:  c.daily_budget ? parseFloat(c.daily_budget) / 100 : null,  // cents → dollars
+        lifetimeBudget: c.lifetime_budget ? parseFloat(c.lifetime_budget) / 100 : null,
+        spend:        parseFloat(spend.toFixed(2)),
+        clicks, impressions: impr,
+        ctr:          parseFloat(ins.ctr || 0),
+        cpc:          parseFloat(ins.cpc || 0),
+        frequency:    parseFloat(ins.frequency || 0),
+        conversions:  convs,
+        revenue:      parseFloat(revenue.toFixed(2)),
+        roas:         revenue > 0 && spend > 0 ? parseFloat((revenue / spend).toFixed(2)) : 0,
+        cpa:          convs > 0 && spend > 0   ? parseFloat((spend / convs).toFixed(2))   : 0,
+      };
+    });
+
+    res.json({ ok: true, campaigns });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// M1b: PATCH /api/workspace/meta/campaign/:id/status — pausar/activar
+app.patch('/api/workspace/meta/campaign/:id/status', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds?.token) return res.status(400).json({ error: 'Meta no conectado' });
+
+  const { status } = req.body; // 'ACTIVE' | 'PAUSED'
+  if (!['ACTIVE', 'PAUSED'].includes(status))
+    return res.status(400).json({ error: 'status debe ser ACTIVE o PAUSED' });
+
+  try {
+    const resp = await fetch(`${GQL_META}/${req.params.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, access_token: creds.token }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json({ ok: true, campaignId: req.params.id, status });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// M1c: PATCH /api/workspace/meta/campaign/:id/budget — ajustar presupuesto diario
+app.patch('/api/workspace/meta/campaign/:id/budget', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds?.token) return res.status(400).json({ error: 'Meta no conectado' });
+
+  const { dailyBudget } = req.body; // en dólares
+  if (!dailyBudget || isNaN(dailyBudget) || dailyBudget <= 0)
+    return res.status(400).json({ error: 'dailyBudget debe ser un número positivo' });
+
+  // Meta espera el presupuesto en centavos (entero)
+  const budgetCents = Math.round(parseFloat(dailyBudget) * 100);
+  try {
+    const resp = await fetch(`${GQL_META}/${req.params.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ daily_budget: budgetCents, access_token: creds.token }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+    res.json({ ok: true, campaignId: req.params.id, dailyBudget: parseFloat(dailyBudget) });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// M2: POST /api/workspace/meta/campaign/:id/scale — escalar presupuesto (%)
+app.post('/api/workspace/meta/campaign/:id/scale', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds?.token) return res.status(400).json({ error: 'Meta no conectado' });
+
+  const { percent = 20 } = req.body; // default +20%
+  if (isNaN(percent) || percent <= 0 || percent > 200)
+    return res.status(400).json({ error: 'percent debe ser entre 1 y 200' });
+
+  try {
+    // 1. Obtener presupuesto actual
+    const getResp = await fetch(
+      `${GQL_META}/${req.params.id}?fields=daily_budget,lifetime_budget&access_token=${creds.token}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    const campaign = await getResp.json();
+    if (campaign.error) return res.status(400).json({ error: campaign.error.message });
+
+    if (!campaign.daily_budget)
+      return res.status(400).json({ error: 'Esta campaña no tiene presupuesto diario (puede usar presupuesto de por vida). Ajústalo manualmente.' });
+
+    const currentCents = parseInt(campaign.daily_budget);
+    const newCents     = Math.round(currentCents * (1 + percent / 100));
+
+    // 2. Actualizar
+    const patchResp = await fetch(`${GQL_META}/${req.params.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ daily_budget: newCents, access_token: creds.token }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const patchData = await patchResp.json();
+    if (patchData.error) return res.status(400).json({ error: patchData.error.message });
+
+    res.json({
+      ok: true,
+      campaignId:    req.params.id,
+      previousBudget: parseFloat((currentCents / 100).toFixed(2)),
+      newBudget:      parseFloat((newCents / 100).toFixed(2)),
+      percent,
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// M3: POST /api/workspace/meta/campaign/:id/duplicate — duplicar campaña
+app.post('/api/workspace/meta/campaign/:id/duplicate', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds?.token) return res.status(400).json({ error: 'Meta no conectado' });
+
+  const { token, accountId } = creds;
+  try {
+    // 1. Obtener datos de la campaña original
+    const campResp = await fetch(
+      `${GQL_META}/${req.params.id}?fields=name,objective,status,daily_budget,lifetime_budget,special_ad_categories&access_token=${token}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    const original = await campResp.json();
+    if (original.error) return res.status(400).json({ error: original.error.message });
+
+    // 2. Crear copia de la campaña (en PAUSED para revisión antes de activar)
+    const newName = `${original.name} [Copia ${new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'short' })}]`;
+    const createBody = {
+      name:                  newName,
+      objective:             original.objective,
+      status:                'PAUSED',
+      special_ad_categories: original.special_ad_categories || [],
+      access_token:          token,
+    };
+    if (original.daily_budget)    createBody.daily_budget    = original.daily_budget;
+    if (original.lifetime_budget) createBody.lifetime_budget = original.lifetime_budget;
+
+    const createResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/campaigns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createBody),
+      signal: AbortSignal.timeout(10000),
+    });
+    const created = await createResp.json();
+    if (created.error) return res.status(400).json({ error: created.error.message });
+
+    // 3. Duplicar ad sets de la campaña original
+    const adsetsResp = await fetch(
+      `${GQL_META}/${req.params.id}/adsets?fields=id,name,targeting,optimization_goal,billing_event,bid_amount,daily_budget,lifetime_budget,status&access_token=${token}&limit=20`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    const adsetsData = await adsetsResp.json();
+    const adsets     = !adsetsData.error ? (adsetsData.data || []) : [];
+
+    const adsetResults = await Promise.allSettled(adsets.map(async as => {
+      const asBody = {
+        name:              as.name + ' [Copia]',
+        campaign_id:       created.id,
+        targeting:         as.targeting,
+        optimization_goal: as.optimization_goal,
+        billing_event:     as.billing_event,
+        status:            'PAUSED',
+        access_token:      token,
+      };
+      if (as.bid_amount)      asBody.bid_amount      = as.bid_amount;
+      if (as.daily_budget)    asBody.daily_budget    = as.daily_budget;
+      if (as.lifetime_budget) asBody.lifetime_budget = as.lifetime_budget;
+
+      const r = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/adsets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(asBody),
+        signal: AbortSignal.timeout(10000),
+      });
+      return r.json();
+    }));
+
+    const copiedAdsets = adsetResults.filter(r => r.status === 'fulfilled' && !r.value.error).length;
+
+    res.json({
+      ok: true,
+      newCampaignId:   created.id,
+      newCampaignName: newName,
+      adsetsCopied:    copiedAdsets,
+      note:            'Campaña creada en estado PAUSADO. Actívala desde el Campaign Manager cuando esté lista.',
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// M4: POST /api/workspace/meta/campaign/create-from-brief — crear desde brief del Agente D3
+app.post('/api/workspace/meta/campaign/create-from-brief', express.json(), async (req, res) => {
+  console.log('[Meta create-brief] HIT — body:', JSON.stringify(req.body).substring(0, 300));
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getMetaCreds(workspace);
+  if (!creds?.token) return res.status(400).json({ error: 'Meta no conectado' });
+
+  const { token, accountId } = creds;
+  const { campaign } = req.body; // objeto de campaña del Agente D3
+
+  if (!campaign?.nombre || !campaign?.objetivo)
+    return res.status(400).json({ error: 'Brief inválido: falta nombre u objetivo' });
+
+  // Mapear objetivo D3 → objective de Meta API (valores OUTCOME_* requeridos desde v17+)
+  const OBJECTIVE_MAP = {
+    // español
+    'tráfico':              'OUTCOME_TRAFFIC',
+    'trafico':              'OUTCOME_TRAFFIC',
+    'leads':                'OUTCOME_LEADS',
+    'generacion de leads':  'OUTCOME_LEADS',
+    'generación de leads':  'OUTCOME_LEADS',
+    'ventas':               'OUTCOME_SALES',
+    'conversiones':         'OUTCOME_SALES',
+    'reconocimiento':       'OUTCOME_AWARENESS',
+    'awareness':            'OUTCOME_AWARENESS',
+    'marca':                'OUTCOME_AWARENESS',
+    'alcance':              'OUTCOME_AWARENESS',
+    'interaccion':          'OUTCOME_ENGAGEMENT',
+    'interacción':          'OUTCOME_ENGAGEMENT',
+    'engagement':           'OUTCOME_ENGAGEMENT',
+    'app':                  'OUTCOME_APP_PROMOTION',
+    'aplicacion':           'OUTCOME_APP_PROMOTION',
+    'aplicación':           'OUTCOME_APP_PROMOTION',
+    // valores legacy de API (por si el agente los devuelve directamente)
+    'link_clicks':          'OUTCOME_TRAFFIC',
+    'conversions':          'OUTCOME_SALES',
+    'website_conversions':  'OUTCOME_SALES',
+    'lead_generation':      'OUTCOME_LEADS',
+    'brand_awareness':      'OUTCOME_AWARENESS',
+    'reach':                'OUTCOME_AWARENESS',
+    'post_engagement':      'OUTCOME_ENGAGEMENT',
+    'app_installs':         'OUTCOME_APP_PROMOTION',
+    // inglés
+    'traffic':              'OUTCOME_TRAFFIC',
+    'sales':                'OUTCOME_SALES',
+    'awareness':            'OUTCOME_AWARENESS',
+  };
+  const objKey = (campaign.objetivo || '').toLowerCase().trim();
+  const metaObjective = OBJECTIVE_MAP[objKey] || 'OUTCOME_TRAFFIC';
+
+  // Parsear presupuesto: "$200/mes" → 200, luego /30 por día
+  const budgetMatch = (campaign.presupuesto || '').match(/[\d,]+/);
+  const monthlyBudget = budgetMatch ? parseFloat(budgetMatch[0].replace(',', '')) : 300;
+  const dailyBudgetCents = Math.round((monthlyBudget / 30) * 100);
+
+  // Optimization goal: usamos LINK_CLICKS universalmente para no requerir pixel ni form
+  // (el usuario puede cambiar desde Meta Ads Manager una vez creada la campaña)
+  const optConfig = { optimization_goal: 'LINK_CLICKS', billing_event: 'IMPRESSIONS' };
+
+  try {
+    // 0. Obtener info de cuenta (moneda + mínimo de presupuesto)
+    let accountCurrency = 'USD';
+    let minDailyBudget = 100; // fallback: 100 centavos = $1
+    try {
+      const acctResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}?fields=currency,min_daily_budget&access_token=${token}`, { signal: AbortSignal.timeout(5000) });
+      const acctData = await acctResp.json();
+      if (acctData.currency) accountCurrency = acctData.currency;
+      if (acctData.min_daily_budget) minDailyBudget = parseInt(acctData.min_daily_budget);
+      console.log('[Meta create-brief] account currency:', accountCurrency, 'min_daily_budget:', minDailyBudget);
+    } catch(e) { console.warn('[Meta create-brief] could not fetch account info:', e.message); }
+
+    // Ajustar presupuesto a la moneda real de la cuenta
+    // Meta API usa la unidad mínima de cada moneda (cents para USD, pesos enteros para COP/MXN etc.)
+    const NO_CENTS_CURRENCIES = ['COP','CLP','HUF','IDR','ISK','JPY','KRW','PYG','TWD','UGX','VND'];
+    const isNoCents = NO_CENTS_CURRENCIES.includes(accountCurrency);
+    // Si la moneda no tiene centavos, el presupuesto en la API es el valor directo
+    // COP mínimo Meta: ~5000 COP/día. Usamos max(lo calculado, el mínimo de la cuenta × 1.5)
+    const safeMinBudget = Math.max(minDailyBudget, isNoCents ? 5000 : 100);
+    const finalDailyBudget = Math.max(dailyBudgetCents, safeMinBudget);
+    console.log('[Meta create-brief] finalDailyBudget:', finalDailyBudget, accountCurrency);
+
+    // 1. Crear campaña con CBO (Campaign Budget Optimization)
+    const campBody = {
+      name:                  campaign.nombre,
+      objective:             metaObjective,
+      status:                'PAUSED',
+      special_ad_categories: [],
+      daily_budget:          finalDailyBudget,
+      bid_strategy:          'LOWEST_COST_WITHOUT_CAP',
+      access_token:          token,
+    };
+    const campResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/campaigns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(campBody),
+      signal: AbortSignal.timeout(10000),
+    });
+    const campData = await campResp.json();
+    console.log('[Meta create-brief] campBody:', JSON.stringify(campBody));
+    console.log('[Meta create-brief] campData:', JSON.stringify(campData));
+    if (campData.error) return res.status(400).json({ error: campData.error.message, meta_error: campData.error });
+
+    // 2. Crear ad set — sin daily_budget propio (lo hereda de la campaña CBO)
+    const pub = campaign.publico || {};
+    const [ageMin, ageMax] = (pub.edad || '18-65').split('-').map(n => parseInt(n) || null);
+    const targeting = {
+      age_min:       ageMin || 18,
+      age_max:       ageMax || 65,
+      geo_locations: { countries: ['CO'] },
+    };
+
+    // optimization_goal compatible con cada objetivo OUTCOME_*
+    const OPT_FOR_ADSET = {
+      'OUTCOME_TRAFFIC':       'LINK_CLICKS',
+      'OUTCOME_SALES':         'LINK_CLICKS',
+      'OUTCOME_LEADS':         'LINK_CLICKS',
+      'OUTCOME_AWARENESS':     'REACH',
+      'OUTCOME_ENGAGEMENT':    'POST_ENGAGEMENT',
+      'OUTCOME_APP_PROMOTION': 'APP_INSTALLS',
+    };
+    const adsetOptGoal = OPT_FOR_ADSET[metaObjective] || 'LINK_CLICKS';
+
+    const adsetBody = {
+      name:             `${campaign.nombre} — Conjunto 1`,
+      campaign_id:      campData.id,
+      targeting,
+      optimization_goal: adsetOptGoal,
+      billing_event:    'IMPRESSIONS',
+      status:           'PAUSED',
+      access_token:     token,
+    };
+    console.log('[Meta create-brief] adsetBody:', JSON.stringify(adsetBody));
+    let adsetData = {};
+    try {
+      const adsetResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/adsets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adsetBody),
+        signal: AbortSignal.timeout(10000),
+      });
+      adsetData = await adsetResp.json();
+      console.log('[Meta create-brief] adsetData:', JSON.stringify(adsetData));
+    } catch(adsetErr) {
+      console.warn('[Meta create-brief] adset creation failed (non-fatal):', adsetErr.message);
+      adsetData = { error: { message: adsetErr.message } };
+    }
+    const adsetCreated = !adsetData.error;
+
+    // 3. Crear anuncio (solo si el adset se creó)
+    let adData = {};
+    let adCreated = false;
+    if (adsetCreated) {
+      try {
+        // 3a. Obtener Page ID del usuario
+        const pagesResp = await fetch(`https://graph.facebook.com/v19.0/me/accounts?access_token=${token}&limit=1`, { signal: AbortSignal.timeout(5000) });
+        const pagesData = await pagesResp.json();
+        const pageId = pagesData.data?.[0]?.id;
+        const pageToken = pagesData.data?.[0]?.access_token || token;
+
+        if (pageId) {
+          // Extraer copy del brief (D3 JSON o texto plano)
+          const firstAd = Array.isArray(campaign.anuncios) ? campaign.anuncios[0] : null;
+          const headline = firstAd?.titulo || campaign.nombre;
+          const body     = firstAd?.descripcion || firstAd?.cta || `Descubre ${campaign.nombre}`;
+          const destUrl  = campaign.url || workspace.url || workspace.onboarding?.url || 'https://example.com';
+
+          // 3b. Subir imagen a Meta si se proporcionó
+          let imageHash = null;
+          const imageUrl = req.body.imageUrl || campaign.imageUrl || null;
+          if (imageUrl) {
+            try {
+              const fs   = await import('fs');
+              const path = await import('path');
+              let imgBuffer;
+              if (imageUrl.startsWith('/generated/') || imageUrl.startsWith('/public/')) {
+                const localPath = path.join(process.cwd(), 'public', imageUrl.replace(/^\/public/, ''));
+                imgBuffer = await fs.promises.readFile(localPath);
+              } else if (imageUrl.startsWith('http')) {
+                const ir = await fetch(imageUrl, { signal: AbortSignal.timeout(8000) });
+                imgBuffer = Buffer.from(await ir.arrayBuffer());
+              }
+              if (imgBuffer) {
+                const imgForm = new FormData();
+                imgForm.set('filename', new Blob([imgBuffer], { type: 'image/png' }), 'ad-image.png');
+                imgForm.set('access_token', token);
+                const imgResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/adimages`, {
+                  method: 'POST',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  body: imgForm,
+                  signal: AbortSignal.timeout(15000),
+                });
+                const imgData = await imgResp.json();
+                console.log('[Meta create-brief] adimage upload:', JSON.stringify(imgData).substring(0, 200));
+                // Response: { images: { filename: { hash, url, ... } } }
+                const imgKey = Object.keys(imgData.images || {})[0];
+                if (imgKey) imageHash = imgData.images[imgKey].hash;
+              }
+            } catch(imgErr) {
+              console.warn('[Meta create-brief] image upload failed (non-fatal):', imgErr.message);
+            }
+          }
+
+          // 3c. Crear ad creative (con imagen si se subió correctamente)
+          const linkData = {
+            link:    destUrl,
+            message: body,
+            name:    headline,
+            call_to_action: { type: 'LEARN_MORE' },
+          };
+          if (imageHash) linkData.image_hash = imageHash;
+
+          const creativeBody = {
+            name:              `${campaign.nombre} — Creativo 1`,
+            object_story_spec: {
+              page_id:   pageId,
+              link_data: linkData,
+            },
+            access_token: pageToken,
+          };
+          const creativeResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/adcreatives`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(creativeBody),
+            signal: AbortSignal.timeout(10000),
+          });
+          const creativeData = await creativeResp.json();
+          console.log('[Meta create-brief] creativeData:', JSON.stringify(creativeData));
+
+          if (!creativeData.error) {
+            // 3c. Crear el anuncio
+            const adBody = {
+              name:         `${campaign.nombre} — Anuncio 1`,
+              adset_id:     adsetData.id,
+              creative:     { creative_id: creativeData.id },
+              status:       'PAUSED',
+              access_token: token,
+            };
+            const adResp = await fetch(`${GQL_META}/${encodeURIComponent(accountId)}/ads`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(adBody),
+              signal: AbortSignal.timeout(10000),
+            });
+            adData = await adResp.json();
+            console.log('[Meta create-brief] adData:', JSON.stringify(adData));
+            adCreated = !adData.error;
+          } else {
+            adData = creativeData;
+            console.warn('[Meta create-brief] creative failed:', creativeData.error?.message);
+          }
+        } else {
+          console.warn('[Meta create-brief] no Facebook page found for account');
+          adData = { error: { message: 'No se encontró una Página de Facebook vinculada a esta cuenta. Agrega el anuncio desde Meta Ads Manager.' } };
+        }
+      } catch(adErr) {
+        console.warn('[Meta create-brief] ad creation failed (non-fatal):', adErr.message);
+        adData = { error: { message: adErr.message } };
+      }
+    }
+
+    const _managerUrl = `https://www.facebook.com/adsmanager/manage/campaigns?act=${accountId.replace('act_','')}`;
+
+    // Notificación email al owner
+    sendCampaignPublishedEmail(workspace, {
+      campaignName: campaign.nombre, platform: 'meta',
+      campaignId: campData.id, imageIncluded: !!imageHash, managerUrl: _managerUrl,
+    }).catch(() => {});
+
+    res.json({
+      ok:               true,
+      campaignId:       campData.id,
+      campaignName:     campaign.nombre,
+      adsetId:          adsetCreated ? adsetData.id : null,
+      adsetError:       adsetData.error?.message || null,
+      adId:             adCreated ? adData.id : null,
+      adError:          (!adCreated && adData.error?.message) || null,
+      objective:        metaObjective,
+      status:           'PAUSED',
+      imageUploaded: !!imageHash,
+      note:             adCreated
+        ? (imageHash ? '✅ Campaña creada con imagen incluida (PAUSADA). Activa desde Meta Ads Manager.' : '✅ Campaña, conjunto y anuncio creados (PAUSADOS). Agrega imagen desde Meta Ads Manager y activa.')
+        : adsetCreated
+          ? '⚠️ Campaña y conjunto creados. Agrega el anuncio manualmente desde Meta Ads Manager.'
+          : '⚠️ Solo se creó la campaña. Configura conjunto y anuncio desde Meta Ads Manager.',
+      metaAdsManagerUrl: _managerUrl,
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+// ── /FASE M ───────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════
+// TIKTOK ADS API — Integración completa
+// ══════════════════════════════════════════
+const TIKTOK_API = 'https://business-api.tiktok.com/open_api/v1.3';
+
+// Helpers TikTok
+function _getTikTokCreds(workspace) {
+  const creds = workspace?.tiktokAds || {};
+  return {
+    accessToken:   creds.accessToken   || null,
+    advertiserId:  creds.advertiserId  || null,
+    connected:     !!(creds.accessToken && creds.advertiserId),
+  };
+}
+
+async function _tiktokRequest(path, method, body, accessToken) {
+  const res = await fetch(`${TIKTOK_API}${path}`, {
+    method,
+    headers: {
+      'Access-Token': accessToken,
+      'Content-Type': 'application/json',
+    },
+    body: method !== 'GET' ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(15000),
+  });
+  const data = await res.json();
+  // TikTok API returns code 0 for success
+  if (data.code !== 0) throw new Error(data.message || `TikTok API error ${data.code}`);
+  return data.data;
+}
+
+// TK1: PATCH — guardar credenciales de TikTok Ads en el workspace
+app.patch('/api/workspace/tiktok/credentials', requireAuth, express.json(), (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { accessToken, advertiserId } = req.body;
+  if (!accessToken || !advertiserId) return res.status(400).json({ error: 'accessToken y advertiserId son requeridos' });
+
+  workspace.tiktokAds = {
+    ...(workspace.tiktokAds || {}),
+    accessToken: accessToken.trim(),
+    advertiserId: String(advertiserId).replace(/\D/g, ''),
+    connectedAt: nowIso(),
+  };
+  saveWorkspaces();
+  res.json({ ok: true, advertiserId: workspace.tiktokAds.advertiserId });
+});
+
+// TK2: GET — estado de la conexión TikTok
+app.get('/api/workspace/tiktok/status', requireAuth, async (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getTikTokCreds(workspace);
+  if (!creds.connected) return res.json({ connected: false });
+
+  try {
+    // Verificar que el token funciona consultando el advertiser
+    const data = await _tiktokRequest(
+      `/advertiser/info/?advertiser_ids=["${creds.advertiserId}"]`,
+      'GET', null, creds.accessToken
+    );
+    const advertiser = (data?.list || [])[0];
+    res.json({
+      connected:     true,
+      advertiserId:  creds.advertiserId,
+      advertiserName: advertiser?.name || 'Cuenta TikTok',
+      currency:      advertiser?.currency || 'USD',
+      timezone:      advertiser?.timezone || 'UTC',
+    });
+  } catch(e) {
+    res.json({ connected: false, error: e.message });
+  }
+});
+
+// TK3: DELETE — desconectar TikTok
+app.delete('/api/workspace/tiktok/disconnect', requireAuth, (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  delete workspace.tiktokAds;
+  saveWorkspaces();
+  res.json({ ok: true });
+});
+
+// TK4: GET — campañas activas de TikTok
+app.get('/api/workspace/tiktok/campaigns/live', requireAuth, async (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getTikTokCreds(workspace);
+  if (!creds.connected) return res.status(400).json({ error: 'TikTok no conectado' });
+
+  try {
+    const campaignData = await _tiktokRequest('/campaign/get/', 'POST', {
+      advertiser_id: creds.advertiserId,
+      page_size: 50,
+      fields: ['campaign_id','campaign_name','status','budget','create_time'],
+    }, creds.accessToken);
+
+    const campaigns = (campaignData?.list || []);
+
+    // Obtener insights de los últimos 7 días
+    const today = new Date().toISOString().slice(0,10);
+    const week  = new Date(Date.now() - 7*86400000).toISOString().slice(0,10);
+    let insights = [];
+    try {
+      const insightData = await _tiktokRequest('/report/integrated/get/', 'POST', {
+        advertiser_id: creds.advertiserId,
+        report_type: 'BASIC',
+        dimensions: ['campaign_id'],
+        metrics: ['spend','impressions','clicks','ctr','reach'],
+        data_level: 'AUCTION_CAMPAIGN',
+        start_date: week,
+        end_date: today,
+        page_size: 50,
+      }, creds.accessToken);
+      insights = insightData?.list || [];
+    } catch(_) {}
+
+    const insightMap = {};
+    insights.forEach(i => { insightMap[i.dimensions?.campaign_id] = i.metrics; });
+
+    const enriched = campaigns.map(c => ({
+      id:       c.campaign_id,
+      name:     c.campaign_name,
+      status:   c.status,
+      budget:   c.budget,
+      insights: insightMap[c.campaign_id] || null,
+    }));
+
+    res.json({ campaigns: enriched, count: enriched.length });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// TK5: POST — crear campaña desde brief en TikTok
+app.post('/api/workspace/tiktok/campaign/create-from-brief', requireAuth, express.json(), async (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const creds = _getTikTokCreds(workspace);
+  if (!creds.connected) return res.status(400).json({ error: 'TikTok no conectado. Conecta tu cuenta en Integraciones → TikTok Ads.' });
+
+  const { campaign, imageUrl } = req.body;
+  if (!campaign?.nombre) return res.status(400).json({ error: 'Falta el nombre de la campaña' });
+
+  // Mapear objetivo
+  const OBJECTIVE_MAP = {
+    'ventas':        'CONVERSIONS',  'conversiones': 'CONVERSIONS',
+    'tráfico':       'TRAFFIC',      'trafico': 'TRAFFIC',
+    'leads':         'LEAD_GENERATION',
+    'reconocimiento':'REACH',        'awareness': 'REACH',
+    'app':           'APP_PROMOTION',
+    'video':         'VIDEO_VIEWS',
+    'engagement':    'ENGAGEMENT',
+  };
+  const objKey = (campaign.objetivo || '').toLowerCase();
+  const objective = OBJECTIVE_MAP[objKey] || 'TRAFFIC';
+
+  const budgetMatch = (campaign.presupuesto || '').match(/[\d,]+/);
+  const dailyBudget = budgetMatch ? Math.max(parseFloat(budgetMatch[0].replace(',','')), 20) : 20;
+
+  try {
+    // 1. Crear campaña
+    const campData = await _tiktokRequest('/campaign/create/', 'POST', {
+      advertiser_id:    creds.advertiserId,
+      campaign_name:    campaign.nombre,
+      objective_type:   objective,
+      budget_mode:      'BUDGET_MODE_DAY',
+      budget:           dailyBudget,
+      operation_status: 'DISABLE', // empieza pausada
+    }, creds.accessToken);
+
+    const campaignId = campData?.campaign_id;
+    if (!campaignId) throw new Error('No se recibió campaign_id de TikTok');
+
+    // 2. Crear adgroup (ad set)
+    const adgroupData = await _tiktokRequest('/adgroup/create/', 'POST', {
+      advertiser_id:    creds.advertiserId,
+      campaign_id:      campaignId,
+      adgroup_name:     `${campaign.nombre} — Conjunto 1`,
+      placement_type:   'PLACEMENT_TYPE_AUTOMATIC',
+      budget_mode:      'BUDGET_MODE_DAY',
+      budget:           dailyBudget,
+      schedule_type:    'SCHEDULE_FROM_NOW',
+      optimization_goal: objective === 'TRAFFIC' ? 'CLICK' : 'CONVERT',
+      billing_event:    'OCPM',
+      operation_status: 'DISABLE',
+      location_ids:     ['BR', 'MX', 'CO', 'AR', 'PE'], // LATAM por defecto
+    }, creds.accessToken);
+
+    const adgroupId = adgroupData?.adgroup_id;
+
+    res.json({
+      ok: true,
+      campaignId,
+      campaignName: campaign.nombre,
+      adgroupId: adgroupId || null,
+      status: 'DISABLE',
+      note: adgroupId
+        ? '✅ Campaña y conjunto creados en TikTok (PAUSADOS). Agrega un video/imagen y activa desde TikTok Ads Manager.'
+        : '✅ Campaña creada en TikTok (PAUSADA). Configura el conjunto y creativo desde TikTok Ads Manager.',
+      adsManagerUrl: `https://ads.tiktok.com/i18n/perf/campaign?aadvid=${creds.advertiserId}`,
+    });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// TK6: PATCH — cambiar estado de campaña TikTok
+app.patch('/api/workspace/tiktok/campaign/:id/status', requireAuth, express.json(), async (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  const creds = _getTikTokCreds(workspace);
+  if (!creds.connected) return res.status(400).json({ error: 'TikTok no conectado' });
+
+  const { status } = req.body; // 'ENABLE' o 'DISABLE'
+  if (!['ENABLE','DISABLE'].includes(status)) return res.status(400).json({ error: 'status inválido' });
+
+  try {
+    await _tiktokRequest('/campaign/status/update/', 'POST', {
+      advertiser_id: creds.advertiserId,
+      campaign_ids:  [req.params.id],
+      operation_status: status,
+    }, creds.accessToken);
+    res.json({ ok: true, status });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════
+// FASE R — Motor de Ejecución de Campañas
+// ══════════════════════════════════════════
+
+// R3: POST /api/workspace/campaign/google/create-from-brief
+app.post('/api/workspace/campaign/google/create-from-brief', requireAuth, express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  if (!isGoogleConnectedForUser(user)) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Google Ads no configurado. Conecta desde Integraciones.'
+    });
+  }
+
+  const { campaign } = req.body;
+  if (!campaign?.nombre || !campaign?.objetivo) {
+    return res.status(400).json({ error: 'Brief inválido: falta nombre u objetivo' });
+  }
+
+  // Check Google Ads customer ID
+  const gadsCredentials = workspace.gadsCustomerId || workspace.googleAdsCustomerId ||
+    (workspace.integrations && workspace.integrations.googleAdsCustomerId);
+  if (!gadsCredentials) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Google Ads no configurado. Conecta desde Integraciones y vincula tu Customer ID.'
+    });
+  }
+
+  try {
+    // Resolve OAuth token for the user
+    const oauth = user?.id ? (oauthUsers && oauthUsers[user.id]) || {} : {};
+    const accessToken = oauth.accessToken;
+    if (!accessToken) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Google Ads no configurado. Conecta desde Integraciones.'
+      });
+    }
+
+    const customerId = String(gadsCredentials).replace(/-/g, '');
+    const ver = 'v17';
+    const GADS_BASE = `https://googleads.googleapis.com/${ver}`;
+    const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '';
+
+    // Map objective to Google Ads campaign type
+    const objKey = (campaign.objetivo || '').toLowerCase();
+    let advertisingChannelType = 'SEARCH';
+    if (objKey.includes('shopping') || objKey.includes('product')) advertisingChannelType = 'SHOPPING';
+    if (objKey.includes('display') || objKey.includes('banner'))   advertisingChannelType = 'DISPLAY';
+
+    // Parse budget
+    const budgetMatch = (campaign.presupuesto || '').match(/[\d,]+/);
+    const monthlyBudget = budgetMatch ? parseFloat(budgetMatch[0].replace(',', '')) : 300;
+    const dailyBudgetMicros = Math.round((monthlyBudget / 30) * 1_000_000);
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${accessToken}`,
+      'developer-token': developerToken,
+    };
+
+    // 1. Create campaign budget
+    const budgetResp = await fetch(`${GADS_BASE}/customers/${customerId}/campaignBudgets:mutate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        operations: [{
+          create: {
+            name: `${campaign.nombre} — Budget`,
+            amountMicros: String(dailyBudgetMicros),
+            deliveryMethod: 'STANDARD',
+          }
+        }]
+      }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const budgetData = await budgetResp.json();
+    if (budgetData.error || !budgetData.results?.[0]) {
+      const errMsg = budgetData.error?.message || 'Error creando budget en Google Ads';
+      return res.status(400).json({ ok: false, error: errMsg });
+    }
+    const budgetResourceName = budgetData.results[0].resourceName;
+
+    // 2. Create campaign
+    const campResp = await fetch(`${GADS_BASE}/customers/${customerId}/campaigns:mutate`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        operations: [{
+          create: {
+            name: campaign.nombre,
+            status: 'PAUSED',
+            advertisingChannelType,
+            campaignBudget: budgetResourceName,
+            manualCpc: { enhancedCpcEnabled: false },
+          }
+        }]
+      }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const campData = await campResp.json();
+    if (campData.error || !campData.results?.[0]) {
+      const errMsg = campData.error?.message || 'Error creando campaña en Google Ads';
+      return res.status(400).json({ ok: false, error: errMsg });
+    }
+    const campaignResourceName = campData.results[0].resourceName;
+    const campaignId = campaignResourceName.split('/').pop();
+
+    res.json({
+      ok: true,
+      campaignId,
+      campaignName: campaign.nombre,
+      status: 'PAUSED',
+      note: 'Campaña creada en Google Ads en estado PAUSADO. Agrega grupos de anuncios y actívala desde Google Ads Manager.',
+      googleAdsManagerUrl: `https://ads.google.com/aw/campaigns?campaignId=${campaignId}`,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// R4: POST /api/workspace/campaign/guide — guía paso a paso IA
+app.post('/api/workspace/campaign/guide', requireAuth, express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { campaign, platform = 'Meta Ads' } = req.body;
+  if (!campaign) return res.status(400).json({ error: 'campaign requerido' });
+
+  const planCode = resolveWorkspacePlanCode(workspace);
+
+  const platformName = {
+    meta:    'Meta Ads (Facebook e Instagram)',
+    google:  'Google Ads',
+    tiktok:  'TikTok Ads',
+    email:   'Email Marketing',
+  }[String(platform).toLowerCase()] || String(platform);
+
+  const systemPrompt = `Eres un experto en publicidad digital. Genera una guía paso a paso EXACTA para publicar esta campaña en ${platformName}.
+Formato: pasos numerados (máx 8), cada paso con: título corto en negrita marcado con **título**, instrucción específica, campo exacto que se debe llenar.
+Incluye: dónde ir, qué hacer, qué valores poner. Texto en español. Sin markdown extra fuera de **negrita** para títulos de paso.`;
+
+  const campaignText = typeof campaign === 'string'
+    ? campaign
+    : JSON.stringify(campaign, null, 2);
+
+  const userMessage = `Campaña:\n${campaignText}`;
+
+  try {
+    const guide = await callAI(systemPrompt, userMessage, { planCode, maxTokens: 1200, feature: 'campaign-guide' });
+    res.json({ ok: true, guide });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ── /FASE R ───────────────────────────────────────────────────────────────────
+
+// ── /META ADS OAUTH ───────────────────────────────────────────────────────────
 
 app.get('/auth/logout', (req, res) => {
   req.logout(() => {
@@ -3153,6 +4499,234 @@ app.patch('/api/profile', requireAuth, (req, res) => {
     membership
   });
 });
+
+// ══════════════════════════════════════════
+// MULTI-WORKSPACE — Cambio, creación e invitación
+// ══════════════════════════════════════════
+
+// GET /api/user/workspaces — lista todos los workspaces del usuario autenticado
+app.get('/api/user/workspaces', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const userId = currentUser?.id;
+  if (!userId) return res.status(401).json({ error: 'No autenticado' });
+
+  const userMemberships = getUserMemberships(userId);
+  const result = userMemberships.map(function(m) {
+    const ws = ensureWorkspaceState(workspaces[m.workspaceId]);
+    if (!ws) return null;
+    const plan = resolveWorkspacePlanCode(ws);
+    const planNames = { trial: 'Trial', starter: 'Starter', pro: 'Pro', agency: 'Agency' };
+    return {
+      id:       ws.id,
+      name:     ws.name || ws.onboarding?.businessName || 'Mi workspace',
+      plan:     plan,
+      planName: planNames[plan] || plan,
+      role:     getEffectiveMembershipRole(m, ws),
+      isCurrent: ws.id === currentUser.workspace?.id,
+      membersCount: getWorkspaceMembers(ws.id).length,
+      createdAt: ws.createdAt || null,
+    };
+  }).filter(Boolean);
+
+  res.json({ workspaces: result, count: result.length });
+});
+
+// POST /api/user/workspaces — crear nuevo workspace
+app.post('/api/user/workspaces', requireAuth, express.json(), async (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const userId = currentUser?.id;
+  if (!userId) return res.status(401).json({ error: 'No autenticado' });
+
+  // Límite según plan actual
+  const currentWs = ensureWorkspaceState(currentUser.workspace);
+  const currentPlan = resolveWorkspacePlanCode(currentWs);
+  const existingCount = getUserMemberships(userId).filter(m => m.role === 'owner').length;
+  const limits = { trial: 1, starter: 1, pro: 3, agency: 15 };
+  const limit = limits[currentPlan] || 1;
+  if (existingCount >= limit) {
+    return res.status(403).json({
+      error: `Tu plan ${currentPlan} permite máximo ${limit} workspace(s). Sube de plan para crear más.`,
+      code: 'workspace_limit'
+    });
+  }
+
+  const name = String(req.body.name || '').trim() || 'Nuevo workspace';
+  const newWsId = crypto.randomUUID();
+  const now = nowIso();
+
+  workspaces[newWsId] = {
+    id:        newWsId,
+    name,
+    createdAt: now,
+    updatedAt: now,
+    subscription: { status: 'trialing', plan: 'trial' },
+    onboarding:   { businessName: name },
+    members:      {},
+  };
+  saveWorkspaces();
+
+  // Crear membresía owner
+  ensureMembership(newWsId, userId, 'owner');
+
+  res.json({ ok: true, workspace: { id: newWsId, name, plan: 'trial' } });
+});
+
+// POST /api/user/workspaces/switch — cambiar workspace activo en la sesión
+app.post('/api/user/workspaces/switch', requireAuth, express.json(), (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const userId = currentUser?.id;
+  const targetId = String(req.body.workspaceId || '').trim();
+  if (!userId || !targetId) return res.status(400).json({ error: 'workspaceId requerido' });
+
+  // Verificar que el usuario tiene acceso al workspace
+  const membership = getUserMemberships(userId).find(m => m.workspaceId === targetId);
+  if (!membership) return res.status(403).json({ error: 'Sin acceso a este workspace' });
+
+  const targetWs = ensureWorkspaceState(workspaces[targetId]);
+  if (!targetWs) return res.status(404).json({ error: 'Workspace no encontrado' });
+
+  // Actualizar en appUsers para que la sesión lo refleje
+  if (appUsers[userId]) {
+    appUsers[userId].workspaceId = targetId;
+    appUsers[userId].updatedAt = nowIso();
+    saveAppUsers();
+  }
+
+  // Regenerar sesión
+  req.session.regenerate(function(err) {
+    if (err) return res.status(500).json({ error: 'Error al cambiar workspace' });
+    req.login({ id: userId }, function(loginErr) {
+      if (loginErr) return res.status(500).json({ error: 'Error al iniciar sesión' });
+      res.json({ ok: true, workspaceId: targetId, workspaceName: targetWs.name });
+    });
+  });
+});
+
+// POST /api/workspace/invite — invitar a un usuario por email
+app.post('/api/workspace/invite', requireAuth, express.json(), async (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace   = ensureWorkspaceState(currentUser?.workspace);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  // Solo owner/admin pueden invitar
+  const myMembership = getUserMemberships(currentUser.id).find(m => m.workspaceId === workspace.id);
+  const myRole = myMembership?.role || '';
+  if (!['owner', 'admin'].includes(myRole)) {
+    return res.status(403).json({ error: 'Solo owner o admin pueden invitar' });
+  }
+
+  const email = normalizeEmail(String(req.body.email || ''));
+  const role  = ['admin','member','viewer'].includes(req.body.role) ? req.body.role : 'member';
+  if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+  // Buscar si el usuario ya existe
+  const existingUser = Object.values(appUsers).find(u => normalizeEmail(u.email || '') === email);
+  const inviteToken  = crypto.randomBytes(24).toString('hex');
+  const inviteExpiry = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(); // 7 días
+
+  // Guardar invitación en el workspace
+  if (!workspace.pendingInvites) workspace.pendingInvites = [];
+  workspace.pendingInvites = workspace.pendingInvites.filter(i => normalizeEmail(i.email) !== email); // evitar duplicados
+  workspace.pendingInvites.push({
+    id:         crypto.randomUUID(),
+    email,
+    role,
+    token:      inviteToken,
+    expiresAt:  inviteExpiry,
+    invitedBy:  currentUser.id,
+    invitedAt:  nowIso(),
+    status:     'pending',
+  });
+  saveWorkspaces();
+
+  // Si ya tiene cuenta, agregar directamente como miembro
+  if (existingUser) {
+    ensureMembership(workspace.id, existingUser.id, role);
+    workspace.pendingInvites = workspace.pendingInvites.filter(i => i.token !== inviteToken);
+    saveWorkspaces();
+  }
+
+  // Enviar email de invitación
+  const appUrl  = process.env.APP_URL || 'http://localhost:3000';
+  const inviteUrl = existingUser
+    ? `${appUrl}/?invited=1&ws=${workspace.id}`
+    : `${appUrl}/auth?invite=${inviteToken}&email=${encodeURIComponent(email)}&ws=${workspace.id}`;
+
+  const wsName = workspace.name || 'BearAds';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+    ${_emailHeader('🎉 Te invitaron a ' + wsName, currentUser.displayName + ' te está invitando a colaborar en BearAds')}
+    <div class="card">
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;">
+        <strong>${escapeHtml(currentUser.displayName || 'Un usuario')}</strong> te invitó a unirte a <strong>${escapeHtml(wsName)}</strong> en BearAds como <strong>${role}</strong>.
+      </div>
+      <a href="${inviteUrl}" style="display:inline-block;padding:12px 28px;background:#60a5fa;color:#000;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Aceptar invitación →</a>
+      <div style="font-size:11px;color:#7f8aa3;margin-top:12px;">Este enlace expira en 7 días.</div>
+    </div>
+    ${_emailFooter(wsName)}
+  </div></body></html>`;
+
+  const emailResult = await sendBearAdsEmail({
+    to:      email,
+    subject: `${currentUser.displayName || 'Alguien'} te invitó a ${wsName} en BearAds`,
+    html,
+  });
+
+  res.json({
+    ok:     true,
+    added:  !!existingUser,
+    sent:   emailResult.sent,
+    email,
+    role,
+  });
+});
+
+// DELETE /api/workspace/members/:userId — remover miembro
+app.delete('/api/workspace/members/:targetUserId', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace   = ensureWorkspaceState(currentUser?.workspace);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const myMembership = getUserMemberships(currentUser.id).find(m => m.workspaceId === workspace.id);
+  if (!['owner', 'admin'].includes(myMembership?.role)) {
+    return res.status(403).json({ error: 'Sin permisos para remover miembros' });
+  }
+  const targetId = req.params.targetUserId;
+  if (targetId === currentUser.id) return res.status(400).json({ error: 'No puedes removerte a ti mismo' });
+
+  const targetMembership = Object.values(memberships).find(m => m.workspaceId === workspace.id && m.userId === targetId && m.status !== 'removed');
+  if (!targetMembership) return res.status(404).json({ error: 'Miembro no encontrado' });
+
+  targetMembership.status    = 'removed';
+  targetMembership.removedAt = nowIso();
+  targetMembership.removedBy = currentUser.id;
+  saveMemberships();
+  res.json({ ok: true });
+});
+
+// GET /api/workspace/members — lista miembros del workspace actual
+app.get('/api/workspace/members', requireAuth, (req, res) => {
+  const currentUser = rehydrateRequestUser(req) || req.user;
+  const workspace   = ensureWorkspaceState(currentUser?.workspace);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const members = getWorkspaceMembers(workspace.id).map(function(m) {
+    const user = appUsers[m.userId] || {};
+    return {
+      userId:    m.userId,
+      email:     user.email || user.displayName || m.userId,
+      name:      user.displayName || user.name || '',
+      role:      getEffectiveMembershipRole(m, workspace),
+      joinedAt:  m.createdAt || null,
+      isOwner:   m.userId === workspace.ownerId,
+    };
+  });
+
+  const pending = (workspace.pendingInvites || []).filter(i => i.status === 'pending' && new Date(i.expiresAt) > new Date());
+
+  res.json({ members, pending, count: members.length });
+});
+
+// ══════════════════════════════════════════
 
 app.get('/api/workspace-setup', requireAuth, (req, res) => {
   const currentUser = rehydrateRequestUser(req) || req.user;
@@ -3375,6 +4949,119 @@ app.get('/api/tracking/summary', requireAuth, (req, res) => {
         .slice(0, 5)
         .map(([source, visits]) => ({ source, visits }))
     }
+  });
+});
+
+// ══════════════════════════════════════════
+// ANALYTICS INTERNO BEARADS — Métricas SaaS
+// ══════════════════════════════════════════
+app.get('/api/admin/analytics', requirePlatformOwner, (req, res) => {
+  const now      = new Date();
+  const monthKey = now.toISOString().slice(0, 7); // YYYY-MM
+  const dayKey   = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  const last30   = new Date(now - 30 * 86400000).toISOString();
+  const last7    = new Date(now - 7  * 86400000).toISOString();
+
+  // ── Usuarios ────────────────────────────────────────────────────────────────
+  const allUsers    = Object.values(appUsers).filter(u => u && u.id);
+  const totalUsers  = allUsers.length;
+  const newLast30   = allUsers.filter(u => u.createdAt > last30).length;
+  const newLast7    = allUsers.filter(u => u.createdAt > last7).length;
+  const activeLast30 = allUsers.filter(u => u.lastLoginAt > last30).length;
+  const activeLast7  = allUsers.filter(u => u.lastLoginAt > last7).length;
+
+  // Nuevos usuarios por día (últimos 14 días)
+  const usersByDay = {};
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+    usersByDay[d] = 0;
+  }
+  allUsers.forEach(u => {
+    const d = u.createdAt?.slice(0, 10);
+    if (d && usersByDay[d] !== undefined) usersByDay[d]++;
+  });
+
+  // ── Workspaces y planes ─────────────────────────────────────────────────────
+  const allWorkspaces = Object.values(workspaces).filter(w => w && w.id);
+  const planCounts    = { trial: 0, starter: 0, pro: 0, agency: 0 };
+  let mrr = 0;
+  const PLAN_PRICES   = { starter: 49, pro: 99, agency: 249 };
+
+  allWorkspaces.forEach(ws => {
+    const plan = resolveWorkspacePlanCode(ws);
+    planCounts[plan] = (planCounts[plan] || 0) + 1;
+    const sub = ws.subscription || {};
+    if (sub.status === 'active' && plan !== 'trial') {
+      const price = PLAN_PRICES[plan] || 0;
+      const interval = sub.billingInterval || sub.billingCycle || 'monthly';
+      mrr += interval === 'annual' ? Math.round(price * 0.8) : price; // 20% descuento anual
+    }
+  });
+
+  const arr         = mrr * 12;
+  const paidWs      = allWorkspaces.filter(ws => {
+    const sub = ws.subscription || {};
+    return sub.status === 'active' && resolveWorkspacePlanCode(ws) !== 'trial';
+  }).length;
+  const trialWs     = planCounts.trial;
+  const convRate    = totalUsers > 0 ? Math.round(paidWs / totalUsers * 100) : 0;
+
+  // ── AI Costs ────────────────────────────────────────────────────────────────
+  let totalAiCostMonth = 0;
+  let totalAiCostAll   = 0;
+  const aiByProvider = {};
+  allWorkspaces.forEach(ws => {
+    const costs = ws.usage?.aiCosts || {};
+    totalAiCostMonth += costs[monthKey] || 0;
+    Object.values(costs).forEach(v => { totalAiCostAll += v || 0; });
+    const providers = ws.usage?.aiByProvider || {};
+    Object.entries(providers).forEach(([p, c]) => { aiByProvider[p] = (aiByProvider[p] || 0) + c; });
+  });
+
+  // ── Campañas y entregables (activity_log) ────────────────────────────────────
+  let totalCampaigns = 0;
+  let totalImages    = 0;
+  try {
+    const db = require('./lib/db').db;
+    totalCampaigns = db.prepare("SELECT COUNT(*) as c FROM activity_log WHERE category='autopilot'").get()?.c || 0;
+  } catch(_) {}
+
+  // Contar imágenes generadas en /public/generated
+  try {
+    const fs   = require('fs');
+    const path = require('path');
+    const genDir = path.join(process.cwd(), 'public', 'generated');
+    totalImages = fs.readdirSync(genDir).filter(f => f.endsWith('.png')).length;
+  } catch(_) {}
+
+  // ── Retención simple ────────────────────────────────────────────────────────
+  const returning7  = allUsers.filter(u => u.lastLoginAt > last7 && u.createdAt < last7).length;
+  const retention7  = activeLast30 > 0 ? Math.round(returning7 / activeLast30 * 100) : 0;
+
+  // ── Tendencia MRR (últimos 6 meses) ─────────────────────────────────────────
+  const mrrHistory = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - i);
+    const mk = d.toISOString().slice(0, 7);
+    let monthMrr = 0;
+    allWorkspaces.forEach(ws => {
+      const sub = ws.subscription || {};
+      if (sub.status === 'active' || sub.activatedAt?.slice(0,7) <= mk) {
+        const plan = resolveWorkspacePlanCode(ws);
+        if (plan !== 'trial') monthMrr += PLAN_PRICES[plan] || 0;
+      }
+    });
+    mrrHistory.push({ month: mk, mrr: monthMrr });
+  }
+
+  res.json({
+    ts: now.toISOString(),
+    users: { total: totalUsers, activeLast30, activeLast7, newLast30, newLast7, byDay: usersByDay, retention7 },
+    plans: { counts: planCounts, paid: paidWs, trial: trialWs, conversionRate: convRate },
+    revenue: { mrr, arr, mrrHistory },
+    ai: { costMonth: Math.round(totalAiCostMonth * 10000) / 10000, costAll: Math.round(totalAiCostAll * 10000) / 10000, byProvider: aiByProvider },
+    product: { campaigns: totalCampaigns, images: totalImages, workspaces: allWorkspaces.length },
   });
 });
 
@@ -3844,6 +5531,75 @@ app.get('/api/admin/workspaces', requirePlatformOwner, (req, res) => {
     memberCount: getWorkspaceMembers(workspace.id).length
   }));
   res.json({ workspaces: items });
+});
+
+// I1: Agency portfolio — rich workspace overview with AI metrics
+app.get('/api/admin/workspace-portfolio', requireAdminPanelAccess, (req, res) => {
+  try {
+    const { ensureWorkspaceState: ensWS } = require('./lib/workspace-helpers');
+    const { getLatestSnapshots, getActionStats, getEfficiencyHistory, getAgentProject } = require('./lib/db');
+    const analyzeR = require('./routes/analyze');
+
+    const items = Object.values(workspaces).map(rawWs => {
+      try {
+        const ws = ensWS(rawWs);
+        if (!ws?.id) return null;
+
+        // Efficiency
+        let effScore = null;
+        try {
+          const hist = getEfficiencyHistory(ws.id);
+          effScore = hist.length ? Math.round(hist[hist.length - 1].score || 0) : null;
+          if (effScore === null && analyzeR.computeAndStoreEfficiency) {
+            const e = analyzeR.computeAndStoreEfficiency(ws);
+            if (e) effScore = Math.round(e.score || 0);
+          }
+        } catch(_) {}
+
+        // Latest snapshot
+        let lastSnap = null, lastMetrics = null;
+        try {
+          const snaps = getLatestSnapshots(ws.id);
+          if (snaps.length) { lastSnap = snaps[0].created_at?.slice(0, 10); lastMetrics = snaps[0].metrics; }
+        } catch(_) {}
+
+        // Action stats
+        let actionStats = { total: 0, done: 0, pending: 0 };
+        try { actionStats = getActionStats(ws.id) || actionStats; } catch(_) {}
+
+        // Strategic plan
+        let planTitulo = null, planPrioridad = null;
+        try {
+          const estratega = getAgentProject(ws.id, 'estratega');
+          if (estratega?.plan) { planTitulo = estratega.plan.titulo; planPrioridad = estratega.plan.prioridad_inmediata; }
+        } catch(_) {}
+
+        return {
+          id:            ws.id,
+          name:          ws.name || ws.id,
+          plan:          ws.planCode || ws.plan || 'free',
+          createdAt:     ws.createdAt?.slice(0, 10),
+          memberCount:   getWorkspaceMembers(ws.id).length,
+          efficiency:    effScore,
+          lastSnapshot:  lastSnap,
+          metrics:       lastMetrics ? {
+            roas: lastMetrics.roas, cpa: lastMetrics.cpa, ctr: lastMetrics.ctr, spend: lastMetrics.spend,
+          } : null,
+          actions:       actionStats,
+          planTitulo,
+          planPrioridad,
+          notifEmail:    ws.notifications?.email || null,
+          vertical:      ws.onboarding?.businessType || null,
+          channels:      ws.onboarding?.preferredChannels || [],
+        };
+      } catch(_) { return null; }
+    }).filter(Boolean);
+
+    res.json({ workspaces: items, total: items.length });
+  } catch(e) {
+    console.error('[I1] portfolio error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.patch('/api/admin/workspace-settings', requireAdminPanelAccess, (req, res) => {
@@ -5626,13 +7382,14 @@ app.post('/api/meta/optimize', requireAuth, requirePlanFeature('metaAds'), async
 // DALL-E 3 — Generación de imágenes
 // ══════════════════════════════════════════
 
-app.post('/api/generate-image', requireAuth, requirePlanFeature('imageGen'), async (req, res) => {
+app.post('/api/generate-image', requireAuth, async (req, res) => {
   const { prompt, size, style, purpose } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Prompt requerido' });
   if (!process.env.OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY no configurada. Agrégala en tu .env' });
 
-  const imageSize = size || '1024x1024';
-  const imageStyle = style || 'natural';
+  // gpt-image-1 soporta: 1024x1024, 1536x1024, 1024x1536, auto
+  const sizeMap = { '1792x1024': '1536x1024', '1024x1792': '1024x1536' };
+  const imageSize = sizeMap[size] || size || '1024x1024';
 
   const enhancedPrompt = `${prompt}. Professional digital marketing creative for Latin American market. High quality, modern design, clean composition. Purpose: ${purpose || 'social media advertisement'}.`;
 
@@ -5644,27 +7401,760 @@ app.post('/api/generate-image', requireAuth, requirePlanFeature('imageGen'), asy
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'dall-e-3',
+        model: 'gpt-image-1',
         prompt: enhancedPrompt,
         n: 1,
         size: imageSize,
-        style: imageStyle,
-        quality: 'standard'
+        quality: 'medium'
       })
     });
 
     const data = await response.json();
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    res.json({
-      url: data.data[0].url,
-      revisedPrompt: data.data[0].revised_prompt,
-      size: imageSize
-    });
+    const imgData = data.data[0];
+
+    // Guardar en disco y devolver URL estática (evita problemas con data URLs grandes)
+    const fs = await import('fs');
+    const path = await import('path');
+    const filename = `ad-${Date.now()}-${Math.random().toString(36).slice(2,8)}.png`;
+    const generatedDir = path.join(process.cwd(), 'public', 'generated');
+    await fs.promises.mkdir(generatedDir, { recursive: true });
+    const filepath = path.join(generatedDir, filename);
+
+    if (imgData.b64_json) {
+      await fs.promises.writeFile(filepath, Buffer.from(imgData.b64_json, 'base64'));
+      res.json({ url: `/generated/${filename}`, size: imageSize });
+    } else if (imgData.url) {
+      // Descargar y guardar la URL remota
+      const imgRes = await fetch(imgData.url);
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      await fs.promises.writeFile(filepath, buf);
+      res.json({ url: `/generated/${filename}`, size: imageSize });
+    } else {
+      res.status(500).json({ error: 'No se recibió imagen de OpenAI' });
+    }
   } catch(err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ── Edición / retoque de imagen con gpt-image-1 ──────────────────────────────
+app.post('/api/edit-image', requireAuth, async (req, res) => {
+  const { imageUrl, editPrompt, size } = req.body;
+  if (!imageUrl || !editPrompt) return res.status(400).json({ error: 'imageUrl y editPrompt son requeridos' });
+  if (!process.env.OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY no configurada' });
+
+  try {
+    const fs   = await import('fs');
+    const path = await import('path');
+
+    // Descargar / leer la imagen local
+    let imgBuffer;
+    if (imageUrl.startsWith('/generated/')) {
+      const localPath = path.join(process.cwd(), 'public', imageUrl);
+      imgBuffer = await fs.promises.readFile(localPath);
+    } else {
+      const r = await fetch(imageUrl);
+      imgBuffer = Buffer.from(await r.arrayBuffer());
+    }
+
+    // gpt-image-1 edits: multipart/form-data con image + prompt (Node 18+ native FormData)
+    const form = new FormData();
+    form.set('model', 'gpt-image-1');
+    form.set('image', new Blob([imgBuffer], { type: 'image/png' }), 'image.png');  // native Blob (Node 18+)
+    form.set('prompt', editPrompt + '. Professional digital marketing creative. High quality.');
+    form.set('n', '1');
+    const sizeMap = { '1792x1024': '1536x1024', '1024x1792': '1024x1536' };
+    form.set('size', sizeMap[size] || size || '1024x1024');
+
+    const response = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: form
+    });
+    const data = await response.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    // Guardar resultado
+    const imgData = data.data[0];
+    const filename = `ad-edit-${Date.now()}-${Math.random().toString(36).slice(2,8)}.png`;
+    const generatedDir = path.join(process.cwd(), 'public', 'generated');
+    await fs.promises.mkdir(generatedDir, { recursive: true });
+    const filepath = path.join(generatedDir, filename);
+
+    if (imgData.b64_json) {
+      await fs.promises.writeFile(filepath, Buffer.from(imgData.b64_json, 'base64'));
+    } else if (imgData.url) {
+      const imgRes = await fetch(imgData.url);
+      await fs.promises.writeFile(filepath, Buffer.from(await imgRes.arrayBuffer()));
+    }
+
+    res.json({ url: `/generated/${filename}`, size: size || '1024x1024' });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════
+// FASE N — Creativos IA + Auto-piloto
+// ══════════════════════════════════════════
+
+// N1: POST /api/workspace/creative/generate-ad — genera imagen publicitaria con DALL-E 3
+// Envuelve el endpoint base con contexto del negocio + workspace
+app.post('/api/workspace/creative/generate-ad', requireAuth, express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  if (!process.env.OPENAI_API_KEY) return res.status(400).json({ error: 'OPENAI_API_KEY no configurada' });
+
+  const { adCopy, format = 'square', style = 'modern', platform = 'Meta Ads', campaignName = '' } = req.body;
+  if (!adCopy) return res.status(400).json({ error: 'adCopy requerido' });
+
+  const bizName   = workspace.onboarding?.businessName || workspace.onboarding?.name || 'negocio';
+  const bizType   = workspace.onboarding?.businessType || 'empresa';
+  const tone      = workspace.onboarding?.tone || 'profesional';
+
+  // Mapeo de formato → tamaño DALL-E
+  const SIZE_MAP = { square: '1024x1024', portrait: '1024x1792', story: '1024x1792', landscape: '1792x1024' };
+  const imageSize = SIZE_MAP[format] || '1024x1024';
+
+  // Prompt optimizado para anuncios digitales LATAM
+  const prompt = [
+    `Advertisement creative for "${bizName}", a ${bizType}.`,
+    `Platform: ${platform}. Format: ${format} (${imageSize}).`,
+    `Ad message: "${adCopy.slice(0, 200)}".`,
+    `Style: ${style}, ${tone} tone. Clean layout with clear visual hierarchy.`,
+    `No text overlays. Professional photography or illustration style for Latin American market.`,
+    `High contrast, vibrant but not garish. Modern marketing aesthetic.`,
+    campaignName ? `Campaign: ${campaignName}.` : '',
+  ].filter(Boolean).join(' ');
+
+  try {
+    const resp = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: imageSize, style: 'vivid', quality: 'standard' }),
+      signal: AbortSignal.timeout(60000),
+    });
+    const data = await resp.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    // Guardar referencia en el workspace (galería de creativos)
+    const ws = ensureWorkspaceState(workspace);
+    if (!ws.creativeGallery) ws.creativeGallery = [];
+    const creative = {
+      id:         crypto.randomUUID(),
+      url:        data.data[0].url,
+      platform,
+      format,
+      adCopy:     adCopy.slice(0, 200),
+      campaign:   campaignName,
+      createdAt:  new Date().toISOString(),
+    };
+    ws.creativeGallery.unshift(creative);
+    if (ws.creativeGallery.length > 20) ws.creativeGallery = ws.creativeGallery.slice(0, 20); // máx 20
+    saveWorkspaces();
+
+    res.json({ ok: true, url: data.data[0].url, revisedPrompt: data.data[0].revised_prompt, creative });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// N2: POST /api/workspace/creative/copy-variants — 3 variaciones de copy para A/B test
+app.post('/api/workspace/creative/copy-variants', requireAuth, express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const { originalAd, platform = 'Meta Ads', objective = 'tráfico' } = req.body;
+  if (!originalAd?.titulo) return res.status(400).json({ error: 'originalAd con titulo requerido' });
+
+  const planCode = resolveWorkspacePlanCode(workspace);
+  const bizName  = workspace.onboarding?.businessName || workspace.onboarding?.name || 'negocio';
+
+  const systemPrompt = `Eres un experto en copywriting para publicidad digital LATAM.
+Genera exactamente 3 variaciones de copy para un anuncio de ${platform}.
+Cada variación debe tener un enfoque distinto: emocional, racional, urgencia.
+RESPONDE SOLO con JSON válido, sin texto fuera del JSON.
+{
+  "variantes": [
+    {
+      "enfoque": "emocional|racional|urgencia",
+      "titulo": "string (máx 40 chars)",
+      "descripcion": "string (máx 90 chars)",
+      "cta": "string",
+      "por_que_funciona": "string — 1 oración explicando la estrategia"
+    }
+  ],
+  "recomendada": 0,
+  "nota_estrategica": "string — consejo de A/B test para este negocio"
+}`;
+
+  const userMsg = `Negocio: ${bizName}. Objetivo: ${objective}.
+Anuncio original — Título: "${originalAd.titulo}" | Descripción: "${originalAd.descripcion || ''}" | CTA: "${originalAd.cta || ''}"
+Genera 3 variaciones con enfoques distintos.`;
+
+  try {
+    const raw      = await callAIText(systemPrompt, userMsg, { planCode, maxTokens: 1000, feature: 'copy-variants' });
+    const json     = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) throw new Error('Sin JSON válido');
+    const result   = JSON.parse(json);
+    res.json({ ok: true, ...result });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// N3a: GET /api/workspace/meta/autopilot — obtener reglas del auto-piloto
+app.get('/api/workspace/meta/autopilot', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const ap = workspace.autopilot || {
+    enabled:      false,
+    roasMin:      2.0,    // pausar si ROAS < esto
+    cpaMax:       50,     // pausar si CPA > esto (USD)
+    ctrMin:       0.5,    // pausar si CTR% < esto
+    freqMax:      4.0,    // alertar si frecuencia > esto
+    scalePercent: 20,     // % de aumento para ganadoras
+    scaleRoasMin: 3.0,    // escalar solo si ROAS >= esto
+    lastRun:      null,
+    lastActions:  [],
+  };
+  res.json({ ok: true, autopilot: ap });
+});
+
+// N3b: PATCH /api/workspace/meta/autopilot — actualizar reglas
+app.patch('/api/workspace/meta/autopilot', express.json(), (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const allowed = ['enabled','roasMin','cpaMax','ctrMin','freqMax','scalePercent','scaleRoasMin','platforms'];
+  const current = workspace.autopilot || {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) current[k] = req.body[k]; });
+  workspace.autopilot = current;
+  saveWorkspaces();
+  res.json({ ok: true, autopilot: current });
+});
+
+// NOTIFICACIONES — GET/PATCH preferencias y test de email
+app.get('/api/workspace/notifications', requireAuth, (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  res.json({ ok: true, notifications: workspace.notifications || {} });
+});
+
+app.patch('/api/workspace/notifications', requireAuth, express.json(), (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  const allowed = ['email', 'autopilotEmail', 'campaignEmail', 'alertEmail', 'weeklyDigest'];
+  const current = workspace.notifications || {};
+  allowed.forEach(k => { if (req.body[k] !== undefined) current[k] = req.body[k]; });
+  workspace.notifications = current;
+  saveWorkspaces();
+  res.json({ ok: true, notifications: current });
+});
+
+app.post('/api/workspace/notifications/test', requireAuth, express.json(), async (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  const email = req.body.email || getWorkspaceNotifEmail(workspace);
+  if (!email) return res.status(400).json({ error: 'No hay email configurado' });
+  const result = await sendBearAdsEmail({
+    to: email,
+    subject: '✅ Prueba de notificaciones BearAds',
+    html: `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+      ${_emailHeader('✅ Todo funciona', 'Tu configuración de notificaciones está lista.')}
+      <div class="card">Las notificaciones de BearAds llegarán a <strong>${email}</strong>.<br><br>
+      Recibirás alertas de auto-piloto, confirmaciones de campañas publicadas y el resumen semanal según tus preferencias.</div>
+      ${_emailFooter(workspace.name)}
+    </div></body></html>`
+  });
+  res.json({ ok: result.sent, email, error: result.error });
+});
+
+// N3c: POST /api/workspace/meta/autopilot/run — ejecutar auto-piloto manualmente
+app.post('/api/workspace/meta/autopilot/run', express.json(), async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const result = await runAutopilot(workspace, { manual: true });
+  res.json(result);
+});
+
+// Q2a: GET /api/workspace/autopilot/log — historial persistente de acciones
+app.get('/api/workspace/autopilot/log', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const limit    = Math.min(parseInt(req.query.limit) || 50, 200);
+  const platform = req.query.platform || null;
+  const dryRun   = req.query.dryRun !== undefined ? req.query.dryRun === 'true' : null;
+
+  try {
+    const log = db.getAutopilotLog(workspace.id, { limit, platform, dryRun });
+    res.json({ ok: true, log });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Q2b: GET /api/workspace/autopilot/stats — estadísticas del mes
+app.get('/api/workspace/autopilot/stats', requireAuth, (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const monthKey = req.query.month || new Date().toISOString().slice(0, 7);
+  try {
+    const stats = db.getAutopilotStats(workspace.id, monthKey);
+    res.json({ ok: true, stats, month: monthKey });
+  } catch(e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Q2c: POST /api/workspace/autopilot/dry-run — simulación sin ejecutar acciones reales
+app.post('/api/workspace/autopilot/dry-run', requireAuth, express.json(), async (req, res) => {
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const result = await runAutopilot(workspace, { manual: true, dryRun: true });
+  res.json(result);
+});
+
+// Función central del auto-piloto (usada por run manual y cron diario)
+async function runAutopilot(workspace, opts = {}) {
+  const ap       = workspace.autopilot || {};
+  const dryRun   = !!opts.dryRun;
+  if (!ap.enabled && !opts.manual && !dryRun) return { ok: true, skipped: true, reason: 'Autopiloto deshabilitado' };
+
+  const platforms = ap.platforms || ['meta'];
+  const allActions = [];
+
+  // ── Meta Ads ──────────────────────────────────────────────────────────────
+  if (platforms.includes('meta')) {
+    const creds = _getMetaCreds(workspace);
+    if (creds?.token && creds?.accountId) {
+      try {
+        const metaActions = await _runAutopilotMeta(workspace, ap, creds, dryRun);
+        allActions.push(...metaActions);
+      } catch(e) {
+        console.error('[Auto-piloto] Meta error:', e.message);
+      }
+    }
+  }
+
+  // ── Google Ads ────────────────────────────────────────────────────────────
+  if (platforms.includes('google')) {
+    try {
+      const googleActions = await _runAutopilotGoogle(workspace, ap, dryRun);
+      allActions.push(...googleActions);
+    } catch(e) {
+      console.error('[Auto-piloto] Google error:', e.message);
+    }
+  }
+
+  // Guardar historial (solo en ejecución real)
+  if (!dryRun) {
+    workspace.autopilot = {
+      ...(workspace.autopilot || {}),
+      lastRun: new Date().toISOString(),
+      lastActions: allActions.slice(0, 20),
+      pausedCampaigns: workspace.autopilot?.pausedCampaigns || [],
+    };
+    saveWorkspaces();
+
+    // Registrar en activity_log
+    allActions.forEach(a => {
+      try {
+        db.logActivity({
+          id: crypto.randomUUID(), workspaceId: workspace.id,
+          agent: a.platform || 'meta',
+          category: 'autopilot',
+          title: a.type === 'scale' ? `⚡ Auto-escalado: ${a.campaignName}` : a.type === 'pause' ? `⏸ Auto-pausado: ${a.campaignName}` : a.type === 'reactivate' ? `▶ Reactivada: ${a.campaignName}` : `⚠️ Alerta: ${a.campaignName}`,
+          notes: JSON.stringify(a).slice(0, 500),
+          createdAt: new Date().toISOString(),
+        });
+      } catch(_) {}
+    });
+  }
+
+  // Enviar email de resultado si hubo acciones (o si es el primer run del día)
+  if (!dryRun) {
+    sendAutopilotResultEmail(workspace, { actions: allActions }).catch(() => {});
+  }
+
+  return { ok: true, actionsCount: allActions.length, actions: allActions, dryRun };
+}
+
+async function _runAutopilotMeta(workspace, ap, creds, dryRun) {
+  const preset = 'last_7d';
+  const url = `${GQL_META}/${encodeURIComponent(creds.accountId)}/campaigns`
+    + `?fields=id,name,status,daily_budget,insights.date_preset(${preset}){spend,ctr,actions,action_values,frequency}`
+    + `&access_token=${creds.token}&limit=100`;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+
+  const actions = [];
+  const CONV_TYPES = ['purchase','lead','complete_registration'];
+  const pausedCampaigns = workspace.autopilot?.pausedCampaigns || [];
+
+  for (const c of (data.data || [])) {
+    if (c.status === 'ARCHIVED' || c.status === 'DELETED') continue;
+    const ins   = c.insights?.data?.[0] || {};
+    const spend = parseFloat(ins.spend || 0);
+    if (spend < 1) continue;
+
+    const convs   = (ins.actions || []).filter(a => CONV_TYPES.includes(a.action_type)).reduce((s,a) => s + parseInt(a.value||0), 0);
+    const revenue = (ins.action_values || []).filter(a => a.action_type === 'purchase').reduce((s,a) => s + parseFloat(a.value||0), 0);
+    const ctr     = parseFloat(ins.ctr || 0);
+    const roas    = revenue > 0 && spend > 0 ? revenue / spend : 0;
+    const cpa     = convs > 0 && spend > 0   ? spend / convs   : 0;
+    const freq    = parseFloat(ins.frequency || 0);
+    const isActive = c.status === 'ACTIVE';
+    const isPaused = c.status === 'PAUSED';
+    const wasAutopilotPaused = pausedCampaigns.includes(c.id);
+
+    let action = null;
+
+    // Regla reactivar: pausada por autopiloto y ROAS recuperado
+    if (isPaused && wasAutopilotPaused && roas > 0 && roas >= (ap.roasMin || 2.0) * 1.5) {
+      if (!dryRun) {
+        const patchResp = await fetch(`${GQL_META}/${c.id}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'ACTIVE', access_token: creds.token }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await patchResp.json();
+        if (!pd.error) {
+          // Remove from pausedCampaigns
+          const idx = pausedCampaigns.indexOf(c.id);
+          if (idx !== -1) pausedCampaigns.splice(idx, 1);
+          action = { type: 'reactivate', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'reactivate', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)) };
+      }
+    }
+    // Regla escalar: ROAS >= scaleRoasMin Y activa
+    else if (isActive && roas > 0 && roas >= (ap.scaleRoasMin || 3.0) && c.daily_budget) {
+      const newBudget = Math.round(parseInt(c.daily_budget) * (1 + (ap.scalePercent || 20) / 100));
+      if (!dryRun) {
+        const patchResp = await fetch(`${GQL_META}/${c.id}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ daily_budget: newBudget, access_token: creds.token }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await patchResp.json();
+        if (!pd.error) action = { type: 'scale', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)), newBudgetUsd: parseFloat((newBudget/100).toFixed(2)) };
+      } else {
+        action = { type: 'scale', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)), newBudgetUsd: parseFloat((newBudget/100).toFixed(2)) };
+      }
+    }
+    // Regla pausar por ROAS bajo
+    else if (isActive && roas > 0 && ap.roasMin && roas < ap.roasMin) {
+      if (!dryRun) {
+        const patchResp = await fetch(`${GQL_META}/${c.id}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'PAUSED', access_token: creds.token }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await patchResp.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(c.id)) pausedCampaigns.push(c.id);
+          action = { type: 'pause', reason: 'roas_low', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'pause', reason: 'roas_low', platform: 'meta', campaignId: c.id, campaignName: c.name, roas: parseFloat(roas.toFixed(2)) };
+      }
+    }
+    // Regla pausar por CPA alto
+    else if (isActive && cpa > 0 && ap.cpaMax && cpa > ap.cpaMax) {
+      if (!dryRun) {
+        const patchResp = await fetch(`${GQL_META}/${c.id}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'PAUSED', access_token: creds.token }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await patchResp.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(c.id)) pausedCampaigns.push(c.id);
+          action = { type: 'pause', reason: 'cpa_high', platform: 'meta', campaignId: c.id, campaignName: c.name, cpa: parseFloat(cpa.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'pause', reason: 'cpa_high', platform: 'meta', campaignId: c.id, campaignName: c.name, cpa: parseFloat(cpa.toFixed(2)) };
+      }
+    }
+    // Regla pausar por CTR bajo
+    else if (isActive && ctr > 0 && ap.ctrMin && ctr < ap.ctrMin) {
+      if (!dryRun) {
+        const patchResp = await fetch(`${GQL_META}/${c.id}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'PAUSED', access_token: creds.token }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await patchResp.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(c.id)) pausedCampaigns.push(c.id);
+          action = { type: 'pause', reason: 'ctr_low', platform: 'meta', campaignId: c.id, campaignName: c.name, ctr };
+        }
+      } else {
+        action = { type: 'pause', reason: 'ctr_low', platform: 'meta', campaignId: c.id, campaignName: c.name, ctr };
+      }
+    }
+    // Alerta frecuencia alta
+    if (freq > 0 && ap.freqMax && freq > ap.freqMax) {
+      const alertAction = { type: 'alert', reason: 'freq_high', platform: 'meta', campaignId: c.id, campaignName: c.name, frequency: parseFloat(freq.toFixed(2)) };
+      try { db.insertAutopilotLog(workspace.id, 'meta', alertAction, dryRun); } catch(_) {}
+      actions.push(alertAction);
+    }
+
+    if (action) {
+      try { db.insertAutopilotLog(workspace.id, 'meta', action, dryRun); } catch(_) {}
+      actions.push(action);
+    }
+  }
+
+  // Persist pausedCampaigns back into workspace state (only on real run)
+  if (!dryRun) {
+    workspace.autopilot = { ...(workspace.autopilot || {}), pausedCampaigns };
+  }
+
+  return actions;
+}
+
+async function _runAutopilotGoogle(workspace, ap, dryRun) {
+  const devToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+  if (!devToken) return [];
+  const accessToken = workspace.googleAccessToken || workspace.integrationHub?.connections?.googleAds?.accessToken;
+  const customerId  = workspace.integrationHub?.connections?.googleAds?.customerId || workspace.googleAdsCustomerId;
+  if (!accessToken || !customerId) return [];
+
+  const cleanId = (customerId || '').replace(/-/g, '');
+  const gaql = `SELECT campaign.id, campaign.name, campaign.status, campaign.target_roas.target_roas, metrics.cost_micros, metrics.conversions, metrics.conversions_value, metrics.ctr FROM campaign WHERE segments.date DURING LAST_7_DAYS AND campaign.status != 'REMOVED' LIMIT 100`;
+
+  // Detect working version
+  let ver = 'v19';
+  for (const v of ['v20','v19','v18','v17']) {
+    try {
+      const r = await fetch(`https://googleads.googleapis.com/${v}/customers/${cleanId}/googleAds:search`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+        body: JSON.stringify({ query: 'SELECT customer.id FROM customer LIMIT 1' }),
+        signal: AbortSignal.timeout(6000),
+      });
+      if (r.status !== 404) { ver = v; break; }
+    } catch(_) {}
+  }
+
+  const searchResp = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanId}/googleAds:search`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+    body: JSON.stringify({ query: gaql }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const searchData = await searchResp.json();
+  if (searchData.error) throw new Error(searchData.error.message);
+
+  const actions = [];
+  const pausedCampaigns = workspace.autopilot?.pausedCampaigns || [];
+
+  for (const row of (searchData.results || [])) {
+    const camp    = row.campaign || {};
+    const metrics = row.metrics || {};
+    const spend   = (parseInt(metrics.cost_micros || 0)) / 1e6;
+    if (spend < 1) continue;
+
+    const convs   = parseFloat(metrics.conversions || 0);
+    const revenue = parseFloat(metrics.conversions_value || 0);
+    const ctr     = parseFloat(metrics.ctr || 0) * 100;
+    const roas    = revenue > 0 && spend > 0 ? revenue / spend : 0;
+    const cpa     = convs > 0 && spend > 0   ? spend / convs   : 0;
+    const isActive = camp.status === 'ENABLED';
+    const isPaused = camp.status === 'PAUSED';
+    const campId   = String(camp.id || '');
+    const campKey  = 'gads_' + campId;
+    const wasAutopilotPaused = pausedCampaigns.includes(campKey);
+
+    let action = null;
+    const campName = camp.name || campId;
+    const campResourceName = camp.resource_name || `customers/${cleanId}/campaigns/${campId}`;
+
+    const mutateBody = (status) => ({
+      operations: [{ update: { resource_name: campResourceName, status }, update_mask: { paths: ['status'] } }],
+    });
+
+    // Reactivate
+    if (isPaused && wasAutopilotPaused && roas > 0 && roas >= (ap.roasMin || 2.0) * 1.5) {
+      if (!dryRun) {
+        const pr = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanId}/campaigns:mutate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+          body: JSON.stringify(mutateBody('ENABLED')),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await pr.json();
+        if (!pd.error) {
+          const idx = pausedCampaigns.indexOf(campKey);
+          if (idx !== -1) pausedCampaigns.splice(idx, 1);
+          action = { type: 'reactivate', platform: 'google', campaignId: campId, campaignName: campName, roas: parseFloat(roas.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'reactivate', platform: 'google', campaignId: campId, campaignName: campName, roas: parseFloat(roas.toFixed(2)) };
+      }
+    }
+    // Pause: ROAS low
+    else if (isActive && roas > 0 && ap.roasMin && roas < ap.roasMin) {
+      if (!dryRun) {
+        const pr = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanId}/campaigns:mutate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+          body: JSON.stringify(mutateBody('PAUSED')),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await pr.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(campKey)) pausedCampaigns.push(campKey);
+          action = { type: 'pause', reason: 'roas_low', platform: 'google', campaignId: campId, campaignName: campName, roas: parseFloat(roas.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'pause', reason: 'roas_low', platform: 'google', campaignId: campId, campaignName: campName, roas: parseFloat(roas.toFixed(2)) };
+      }
+    }
+    // Pause: CPA high
+    else if (isActive && cpa > 0 && ap.cpaMax && cpa > ap.cpaMax) {
+      if (!dryRun) {
+        const pr = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanId}/campaigns:mutate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+          body: JSON.stringify(mutateBody('PAUSED')),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await pr.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(campKey)) pausedCampaigns.push(campKey);
+          action = { type: 'pause', reason: 'cpa_high', platform: 'google', campaignId: campId, campaignName: campName, cpa: parseFloat(cpa.toFixed(2)) };
+        }
+      } else {
+        action = { type: 'pause', reason: 'cpa_high', platform: 'google', campaignId: campId, campaignName: campName, cpa: parseFloat(cpa.toFixed(2)) };
+      }
+    }
+    // Pause: CTR low
+    else if (isActive && ctr > 0 && ap.ctrMin && ctr < ap.ctrMin) {
+      if (!dryRun) {
+        const pr = await fetch(`https://googleads.googleapis.com/${ver}/customers/${cleanId}/campaigns:mutate`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + accessToken, 'developer-token': devToken, 'Content-Type': 'application/json', 'login-customer-id': cleanId },
+          body: JSON.stringify(mutateBody('PAUSED')),
+          signal: AbortSignal.timeout(8000),
+        });
+        const pd = await pr.json();
+        if (!pd.error) {
+          if (!pausedCampaigns.includes(campKey)) pausedCampaigns.push(campKey);
+          action = { type: 'pause', reason: 'ctr_low', platform: 'google', campaignId: campId, campaignName: campName, ctr };
+        }
+      } else {
+        action = { type: 'pause', reason: 'ctr_low', platform: 'google', campaignId: campId, campaignName: campName, ctr };
+      }
+    }
+
+    if (action) {
+      try { db.insertAutopilotLog(workspace.id, 'google', action, dryRun); } catch(_) {}
+      actions.push(action);
+    }
+  }
+
+  if (!dryRun) {
+    workspace.autopilot = { ...(workspace.autopilot || {}), pausedCampaigns };
+  }
+
+  return actions;
+}
+
+// N4: GET /api/workspace/creative/insights — analiza patrones de rendimiento de creativos
+app.get('/api/workspace/creative/insights', async (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+
+  const snaps = db.getSnapshots(workspace.id, 5);
+  if (!snaps.length) return res.json({ ok: true, insights: [], message: 'Sin datos de rendimiento para analizar' });
+
+  // Agregar todos los campaigns de todos los snapshots
+  const allCampaigns = snaps.flatMap(s => (s.campaigns || []).map(c => ({ ...c, period: s.period_start, source: s.source })));
+  if (!allCampaigns.length) return res.json({ ok: true, insights: [], message: 'Campañas sin gasto registrado' });
+
+  const withSpend = allCampaigns.filter(c => c.spend > 0);
+  const avgRoas   = withSpend.filter(c => c.roas > 0).reduce((s,c) => s+c.roas, 0) / (withSpend.filter(c => c.roas > 0).length || 1);
+  const avgCtr    = withSpend.filter(c => c.ctr > 0).reduce((s,c) => s+c.ctr, 0)  / (withSpend.filter(c => c.ctr > 0).length || 1);
+  const avgCpa    = withSpend.filter(c => c.cpa > 0).reduce((s,c) => s+c.cpa, 0)  / (withSpend.filter(c => c.cpa > 0).length || 1);
+
+  const winners = withSpend.filter(c => c.roas >= avgRoas * 1.2 || c.ctr >= avgCtr * 1.3).slice(0, 5);
+  const losers  = withSpend.filter(c => (c.cpa > 0 && c.cpa >= avgCpa * 1.5) || (c.ctr > 0 && c.ctr < avgCtr * 0.6)).slice(0, 5);
+
+  const insights = [];
+  if (winners.length) insights.push({ type: 'winners', label: '🏆 Mejores campañas', items: winners.map(c => ({ name: c.name, roas: c.roas, ctr: c.ctr, spend: c.spend })) });
+  if (losers.length)  insights.push({ type: 'losers',  label: '⚠️ Campañas a revisar', items: losers.map(c => ({ name: c.name, cpa: c.cpa, ctr: c.ctr, spend: c.spend })) });
+  insights.push({ type: 'benchmarks', label: '📊 Promedios de tu cuenta', avgRoas: parseFloat(avgRoas.toFixed(2)), avgCtr: parseFloat(avgCtr.toFixed(2)), avgCpa: parseFloat(avgCpa.toFixed(2)) });
+
+  // Galería de creativos guardados
+  const gallery = (workspace.creativeGallery || []).slice(0, 10);
+
+  res.json({ ok: true, insights, gallery, totalCampaigns: withSpend.length });
+});
+
+// GET /api/workspace/creative/gallery — galería de creativos generados
+app.get('/api/workspace/creative/gallery', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'No autenticado' });
+  const user      = rehydrateRequestUser(req) || req.user;
+  const workspace = ensureWorkspaceState(user?.workspace || null);
+  if (!workspace) return res.status(400).json({ error: 'Sin workspace' });
+  res.json({ ok: true, gallery: workspace.creativeGallery || [] });
+});
+
+// Cron N3: diario 8am — ejecutar auto-piloto en todos los workspaces que lo tengan habilitado
+(function scheduleAutopilotCron() {
+  function msToNext8am() {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(8, 0, 0, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    return next - now;
+  }
+  function tick() {
+    Object.values(workspaces).forEach(async ws => {
+      try {
+        const workspace = ensureWorkspaceState(ws);
+        if (workspace.autopilot?.enabled) {
+          console.log(`[Auto-piloto] Ejecutando para workspace ${workspace.id}`);
+          const result = await runAutopilot(workspace);
+          console.log(`[Auto-piloto] ${workspace.id}: ${result.actionsCount || 0} acciones`);
+        }
+      } catch(e) { console.error('[Auto-piloto] Error:', e.message); }
+    });
+    setTimeout(tick, msToNext8am());
+  }
+  setTimeout(tick, msToNext8am());
+  console.log('⚡ Auto-piloto cron programado para las 8:00 AM diarias');
+})();
 
 // ══════════════════════════════════════════
 // PLAN ESTRATÉGICO COMPLETO (Orgánico + Pago)
@@ -6313,19 +8803,204 @@ app.use((err, req, res, next) => {
 
 
 // ══════════════════════════════════════════
+// SISTEMA DE NOTIFICACIONES BEARADS
+// ══════════════════════════════════════════
+
+// Estilos base para emails HTML de BearAds
+function _emailBaseStyles() {
+  return `
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#080a0e;color:#eceef5;margin:0;padding:0;}
+    .wrap{max-width:580px;margin:0 auto;padding:32px 16px;}
+    .logo{font-size:22px;font-weight:800;color:#60a5fa;margin-bottom:28px;}
+    .card{background:#111318;border:1px solid #1e2130;border-radius:14px;padding:24px;margin-bottom:16px;}
+    .title{font-size:20px;font-weight:800;color:#eceef5;margin-bottom:8px;}
+    .sub{font-size:13px;color:#aeb7cc;line-height:1.7;margin-bottom:16px;}
+    .pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px;}
+    .pill-green{background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.25);color:#4ade80;}
+    .pill-blue{background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;}
+    .pill-purple{background:rgba(192,132,252,0.12);border:1px solid rgba(192,132,252,0.25);color:#c084fc;}
+    .pill-red{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);color:#f87171;}
+    .pill-yellow{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;}
+    .metric{text-align:center;padding:12px;background:#171a22;border-radius:10px;}
+    .metric-val{font-size:22px;font-weight:800;}
+    .metric-lbl{font-size:11px;color:#7f8aa3;margin-top:2px;}
+    .metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0;}
+    .action-row{padding:10px 12px;background:#171a22;border-radius:8px;margin-bottom:6px;font-size:12px;}
+    .btn{display:inline-block;padding:12px 24px;background:#60a5fa;color:#000;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;margin-top:8px;}
+    .footer{font-size:11px;color:#7f8aa3;text-align:center;margin-top:24px;line-height:1.8;}
+    .divider{height:1px;background:#1e2130;margin:16px 0;}
+  </style>`;
+}
+
+function _emailHeader(title, subtitle) {
+  return `<div class="logo">🐻 BearAds</div><div class="title">${title}</div>${subtitle ? `<div class="sub">${subtitle}</div>` : ''}`;
+}
+
+function _emailFooter(workspaceName) {
+  return `<div class="divider"></div><div class="footer">Este email fue enviado a tu cuenta de BearAds${workspaceName ? ' · ' + workspaceName : ''}.<br>Para ajustar tus notificaciones entra a BearAds → Perfil → Notificaciones.</div>`;
+}
+
+// Función central para enviar notificaciones por email
+async function sendBearAdsEmail({ to, subject, html }) {
+  if (!to || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) return { sent: false, reason: 'no_config' };
+  try {
+    const transporter = getEmailTransporter();
+    await transporter.sendMail({
+      from: `"BearAds" <${process.env.EMAIL_USER}>`,
+      to, subject, html
+    });
+    return { sent: true };
+  } catch(e) {
+    console.warn('[BearAds Email] Error:', e.message);
+    return { sent: false, error: e.message };
+  }
+}
+
+// Obtener email de notificaciones del workspace
+function getWorkspaceNotifEmail(workspace) {
+  // Prioridad: notif.email → owner email
+  const notifEmail = workspace?.notifications?.email;
+  if (notifEmail) return notifEmail;
+  const members = Object.values(workspace?.members || {});
+  const owner = members.find(m => m.role === 'owner') || members[0];
+  if (owner?.email) return owner.email;
+  // Buscar en appUsers
+  const ownerUser = appUsers[owner?.userId || ''];
+  return ownerUser?.email || null;
+}
+
+// ─── TIPO 1: Email de resultado del auto-piloto ──────────────────────────────
+async function sendAutopilotResultEmail(workspace, result) {
+  const notif = workspace?.notifications || {};
+  if (notif.autopilotEmail === false) return; // opt-out explícito
+  const email = getWorkspaceNotifEmail(workspace);
+  if (!email) return;
+
+  const actions = result.actions || [];
+  const wsName  = workspace.name || 'Tu workspace';
+  const date    = new Date().toLocaleDateString('es', { weekday:'long', day:'numeric', month:'long' });
+
+  let actionsHtml = '';
+  if (actions.length) {
+    actionsHtml = actions.map(a => {
+      const icon = a.type === 'scale' ? '⚡' : a.type === 'pause' ? '⏸️' : a.type === 'reactivate' ? '▶️' : '⚠️';
+      const color = a.type === 'scale' ? 'pill-green' : a.type === 'pause' ? 'pill-yellow' : a.type === 'reactivate' ? 'pill-blue' : 'pill-red';
+      return `<div class="action-row"><span class="pill ${color}">${icon} ${a.type?.toUpperCase()}</span> <strong>${a.campaignName || 'Campaña'}</strong> · ${a.reason || ''}</div>`;
+    }).join('');
+  } else {
+    actionsHtml = `<div class="action-row" style="color:#7f8aa3;">✅ Sin acciones necesarias — todas las campañas están dentro de los parámetros.</div>`;
+  }
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+    ${_emailHeader('🤖 Auto-piloto ejecutado', `${wsName} · ${date}`)}
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#7f8aa3;letter-spacing:1px;margin-bottom:12px;">ACCIONES TOMADAS HOY</div>
+      ${actionsHtml}
+    </div>
+    <a href="${process.env.APP_URL || 'http://localhost:3000'}" class="btn">Ver mis campañas →</a>
+    ${_emailFooter(wsName)}
+  </div></body></html>`;
+
+  await sendBearAdsEmail({ to: email, subject: `🤖 Auto-piloto BearAds — ${actions.length} acción(es) · ${wsName}`, html });
+}
+
+// ─── TIPO 2: Email de campaña publicada ──────────────────────────────────────
+async function sendCampaignPublishedEmail(workspace, { campaignName, platform, campaignId, imageIncluded, managerUrl }) {
+  const notif = workspace?.notifications || {};
+  if (notif.campaignEmail === false) return;
+  const email = getWorkspaceNotifEmail(workspace);
+  if (!email) return;
+
+  const wsName   = workspace.name || 'Tu workspace';
+  const platIcon = { meta:'📘', google:'🔵', tiktok:'🎵', email:'✉️' }[platform] || '📣';
+  const platName = { meta:'Meta Ads', google:'Google Ads', tiktok:'TikTok Ads', email:'Email Marketing' }[platform] || platform;
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+    ${_emailHeader(`🚀 Campaña publicada en ${platName}`, wsName)}
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#7f8aa3;letter-spacing:1px;margin-bottom:12px;">DETALLES</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px;">${platIcon} ${campaignName}</div>
+      <div style="margin-bottom:6px;"><span class="pill pill-blue">Estado: PAUSADA (actívala manualmente)</span></div>
+      <div><span class="pill ${imageIncluded ? 'pill-green' : 'pill-yellow'}">${imageIncluded ? '🖼️ Imagen incluida' : '⚠️ Sin imagen — agrégala en Ads Manager'}</span></div>
+      ${campaignId ? `<div style="font-size:11px;color:#7f8aa3;margin-top:10px;">ID: ${campaignId}</div>` : ''}
+    </div>
+    ${managerUrl ? `<a href="${managerUrl}" class="btn">Abrir en Ads Manager →</a>` : ''}
+    <a href="${process.env.APP_URL || 'http://localhost:3000'}" class="btn" style="margin-left:8px;background:#171a22;color:#eceef5;border:1px solid #1e2130;">Ver en BearAds →</a>
+    ${_emailFooter(wsName)}
+  </div></body></html>`;
+
+  await sendBearAdsEmail({ to: email, subject: `🚀 Campaña publicada — ${campaignName} · ${platName}`, html });
+}
+
+// ─── TIPO 3: Email de alerta de rendimiento ────────────────────────────────
+async function sendPerformanceAlertEmail(workspace, alerts) {
+  if (!alerts?.length) return;
+  const notif = workspace?.notifications || {};
+  if (notif.alertEmail === false) return;
+  const email = getWorkspaceNotifEmail(workspace);
+  if (!email) return;
+
+  const wsName = workspace.name || 'Tu workspace';
+  const alertsHtml = alerts.map(a =>
+    `<div class="action-row"><span class="pill pill-red">⚠️ Alerta</span> ${a.title}</div>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+    ${_emailHeader('⚠️ Alertas de rendimiento', `${wsName} · ${new Date().toLocaleDateString('es')}`)}
+    <div class="card">${alertsHtml}</div>
+    <a href="${process.env.APP_URL || 'http://localhost:3000'}" class="btn">Ver dashboard →</a>
+    ${_emailFooter(wsName)}
+  </div></body></html>`;
+
+  await sendBearAdsEmail({ to: email, subject: `⚠️ ${alerts.length} alerta(s) de rendimiento — ${wsName}`, html });
+}
+
+// ─── TIPO 4: Email de resumen semanal de campañas ─────────────────────────────
+async function sendWeeklyCampaignDigest(workspace, metrics) {
+  const notif = workspace?.notifications || {};
+  if (notif.weeklyDigest === false) return;
+  const email = getWorkspaceNotifEmail(workspace);
+  if (!email) return;
+
+  const wsName = workspace.name || 'Tu workspace';
+  const m = metrics || {};
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body><div class="wrap">
+    ${_emailHeader('📊 Resumen semanal de campañas', `${wsName} · Semana del ${new Date().toLocaleDateString('es')}`)}
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#7f8aa3;letter-spacing:1px;margin-bottom:12px;">MÉTRICAS DE LA SEMANA</div>
+      <div class="metrics-row">
+        <div class="metric"><div class="metric-val" style="color:#60a5fa;">${m.impressions ? Number(m.impressions).toLocaleString() : '—'}</div><div class="metric-lbl">Impresiones</div></div>
+        <div class="metric"><div class="metric-val" style="color:#c084fc;">${m.clicks ? Number(m.clicks).toLocaleString() : '—'}</div><div class="metric-lbl">Clics</div></div>
+        <div class="metric"><div class="metric-val" style="color:#4ade80;">$${m.spend ? parseFloat(m.spend).toFixed(2) : '0'}</div><div class="metric-lbl">Gasto</div></div>
+        <div class="metric"><div class="metric-val" style="color:#fbbf24;">${m.ctr ? parseFloat(m.ctr).toFixed(2)+'%' : '—'}</div><div class="metric-lbl">CTR</div></div>
+        <div class="metric"><div class="metric-val" style="color:#4ade80;">${m.roas ? parseFloat(m.roas).toFixed(2)+'x' : '—'}</div><div class="metric-lbl">ROAS</div></div>
+        <div class="metric"><div class="metric-val" style="color:#f87171;">$${m.cpa ? parseFloat(m.cpa).toFixed(2) : '—'}</div><div class="metric-lbl">CPA</div></div>
+      </div>
+    </div>
+    <a href="${process.env.APP_URL || 'http://localhost:3000'}" class="btn">Ver detalles →</a>
+    ${_emailFooter(wsName)}
+  </div></body></html>`;
+
+  await sendBearAdsEmail({ to: email, subject: `📊 Resumen semanal — ${wsName}`, html });
+}
+
+// ══════════════════════════════════════════
 // SCORE SEMANAL — EMAIL REPORT
 // ══════════════════════════════════════════
 
 // Email transporter (uses SMTP from .env)
 function getEmailTransporter() {
+  const port = parseInt(process.env.EMAIL_PORT || '587');
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false,
+    port,
+    secure: port === 465, // true para SSL/465, false para TLS/587
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
-    }
+    },
+    tls: { rejectUnauthorized: false } // compatibilidad con servidores privados
   });
 }
 
@@ -6490,6 +9165,188 @@ async function sendWeeklyReport(subscription) {
 }
 
 // ── CRON: Every Monday at 8am ──
+// ── F1: Cron semanal — recalcula benchmarks globales con todos los snapshots acumulados
+cron.schedule('0 4 * * 0', async () => {
+  console.log('[F1 Cron] Recalculando benchmarks globales…');
+  const { computeBenchmarksFromSnapshots } = require('./lib/db');
+  const { workspaces } = require('./lib/state');
+  const platforms = ['meta', 'google', 'tiktok', 'all'];
+  const verticals = [...new Set(Object.values(workspaces).map(ws => ws?.onboarding?.businessType || 'general'))];
+  const regions   = [...new Set(Object.values(workspaces).map(ws => ws?.onboarding?.targetCountry || ws?.onboarding?.targetRegion || 'latam'))];
+  let computed = 0;
+  for (const platform of platforms) {
+    for (const vertical of verticals) {
+      for (const region of regions) {
+        try { computeBenchmarksFromSnapshots(platform, vertical, region); computed++; } catch(_) {}
+      }
+    }
+  }
+  console.log(`[F1 Cron] ${computed} combinaciones recalculadas`);
+}, { timezone: 'America/Bogota' });
+
+// ── E5: Cron semanal — revisa alertas de rendimiento para todos los workspaces
+cron.schedule('0 7 * * 1', async () => {
+  console.log('[E5 Cron] Revisando alertas de rendimiento en todos los workspaces…');
+  const { workspaces } = require('./lib/state');
+  const { ensureWorkspaceState } = require('./lib/workspace-helpers');
+  const { getLatestSnapshots, createAction } = require('./lib/db');
+  let total = 0, triggered = 0;
+
+  function _cronCheckAlerts(workspace, metrics) {
+    const t = workspace.performanceThresholds || {};
+    const alerts = [];
+    if (t.cpa_max  && metrics.cpa  > 0 && metrics.cpa  > t.cpa_max)  alerts.push({ priority: 90, title: `⚠️ CPA alto: $${metrics.cpa} (límite $${t.cpa_max})`,      category: 'paid' });
+    if (t.roas_min && metrics.roas > 0 && metrics.roas < t.roas_min)  alerts.push({ priority: 95, title: `🚨 ROAS bajo: ${metrics.roas}x (mínimo ${t.roas_min}x)`,    category: 'paid' });
+    if (t.ctr_min  && metrics.ctr  > 0 && metrics.ctr  < t.ctr_min)   alerts.push({ priority: 75, title: `⚠️ CTR bajo: ${metrics.ctr}% (mínimo ${t.ctr_min}%)`,        category: 'paid' });
+    if (t.spend_max_monthly && metrics.spend > t.spend_max_monthly)    alerts.push({ priority: 85, title: `⚠️ Gasto sobre límite: $${metrics.spend} (máx $${t.spend_max_monthly})`, category: 'paid' });
+    return alerts;
+  }
+
+  for (const ws of Object.values(workspaces)) {
+    try {
+      const workspace = ensureWorkspaceState(ws);
+      if (!workspace?.id) continue;
+      const snaps = getLatestSnapshots(workspace.id, 1);
+      if (!snaps.length) continue;
+      const alerts = _cronCheckAlerts(workspace, snaps[0].metrics || {});
+      for (const a of alerts) {
+        createAction({
+          id: crypto.randomUUID(), workspaceId: workspace.id,
+          agent: 'synthesis', category: a.category,
+          title: a.title, description: 'Alerta automática semanal — E5',
+          priority: a.priority, source: 'e5-cron', analysisId: null,
+          status: 'pending', createdAt: new Date().toISOString(),
+        });
+      }
+      if (alerts.length) triggered++;
+      total++;
+    } catch(_) {}
+  }
+  // G4: Send weekly agent digest email to opted-in workspaces
+  try {
+    const analyzeRouterG = require('./routes/analyze');
+    const { buildAgentDigestHtml: _buildDigest, _canSendEmail: _canEmail, _getNotifTransporter: _getT } = analyzeRouterG;
+    if (_buildDigest && _canEmail && _canEmail()) {
+      const transporter = _getT();
+      let emailsSent = 0;
+      for (const ws of Object.values(workspaces)) {
+        try {
+          const notif = ws.notifications || {};
+          if (!notif.agentDigest || !notif.email) continue;
+          const workspace = ensureWorkspaceState(ws);
+          if (!workspace?.id) continue;
+          const html = _buildDigest(workspace);
+          await transporter.sendMail({
+            from: `"BearAds" <${process.env.EMAIL_USER}>`,
+            to:   notif.email,
+            subject: `📊 BearAds Digest — ${workspace.name || 'Tu workspace'} · ${new Date().toLocaleDateString('es', { weekday:'long', month:'long', day:'numeric' })}`,
+            html,
+          });
+          emailsSent++;
+          console.log(`[G4] Digest enviado a ${notif.email} (ws ${workspace.id})`);
+        } catch(e) { console.warn('[G4] digest email error:', e.message); }
+      }
+      console.log(`[G4] ${emailsSent} digest(s) semanales enviados`);
+    }
+    // H4: Webhook for digest for any workspace with webhookUrl
+    const analyzeRH4 = require('./routes/analyze');
+    if (analyzeRH4._triggerWebhook) {
+      for (const ws of Object.values(workspaces)) {
+        if (ws.notifications?.webhookUrl) {
+          const workspace2 = ensureWorkspaceState(ws);
+          if (workspace2) analyzeRH4._triggerWebhook(workspace2, 'weekly_digest_sent', { workspace: ws.name || ws.id });
+        }
+      }
+    }
+  } catch(e) { console.warn('[G4] digest cron error:', e.message); }
+
+  console.log(`[E5 Cron] ${total} workspaces revisados · ${triggered} con alertas generadas`);
+}, { timezone: 'America/Bogota' });
+
+// ── E3: Cron diario — sincroniza changelogs oficiales cada día a las 5am Bogotá
+cron.schedule('0 5 * * *', async () => {
+  console.log('[E3 Cron] Iniciando sync de Platform Intelligence…');
+  let totalSaved = 0;
+  try {
+    const results = [];
+    for (let i = 0; i < SYNC_SOURCES.length; i += 3) {
+      const batch = SYNC_SOURCES.slice(i, i + 3);
+      const batchResults = await Promise.all(batch.map(s => fetchAndExtractUpdates(s).catch(e => ({
+        source: s.label, url: s.url, platform: s.platform, saved: 0, skipped: 0, errors: [e.message],
+      }))));
+      results.push(...batchResults);
+    }
+    totalSaved = results.reduce((s, r) => s + r.saved, 0);
+    console.log(`[E3 Cron] Completado — ${totalSaved} nuevas actualizaciones guardadas`);
+    results.forEach(r => {
+      if (r.errors.length) console.warn(`[E3 Cron] ${r.source}: ${r.errors.join(', ')}`);
+    });
+  } catch(e) {
+    console.error('[E3 Cron] Error:', e.message);
+  }
+
+  // G5: Notify workspaces with platformUpdates enabled if new high-impact updates were saved
+  if (totalSaved > 0) {
+    try {
+      const analyzeRouterG5 = require('./routes/analyze');
+      const { _canSendEmail: _canE, _getNotifTransporter: _getT5 } = analyzeRouterG5;
+      if (_canE && _canE()) {
+        const { workspaces: wss5 } = require('./lib/state');
+        const { getRelevantPlatformUpdates } = require('./lib/db');
+        const highUpdates = getRelevantPlatformUpdates(null, null)
+          .filter(u => u.impact_level === 'alto')
+          .slice(0, 3);
+        if (!highUpdates.length) return;
+
+        const t5 = _getT5();
+        for (const ws of Object.values(wss5)) {
+          const notif = ws.notifications || {};
+          if (!notif.platformUpdates || !notif.email) continue;
+          try {
+            const updateLines = highUpdates.map(u =>
+              `<div style="padding:8px 12px;background:#f0fdf4;border-left:3px solid #16a34a;border-radius:4px;margin-bottom:8px;font-size:12px;">
+                <strong>${u.platform.toUpperCase()}</strong> — ${u.title}<br>
+                <span style="color:#475569;font-size:11px;">${(u.summary||'').slice(0,120)}…</span>
+                ${u.source_url ? `<br><a href="${u.source_url}" style="font-size:10px;color:#6366f1;">Ver fuente oficial →</a>` : ''}
+               </div>`
+            ).join('');
+            await t5.sendMail({
+              from: `"BearAds Platform Intel" <${process.env.EMAIL_USER}>`,
+              to:   notif.email,
+              subject: `📡 BearAds — Cambios críticos detectados en plataformas de ads`,
+              html: `<!DOCTYPE html><html><body style="font-family:-apple-system,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
+                <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;">
+                  <div style="font-size:22px;margin-bottom:4px;">📡 BearAds Platform Intelligence</div>
+                  <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Detectamos ${totalSaved} nueva(s) actualización(es) — ${new Date().toLocaleDateString('es')}</div>
+                  <p style="font-size:13px;color:#475569;margin-bottom:16px;">Se detectaron cambios de <strong>alto impacto</strong> en las plataformas de ads que usas. Aquí el resumen:</p>
+                  ${updateLines}
+                  <p style="font-size:11px;color:#94a3b8;margin-top:16px;">Más detalles en tu dashboard → Platform Pulse. Solo recibís esto cuando hay cambios GA de alto impacto.</p>
+                </div></body></html>`,
+            });
+            console.log(`[G5] Platform alert email enviado a ${notif.email}`);
+          } catch(e) { console.warn('[G5] platform email error:', e.message); }
+        }
+      }
+    // H4: Webhook for platform updates to all workspaces with webhookUrl
+    try {
+      const analyzeRG5H4 = require('./routes/analyze');
+      if (analyzeRG5H4._triggerWebhook) {
+        const { workspaces: wssH4 } = require('./lib/state');
+        for (const ws of Object.values(wssH4)) {
+          if (ws.notifications?.webhookUrl) {
+            const wsH4 = require('./lib/workspace-helpers').ensureWorkspaceState(ws);
+            if (wsH4) analyzeRG5H4._triggerWebhook(wsH4, 'platform_update_alert', {
+              count: totalSaved,
+              high_impact: highUpdates.map(u => u.title),
+            });
+          }
+        }
+      }
+    } catch(e) { console.warn('[G5/H4] webhook error:', e.message); }
+    } catch(e) { console.warn('[G5] platform cron email error:', e.message); }
+  }
+}, { timezone: 'America/Bogota' });
+
 cron.schedule('0 8 * * 1', async () => {
   console.log('⏰ Running weekly email reports...');
   for (const [email, sub] of emailSubscriptions) {
@@ -6557,6 +9414,367 @@ app.delete('/api/email/unsubscribe', (req, res) => {
   persistEmailSubscriptions();
   res.json({ success: true });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E3 — Admin CRUD para Platform Updates
+// Solo accesible por owner/admin. Fuentes oficiales, curación manual verificada.
+// ─────────────────────────────────────────────────────────────────────────────
+const { createPlatformUpdate, updatePlatformUpdate, getPlatformUpdate,
+        listPlatformUpdates, archivePlatformUpdate } = require('./lib/db');
+
+// Whitelist de dominios oficiales — ninguna source_url fuera de esta lista es aceptada
+const OFFICIAL_SOURCE_DOMAINS = [
+  'developers.facebook.com', 'business.facebook.com', 'about.fb.com',
+  'www.facebook.com/business', 'l.facebook.com',
+  'ads.google.com', 'support.google.com', 'developers.google.com',
+  'blog.google',
+  'ads.tiktok.com', 'developers.tiktok.com', 'newsroom.tiktok.com',
+  'business.linkedin.com', 'learn.microsoft.com',
+  'about.instagram.com',
+];
+// Más permisivo: solo rechaza si el dominio definitivamente no está en la lista
+function isOfficialSource(url) {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '');
+    return OFFICIAL_SOURCE_DOMAINS.some(d => hostname === d.replace(/^www\./, '') || hostname.endsWith('.' + d.replace(/^www\./,'')));
+  } catch(_) { return false; }
+}
+
+const VALID_PLATFORMS      = ['meta','google','tiktok','linkedin'];
+const VALID_CATEGORIES     = ['algorithm','targeting','formats','policy','bidding','attribution','privacy'];
+const VALID_IMPACT         = ['alto','medio','bajo'];
+const VALID_RELEASE_STATUS = ['ga','beta','announced'];
+
+// GET  /api/admin/platform-updates — list all (optional ?platform=meta&status=active)
+app.get('/api/admin/platform-updates', requireAdminPanelAccess, (req, res) => {
+  const { platform, status } = req.query;
+  let updates = listPlatformUpdates({ includeArchived: true });
+  if (platform) updates = updates.filter(u => u.platform === platform);
+  if (status)   updates = updates.filter(u => u.status   === status);
+  res.json({ updates, count: updates.length });
+});
+
+// POST /api/admin/platform-updates — create new entry (curated manually)
+app.post('/api/admin/platform-updates', requireAdminPanelAccess, (req, res) => {
+  const user = rehydrateRequestUser(req) || req.user;
+  const { platform, category, title, summary, impact_level, release_status,
+          regions, account_requirements, effective_date, deprecated_at,
+          supersedes_id, regulatory_context, source_url } = req.body;
+
+  // Validation
+  if (!platform || !VALID_PLATFORMS.includes(platform))
+    return res.status(400).json({ error: `platform inválido. Válidos: ${VALID_PLATFORMS.join('|')}` });
+  if (!category || !VALID_CATEGORIES.includes(category))
+    return res.status(400).json({ error: `category inválido. Válidos: ${VALID_CATEGORIES.join('|')}` });
+  if (!title?.trim())   return res.status(400).json({ error: 'title requerido' });
+  if (!summary?.trim()) return res.status(400).json({ error: 'summary requerido' });
+  if (!VALID_IMPACT.includes(impact_level))
+    return res.status(400).json({ error: `impact_level inválido. Válidos: ${VALID_IMPACT.join('|')}` });
+  if (!VALID_RELEASE_STATUS.includes(release_status))
+    return res.status(400).json({ error: `release_status inválido. Válidos: ${VALID_RELEASE_STATUS.join('|')}` });
+  if (!effective_date)  return res.status(400).json({ error: 'effective_date requerido (ISO date)' });
+  if (!source_url?.trim()) return res.status(400).json({ error: 'source_url requerido' });
+
+  // ⚠️ Official source enforcement
+  if (!isOfficialSource(source_url))
+    return res.status(400).json({
+      error: 'source_url debe ser un dominio oficial de la plataforma. Solo se aceptan fuentes verificadas oficiales.',
+      accepted_domains: OFFICIAL_SOURCE_DOMAINS,
+    });
+
+  const crypto = require('crypto');
+  const update = createPlatformUpdate({
+    id: crypto.randomUUID(),
+    platform, category, title: title.trim(), summary: summary.trim(),
+    impact_level, release_status,
+    regions: Array.isArray(regions) ? regions : ['global'],
+    account_requirements: account_requirements || null,
+    effective_date, deprecated_at: deprecated_at || null,
+    supersedes_id: supersedes_id || null,
+    regulatory_context: regulatory_context || null,
+    source_url: source_url.trim(),
+    source_type: 'manual',
+    verified_by: user?.id || user?.email || 'admin',
+    status: 'active',
+  });
+  res.status(201).json({ ok: true, update });
+});
+
+// PATCH /api/admin/platform-updates/:id — update fields
+app.patch('/api/admin/platform-updates/:id', requireAdminPanelAccess, (req, res) => {
+  const user     = rehydrateRequestUser(req) || req.user;
+  const existing = getPlatformUpdate(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Update no encontrado' });
+
+  const { source_url } = req.body;
+  if (source_url && !isOfficialSource(source_url))
+    return res.status(400).json({ error: 'source_url debe ser un dominio oficial de la plataforma.' });
+
+  const updated = updatePlatformUpdate(req.params.id, {
+    ...req.body,
+    verified_by: user?.id || user?.email || 'admin',
+  });
+  res.json({ ok: true, update: updated });
+});
+
+// DELETE /api/admin/platform-updates/:id — archive (never hard delete)
+app.delete('/api/admin/platform-updates/:id', requireAdminPanelAccess, (req, res) => {
+  const existing = getPlatformUpdate(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Update no encontrado' });
+  archivePlatformUpdate(req.params.id);
+  res.json({ ok: true, archived: req.params.id });
+});
+
+// PATCH /api/admin/platform-updates/:id/impl — actualizar estado de implementación en BearAds
+app.patch('/api/admin/platform-updates/:id/impl', requireAdminPanelAccess, express.json(), (req, res) => {
+  const { impl_status, bearads_action, impl_notes } = req.body;
+  const allowed_status = ['pending', 'in_progress', 'done', 'skipped'];
+  if (impl_status && !allowed_status.includes(impl_status))
+    return res.status(400).json({ error: 'impl_status inválido' });
+  const now = new Date().toISOString();
+  const db = require('./lib/db');
+  try {
+    const stmt = db.db.prepare(`
+      UPDATE platform_updates
+      SET impl_status  = COALESCE(?, impl_status),
+          bearads_action = COALESCE(?, bearads_action),
+          impl_notes   = COALESCE(?, impl_notes),
+          updated_at   = ?
+      WHERE id = ?
+    `);
+    const r = stmt.run(impl_status || null, bearads_action || null, impl_notes || null, now, req.params.id);
+    if (!r.changes) return res.status(404).json({ error: 'Update no encontrado' });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/admin/platform-updates/:id/generate-action — generar sugerencia de implementación con IA
+app.post('/api/admin/platform-updates/:id/generate-action', requireAdminPanelAccess, async (req, res) => {
+  const existing = getPlatformUpdate(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Update no encontrado' });
+
+  const prompt = `Eres el arquitecto de producto de BearAds, una plataforma SaaS de marketing digital para PYMEs latinoamericanas.
+
+Analiza este cambio GA de ${existing.platform.toUpperCase()} y genera UNA sugerencia concreta de qué debería implementar BearAds para soporte o aprovechar esta actualización.
+
+Cambio: ${existing.title}
+Resumen: ${existing.summary}
+Categoría: ${existing.category}
+Impacto: ${existing.impact_level}
+
+Responde en formato JSON:
+{
+  "bearads_action": "descripción técnica y UX de qué construir en BearAds — máximo 2 frases, específico y accionable",
+  "priority": "alta|media|baja",
+  "effort": "días: 1-2 | semanas: 1-2 | semanas: 3-4",
+  "module": "campaña|imagen|publicar|dashboard|analytics|onboarding|otro"
+}`;
+
+  try {
+    const raw = await callAI(prompt, '', { planCode: 'pro', maxTokens: 400 });
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+    if (!json) return res.status(500).json({ error: 'Sin respuesta IA' });
+    const parsed = JSON.parse(json);
+    // Guardar sugerencia
+    const stmt = require('./lib/db').db.prepare(`UPDATE platform_updates SET bearads_action=?, updated_at=? WHERE id=?`);
+    stmt.run(parsed.bearads_action, new Date().toISOString(), existing.id);
+    res.json({ ok: true, ...parsed });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ══════════════════════════════════════════
+// EMAIL MARKETING — Envío de prueba
+// ══════════════════════════════════════════
+app.post('/api/email-marketing/send-test', requireAuth, express.json(), async (req, res) => {
+  const { to, subject, preview, body } = req.body;
+  if (!to || !subject) return res.status(400).json({ error: 'to y subject son requeridos' });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">${_emailBaseStyles()}</head><body>
+  <div style="max-width:600px;margin:0 auto;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+      <!-- Preview text (oculto, solo para clientes de email) -->
+      <div style="display:none;max-height:0;overflow:hidden;color:#fff;">${escapeHtml(preview||'')}</div>
+      <!-- Header -->
+      <div style="padding:24px 28px;border-bottom:1px solid #f3f4f6;">
+        <div style="font-size:11px;color:#9ca3af;margin-bottom:8px;">📧 VISTA PREVIA DE EMAIL — BearAds Email Marketing</div>
+        <div style="font-size:11px;color:#6b7280;"><strong>Asunto:</strong> ${escapeHtml(subject)}</div>
+        ${preview ? `<div style="font-size:11px;color:#6b7280;margin-top:4px;"><strong>Preview:</strong> ${escapeHtml(preview)}</div>` : ''}
+      </div>
+      <!-- Body -->
+      <div style="padding:28px;font-size:14px;color:#1f2937;line-height:1.8;white-space:pre-wrap;">${escapeHtml(body||'')}</div>
+      <!-- Footer -->
+      <div style="padding:16px 28px;background:#f9fafb;border-top:1px solid #f3f4f6;font-size:11px;color:#9ca3af;">
+        📤 Este es un email de prueba enviado desde BearAds Email Marketing. El formato final depende de tu plataforma (Klaviyo, Mailchimp, etc.).
+      </div>
+    </div>
+  </div></body></html>`;
+
+  const result = await sendBearAdsEmail({
+    to,
+    subject: `[PRUEBA] ${subject}`,
+    html,
+  });
+
+  if (result.sent) {
+    res.json({ ok: true, to });
+  } else {
+    res.status(500).json({ error: result.error || 'No se pudo enviar' });
+  }
+});
+
+// ── E3: Auto-fetch sync — POST /api/internal/platform-updates/sync ───────────
+// Consulta URLs oficiales de changelogs, extrae actualizaciones GA con IA,
+// las filtra y guarda. Solo plataforma owner. Whitelist estricta, no configurable.
+const SYNC_SOURCES = [
+  // Meta
+  { platform: 'meta',     url: 'https://developers.facebook.com/docs/graph-api/changelog',       label: 'Meta Graph API Changelog' },
+  { platform: 'meta',     url: 'https://developers.facebook.com/docs/marketing-api/changelog',   label: 'Meta Marketing API Changelog' },
+  { platform: 'meta',     url: 'https://www.facebook.com/business/news',                         label: 'Meta Business News' },
+  { platform: 'meta',     url: 'https://about.instagram.com/blog/announcements',                 label: 'Instagram Announcements' },
+  // Google
+  { platform: 'google',   url: 'https://developers.google.com/google-ads/api/docs/release-notes', label: 'Google Ads API Release Notes' },
+  { platform: 'google',   url: 'https://ads.google.com/intl/es_419/new',                          label: 'Google Ads Novedades' },
+  { platform: 'google',   url: 'https://support.google.com/google-ads/announcements/9048695',     label: 'Google Ads Announcements' },
+  // TikTok
+  { platform: 'tiktok',   url: 'https://ads.tiktok.com/help/article?aid=10003937',    label: 'TikTok Ads Help' },
+  { platform: 'tiktok',   url: 'https://developers.tiktok.com/doc/changelog',         label: 'TikTok Developers Changelog' },
+  { platform: 'tiktok',   url: 'https://newsroom.tiktok.com/en-us',                   label: 'TikTok Newsroom' },
+  // LinkedIn
+  { platform: 'linkedin', url: 'https://business.linkedin.com/marketing-solutions/blog',           label: 'LinkedIn Marketing Blog' },
+  { platform: 'linkedin', url: 'https://learn.microsoft.com/en-us/linkedin/marketing/integrations/ads/changelog', label: 'LinkedIn Ads API Changelog' },
+];
+
+const SYNC_EXTRACT_PROMPT = `Eres un analista de plataformas de publicidad digital y arquitecto de producto de BearAds (SaaS de marketing para PYMEs latinoamericanas).
+
+Tu tarea: extraer actualizaciones LANZADAS (GA) de este changelog oficial de una plataforma de ads, y sugerir qué debería implementar BearAds para cada una.
+
+REGLAS ESTRICTAS:
+1. Solo extraer actualizaciones YA disponibles para TODOS los anunciantes (GA — General Availability).
+2. NUNCA incluir betas, early access, "coming soon", features futuras, o rollouts parciales.
+3. Máximo 5 actualizaciones más relevantes.
+4. Si no hay actualizaciones GA claras, devuelve array vacío [].
+
+Responde SOLO con JSON válido:
+[
+  {
+    "title": "título conciso de la actualización",
+    "summary": "qué cambió, por qué importa para anunciantes LATAM y qué deben hacer hoy",
+    "category": "algorithm|targeting|formats|bidding|attribution|policy|privacy",
+    "impact_level": "alto|medio|bajo",
+    "effective_date": "YYYY-MM-DD",
+    "is_ga": true,
+    "bearads_action": "qué debería construir BearAds para soportar o aprovechar este cambio — 1-2 frases específicas y accionables"
+  }
+]
+
+Contenido a analizar:
+`;
+
+async function fetchAndExtractUpdates(source) {
+  const { platform, url, label } = source;
+  const results = { source: label, url, platform, saved: 0, skipped: 0, errors: [] };
+
+  // Fetch the page
+  let pageText = '';
+  try {
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'BearAds-Intelligence-Bot/1.0 (+https://bearads.io/platform-intel)' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!resp.ok) { results.errors.push(`HTTP ${resp.status}`); return results; }
+    const html = await resp.text();
+    // Strip tags and collapse whitespace — keep enough context for the AI
+    pageText = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 12000); // ~3k tokens max
+  } catch(e) {
+    results.errors.push('Fetch error: ' + e.message);
+    return results;
+  }
+
+  if (pageText.length < 100) { results.errors.push('Contenido vacío'); return results; }
+
+  // Ask Claude to extract GA updates
+  let updates = [];
+  try {
+    const raw = await callAI(SYNC_EXTRACT_PROMPT, `Plataforma: ${platform}\nURL: ${url}\n\n${pageText}`, {
+      planCode: 'pro', maxTokens: 1500, feature: 'platform-sync',
+    });
+    const json = raw.match(/\[[\s\S]*\]/)?.[0];
+    if (!json) { results.errors.push('Sin JSON en respuesta IA'); return results; }
+    const parsed = JSON.parse(json);
+    updates = Array.isArray(parsed) ? parsed.filter(u => u.is_ga !== false) : [];
+  } catch(e) {
+    results.errors.push('IA error: ' + e.message);
+    return results;
+  }
+
+  // Store each valid update
+  const nowIsoStr = new Date().toISOString();
+  for (const u of updates) {
+    if (!u.title || !u.summary) { results.skipped++; continue; }
+    const category = ['algorithm','targeting','formats','policy','bidding','attribution','privacy'].includes(u.category)
+      ? u.category : 'algorithm';
+    const impact   = ['alto','medio','bajo'].includes(u.impact_level) ? u.impact_level : 'medio';
+    try {
+      createPlatformUpdate({
+        id:             crypto.randomUUID(),
+        platform,
+        category,
+        title:          u.title.trim().slice(0, 300),
+        summary:        u.summary.trim().slice(0, 2000),
+        impact_level:   impact,
+        release_status: 'ga',
+        regions:        JSON.stringify(['global']),
+        account_requirements: JSON.stringify({}),
+        effective_date: u.effective_date || nowIsoStr.slice(0, 10),
+        deprecated_at:  null,
+        supersedes_id:  null,
+        regulatory_context: null,
+        source_url:     url,
+        source_type:    'auto',
+        verified_by:    'auto-sync',
+        status:         'active',
+        created_at:     nowIsoStr,
+        updated_at:     nowIsoStr,
+        bearads_action: u.bearads_action ? u.bearads_action.trim().slice(0, 500) : null,
+        impl_status:    'pending',
+      });
+      results.saved++;
+    } catch(_) { results.skipped++; }
+  }
+
+  return results;
+}
+
+app.post('/api/internal/platform-updates/sync', requirePlatformOwner, async (req, res) => {
+  const { platforms } = req.body; // optional filter: ['meta','google']
+  const sources = platforms?.length
+    ? SYNC_SOURCES.filter(s => platforms.includes(s.platform))
+    : SYNC_SOURCES;
+
+  if (!sources.length) return res.status(400).json({ error: 'Sin fuentes para sincronizar' });
+
+  // run in parallel, max 3 at a time
+  const results = [];
+  for (let i = 0; i < sources.length; i += 3) {
+    const batch = sources.slice(i, i + 3);
+    const batchResults = await Promise.all(batch.map(s => fetchAndExtractUpdates(s).catch(e => ({
+      source: s.label, url: s.url, platform: s.platform, saved: 0, skipped: 0, errors: [e.message],
+    }))));
+    results.push(...batchResults);
+  }
+
+  const totalSaved   = results.reduce((s, r) => s + r.saved, 0);
+  const totalSkipped = results.reduce((s, r) => s + r.skipped, 0);
+  console.log(`[E3 Sync] Saved: ${totalSaved} · Skipped: ${totalSkipped}`);
+  res.json({ ok: true, results, totalSaved, totalSkipped });
+});
+// ── /E3 auto-fetch sync ───────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
   console.log(`\n✅ BearAds v2 en http://localhost:${PORT}`);

@@ -2398,4 +2398,384 @@ De análisis puntual a trabajo continuo de 30-90 días.
 - Al generar: auto-crea acción de "prioridad inmediata" en la cola
 - Widget en dashboard: empty state → loading → plan renderizado con grid de fases + KPIs + riesgos
 
-Estado: 🟡 D1 completado. D2/D3/D4 pendientes.
+Estado: ✅ Fase D completa. D1-D4 implementados (2026-05-05).
+
+**D2 — Agente Contenido** ✅
+- `POST /api/workspace/agent/contenido` + `GET` + renderContenidoResult
+- Modal con plataformas, semanas, contexto → genera plan por semanas con piezas copiables
+- openContenidoModal / loadContenidoPlan integrado en refreshDashboard()
+
+**D3 — Agente Campañas** ✅
+- `POST /api/workspace/agent/campanas` + `GET` + renderCampanasResult
+- Modal con canales, objetivo, presupuesto → campañas por plataforma con anuncios, audiencia, keywords
+- openCampanasModal / loadCampanasPlan integrado en refreshDashboard()
+
+**D4 — Agente Reportes** ✅
+- `POST /api/workspace/agent/reportes` + `GET` + renderReportesResult
+- Sin modal — botón directo, agrega contexto de todos los agentes
+- Reporte ejecutivo: estado general (verde/amarillo/rojo), canales, logros, problemas, próximos 30 días
+
+---
+
+## ═══════════════════════════════════════════════
+## SESIÓN 2026-06-01 — Expansión completa del producto
+## ═══════════════════════════════════════════════
+
+### Resumen ejecutivo
+
+En esta sesión se construyeron 15 módulos nuevos que transforman BearAds de una plataforma de diagnóstico a un sistema completo de creación, publicación y gestión de campañas con IA. Abajo el detalle de cada fase.
+
+---
+
+### ✅ FASE CAMP — Wizard de Creación de Campañas
+
+**Qué es:** Flujo vertical progresivo de 4 secciones (Brief → Resultado → Arte → Publicar) que reemplazó el wizard oculto de 4 pasos que no avanzaba.
+
+**Implementado:**
+- `wizardGenerateCampaign()` — llama `/api/chat` (sin restricción de plan), genera campaña con copies A/B/C
+- Flujo: secciones se revelan hacia abajo con `scrollIntoView`, no con show/hide de pasos
+- Persistencia: `DB.set('last_campaign_draft', {...})` guarda producto, plataforma, contenido e imagen por 24h
+- `_restoreLastCampaignDraft()` restaura al cargar la página de campañas
+- `openSavedCampaign(index)` restaura texto + imágenes + galería completa desde Mis Campañas
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE ART — Arte del Anuncio con IA
+
+**Qué es:** Sección de generación de imagen integrada al wizard, con galería, retoque y modos IA/upload.
+
+**Implementado:**
+- Dos modos: `switchArtMode('ai')` / `switchArtMode('upload')` con drag-drop
+- Generación: `gpt-image-1` (reemplazó dall-e-3 — el account no tenía dall-e-3)
+- Imágenes guardadas en disco: `/public/generated/ad-TIMESTAMP-RANDOM.png`
+- `/api/generate-image` → `/api/edit-image` para retoques (FormData nativo Node 24)
+- `_artGallery[]` — galería en memoria con thumbnails, lightbox, retoque por prompt, descargar, eliminar
+- `artRenderGallery()` — renderiza grid de cards con acciones por imagen
+- Imágenes persistidas en `campSaved[i].images = [{url, label, ts}]`
+- `_pushImageToCampaign()` acumula sin duplicar, actualiza `imageUrl` principal
+
+**Endpoints:**
+- `POST /api/generate-image` — genera imagen con gpt-image-1, guarda PNG, devuelve URL
+- `POST /api/edit-image` — edita imagen existente con prompt de retoque
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE META-IMG — Publicación en Meta con Imagen
+
+**Qué es:** El endpoint de Meta ahora sube la imagen generada/subida antes de crear el creative, logrando que el anuncio en Meta ya salga con imagen incluida.
+
+**Implementado:**
+- `/api/workspace/meta/campaign/create-from-brief` acepta `imageUrl` en el body
+- Sube imagen a Meta adimages API (`/act_xxx/adimages`) con FormData nativo
+- Obtiene `image_hash` y lo incluye en `link_data` del creative
+- `sendCampaignPublishedEmail()` — email de confirmación al owner al publicar
+- Frontend pasa `campImageUrl` al publicar e guarda `metaCampaignId` en `campSaved`
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE MIS-CAMPS — Mis Campañas mejorado
+
+**Qué es:** Las tarjetas de Mis Campañas ahora muestran imágenes, métricas reales y permiten editar correctamente.
+
+**Implementado:**
+- Multi-imagen: galería horizontal de thumbnails 72×72 con botón "★ Principal"
+- `loadCampaignMetrics(index, cardEl)` — fetch `/api/workspace/meta/campaigns/live`, panel expandible inline
+- `📊 Métricas` aparece solo si `c.metaCampaignId` existe
+- Dashboard: `_syncDashboardFromSavedCampaigns()` — siempre muestra campañas de localStorage
+- `_dashEditCampaign/ViewCampaign/PublishCampaign/ViewMetrics` — acciones reales con modales
+- `window._dashCampaigns` — referencia para que los botones funcionen
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE REPORT-EXP — Reporte ejecutivo expandible
+
+**Qué es:** El reporte del Agente Reportes ahora se puede ver completo en modal y los canales son expandibles.
+
+**Implementado:**
+- `openReporteCompleto()` — modal fullscreen con todo el reporte estructurado
+- `_lastReporteData` — guarda el último reporte para acceso desde modal
+- `_toggleCanalCard(uid)` — expande/colapsa cada canal con hallazgo + acción + métricas
+- Botón "📄 Ver reporte completo" en el dashboard encima del reporte
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE LANDING — Landing + Onboarding mejorado
+
+**Qué es:** La landing ahora refleja lo que BearAds realmente hace (crear y publicar campañas con IA), y el onboarding lleva al usuario directamente a crear su primera campaña.
+
+**Implementado:**
+- Hero: "Crea, diseña y publica campañas con IA. Sin agencia. Sin esperas."
+- Demo visual rediseñado: muestra Brief → A/B/C → Galería de imágenes → Publicar en Meta
+- "Cómo funciona": 4 pasos (Brief 30s → Arte IA → Guardar → Publicar directo)
+- Landing CTAs con plan params: `/auth?plan=starter` → auto-checkout post-login
+- `_autoStartPlanCheckout(plan)` — abre modal de planes con plan pre-seleccionado
+- `completeOnboarding()` → va a Nueva Campaña, pre-llena formulario con datos del onboarding
+- `_showFirstCampaignBanner()` — banner de bienvenida con 3 pasos del flujo
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE BILLING — Stripe producción
+
+**Qué es:** Stripe ahora funciona correctamente con precios reales y flujo landing → checkout.
+
+**Implementado:**
+- `.env` corregido: `STARTER_MONTHLY` apuntaba al precio anual, `AGENCY_ANNUAL` tenía backtick al final
+- Todos los 6 price IDs validados contra la API de Stripe
+- SMTP corregido: `secure: true` para puerto 465 (SSL), `tls.rejectUnauthorized: false` para Namecheap
+- Flujo: `/auth?plan=starter` → `req.session.pendingPlan` → post-login redirect `/?plan=starter`
+- Google OAuth también pasa el plan: `/?connected=google&plan=starter`
+- `STRIPE_WEBHOOK_SECRET` necesita `stripe listen` para funcionar en local
+
+**Estado:** ✅ Completo (webhook pendiente configuración en producción)
+
+---
+
+### ✅ FASE NOTIF — Sistema de Notificaciones por Email
+
+**Qué es:** 4 tipos de emails automáticos + panel de preferencias en el perfil del usuario.
+
+**Implementado (server.js):**
+- `sendBearAdsEmail({to, subject, html})` — función central con nodemailer
+- `sendAutopilotResultEmail(workspace, result)` — al correr auto-piloto con acciones
+- `sendCampaignPublishedEmail(workspace, {...})` — al publicar en Meta o Google
+- `sendPerformanceAlertEmail(workspace, alerts)` — cuando ROAS/CPA/CTR fuera de umbral
+- `sendWeeklyCampaignDigest(workspace, metrics)` — resumen los lunes
+- `_emailBaseStyles()` / `_emailHeader()` / `_emailFooter()` — HTML base dark mode
+
+**Endpoints:**
+- `GET /api/workspace/notifications` — preferencias actuales
+- `PATCH /api/workspace/notifications` — guardar preferencias
+- `POST /api/workspace/notifications/test` — email de prueba inmediato
+
+**Frontend:**
+- Panel en Perfil → Notificaciones: toggles por tipo + email + botón "✉️ Probar"
+- `loadNotifPreferences()` / `saveNotifPreferences()` / `testNotifEmail()`
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE EMAIL-MKT — Email Marketing Flow
+
+**Qué es:** El tab de Email en Integraciones ahora genera secuencias visuales email por email, no solo texto plano.
+
+**Implementado:**
+- 7 tipos de secuencia: Bienvenida, Carrito abandonado, Post-compra, Reactivación, Lanzamiento, Nurture, Promo
+- `_parseEmailSequence(text)` — parsea respuesta IA en emails individuales con asunto/preview/cuerpo/día
+- `_renderEmailSequence(emails, name, rawText)` — timeline de tarjetas expandibles
+- Acciones por email: 📋 Copiar, 📤 Enviar prueba (SMTP real)
+- `_emailSavedSequences[]` en localStorage — guardar/cargar secuencias
+- Sidebar con "Mis Secuencias": click para recargar cualquier secuencia guardada
+
+**Endpoint:**
+- `POST /api/email-marketing/send-test` — renderiza HTML profesional y envía por SMTP
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE PLATFORM-PULSE — Rediseño para devs/admins
+
+**Qué es:** Platform Pulse se transformó de visor de cambios de plataforma a herramienta de hoja de ruta para el equipo BearAds.
+
+**Implementado (DB):**
+- `ALTER TABLE platform_updates ADD COLUMN bearads_action TEXT` — sugerencia de implementación
+- `ALTER TABLE platform_updates ADD COLUMN impl_status TEXT DEFAULT 'pending'`
+- `ALTER TABLE platform_updates ADD COLUMN impl_notes TEXT`
+- 8 entradas existentes tienen sugerencias pre-cargadas
+
+**Endpoints:**
+- `PATCH /api/admin/platform-updates/:id/impl` — actualizar estado pending/in_progress/done/skipped
+- `POST /api/admin/platform-updates/:id/generate-action` — generar sugerencia con IA
+
+**Frontend:**
+- `renderPlatformUpdatesAdmin()` rediseñado: agrupado por plataforma, estado visual, impl badge
+- `generateBearAdsAction(id)` / `updateImplStatus(id, status)` funciones nuevas
+- `SYNC_EXTRACT_PROMPT` actualizado para incluir `bearads_action` en cada sync
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE INTG-CHECKLIST — Fix integration checklist
+
+**Qué es:** Cada botón del checklist de integraciones ahora lleva al lugar correcto por plataforma.
+
+**Implementado:**
+- `platformActions{}` map: google→scroll, meta→toggleApiPanel, googleAds→tab, email→email-mkt, ecom→scroll
+- Textos específicos: "Ver Google Analytics", "Ver Meta Ads", "Abrir Google Ads", "Crear secuencias"
+- `getNextIntegrationFocus()` focusMap corregido (email→email-mkt, googleAds→google-ads)
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE TIKTOK — TikTok Ads integration
+
+**Qué es:** Integración completa con la TikTok Ads API para crear campañas, ver métricas y publicar desde BearAds.
+
+**Implementado (server.js):**
+- `_getTikTokCreds(workspace)` / `_tiktokRequest(path, method, body, token)` — helpers
+- `PATCH /api/workspace/tiktok/credentials` — guardar access token + advertiser ID por workspace
+- `GET /api/workspace/tiktok/status` — verificar conexión, obtener info de cuenta
+- `DELETE /api/workspace/tiktok/disconnect`
+- `GET /api/workspace/tiktok/campaigns/live` — campañas + insights últimos 7 días
+- `POST /api/workspace/tiktok/campaign/create-from-brief` — crea campaña + adgroup (PAUSADOS)
+- `PATCH /api/workspace/tiktok/campaign/:id/status` — ENABLE / DISABLE
+
+**Frontend:**
+- Tab "5. 🎵 TikTok" en Integraciones con panel completo
+- `tiktokCheckStatus()` / `tiktokConnect()` / `tiktokDisconnect()`
+- `tiktokLoadCampaigns()` — lista con spend/impresiones/clics/CTR
+- `tiktokToggleCampaign(id, status)` — activar/pausar
+- `wizardPublishTikTok()` — desde el wizard de campañas, guarda tiktokCampaignId
+- `pubLaunch()` maneja TikTok como tercera opción de publicación
+
+**Notas:** `TIKTOK_APP_ID` y `TIKTOK_SECRET` en .env (vacíos — configurar en TikTok Business Center)
+
+**Estado:** ✅ Implementado — pendiente credenciales reales
+
+---
+
+### ✅ FASE MULTI-WS — Multi-workspace + Agencia
+
+**Qué es:** Sistema completo para que un usuario maneje múltiples workspaces y pueda invitar miembros al suyo.
+
+**Implementado (server.js):**
+- `GET /api/user/workspaces` — lista workspaces del usuario con plan, rol, membresías
+- `POST /api/user/workspaces` — crear workspace (límite por plan: trial=1, starter=1, pro=3, agency=15)
+- `POST /api/user/workspaces/switch` — cambiar workspace activo (regenera sesión con req.session.regenerate)
+- `POST /api/workspace/invite` — invitar miembro por email (email de invitación SMTP)
+- `DELETE /api/workspace/members/:userId` — remover miembro
+- `GET /api/workspace/members` — lista miembros + pendientes
+
+**Frontend:**
+- Workspace Switcher en sidebar: dropdown con todos los workspaces, cambio con recarga
+- `openCreateWorkspaceModal()` — crear workspace desde el switcher
+- `openWorkspaceMembersPanel()` — panel de miembros con invitación por email
+- Botón "👥 Equipo" en footer del sidebar
+- `initWsSwitcher()` — inicializa al cargar sesión
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE AUTOPILOT-UI — Auto-piloto panel mejorado
+
+**Qué es:** El panel de auto-piloto ahora incluye TikTok, countdown en vivo y mejor visualización.
+
+**Implementado:**
+- Checkbox `apx-platform-tiktok` — TikTok como plataforma del auto-piloto
+- `_startAutopilotCountdown()` — countdown ⏰ en tiempo real hasta la próxima ejecución 8AM
+- `_renderRulesSummary(ap)` — panel derecho con todas las reglas activas visualizadas con colores
+- Historial mejorado: tarjetas con color/icono por tipo, métricas detalladas (ROAS, CPA, presupuesto)
+- Badge "simulación" para dry-runs en el historial
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE PWA — Móvil y PWA
+
+**Qué es:** La app es ahora instalable como PWA real con mejor experiencia en móvil.
+
+**Implementado:**
+- `manifest.json` creado (faltaba el archivo físico aunque existía la ruta del servidor)
+- Nav inferior: 7 ítems → 5 (Dashboard, Analizar, ⬤Campaña, Conectar, Más)
+- Botón central "Campaña" con círculo azul/gradiente destacado — CTA principal
+- Sheet "Más": grid 4×2 con Plan, Agencia, Auto-piloto, Agentes, Score, Aprender, Perfil, Plan
+- `openMobileMoreMenu()` / `closeMobileMoreMenu()` con animación slide-up
+- CSS mobile más específico: overrides de grid por patrón (no catch-all agresivo)
+- Galería de imágenes en móvil: flex scroll horizontal con `scroll-snap-type: x mandatory`
+- Modal de plan: bottom sheet en móvil (border-radius top, posición fixed bottom)
+- PWA banner mejorado: logo + texto + "📲 Instalar"
+
+**Estado:** ✅ Completo
+
+---
+
+### ✅ FASE ANALYTICS-SA — Analytics interno BearAds
+
+**Qué es:** Dashboard de métricas SaaS en el panel de SuperAdmin para monitorear el negocio.
+
+**Implementado:**
+- `GET /api/admin/analytics` (requirePlatformOwner):
+  - **Usuarios:** total, activos 7/30d, nuevos 7/30d, retención 7d, byDay[] (últimos 14 días)
+  - **Revenue:** MRR (por plan + billing cycle), ARR, mrrHistory[] (6 meses)
+  - **Planes:** distribución, paid count, trial count, conversion rate %
+  - **AI costs:** costMonth, costAll, byProvider breakdown
+  - **Producto:** workspaces totales, campañas en activity_log, imágenes en /generated/
+- Tab "📊 Analytics" en SA panel
+- `loadSAAnalytics()`:
+  - 4 KPI cards (usuarios, MRR, activos, conversión)
+  - Barras de distribución de planes con colores
+  - Sparkline de 14 días de nuevos usuarios (barras CSS proporcionales)
+  - Costos IA por mes/total/proveedor
+
+**Estado:** ✅ Completo
+
+---
+
+## Estado general del proyecto al 2026-06-01
+
+### Fases originales (1-7):
+| Fase | Descripción | Estado |
+|---|---|---|
+| 1 | Base del SaaS | ✅ Cerrada |
+| 2 | Diagnóstico con datos reales | ✅ Avanzada |
+| 3 | Estrategia accionable | ✅ Implementada |
+| 4 | Activación de campañas | ✅ **Completa — wizard, imagen, publicación** |
+| 5 | Operación del workspace | ✅ **Completa — multi-workspace, miembros, roles** |
+| 6 | Pulido comercial | ✅ Operativa |
+| 7 | Escalabilidad | 🟡 En progreso |
+
+### Fases de agentes (A-D):
+| Fase | Descripción | Estado |
+|---|---|---|
+| A | Motor base de agentes | ✅ Completa |
+| B | Cola de acciones | ✅ Completa |
+| C | Modos de ejecución | ✅ Completa |
+| D | Agentes de proyecto (D1-D4) | ✅ Completa |
+
+### Nuevas fases (sesión 2026-06-01):
+| Fase | Descripción | Estado |
+|---|---|---|
+| CAMP | Wizard de campañas vertical | ✅ Completa |
+| ART | Arte del anuncio + galería IA | ✅ Completa |
+| META-IMG | Publicación Meta con imagen | ✅ Completa |
+| MIS-CAMPS | Mis Campañas multi-imagen | ✅ Completa |
+| REPORT-EXP | Reporte expandible + modal | ✅ Completa |
+| LANDING | Landing + onboarding v2 | ✅ Completa |
+| BILLING | Stripe corregido + auto-checkout | ✅ Completa |
+| NOTIF | Sistema de notificaciones email | ✅ Completa |
+| EMAIL-MKT | Email Marketing flow visual | ✅ Completa |
+| PLATFORM-PULSE | Rediseño para devs/admins | ✅ Completa |
+| INTG-CHECKLIST | Fix botones por plataforma | ✅ Completa |
+| TIKTOK | TikTok Ads API integration | ✅ Impl. (credenciales pendientes) |
+| MULTI-WS | Multi-workspace + invitaciones | ✅ Completa |
+| AUTOPILOT-UI | Auto-piloto panel mejorado | ✅ Completa |
+| PWA | Móvil + manifest.json | ✅ Completa |
+| ANALYTICS-SA | Analytics interno SaaS | ✅ Completa |
+
+### Próximo paso recomendado: Lanzamiento a producción
+
+Checklist antes de lanzar:
+1. [ ] Configurar dominio y SSL (Render/Railway/VPS)
+2. [ ] Variables de entorno de producción (APP_URL, CALLBACK_URL, ALLOWED_ORIGIN)
+3. [ ] `stripe listen --forward-to URL/api/stripe/webhook` → copiar `whsec_...` al env
+4. [ ] Credenciales TikTok Ads (TIKTOK_APP_ID, TIKTOK_SECRET)
+5. [ ] Migración de JSON a base de datos real (usuarios, workspaces, membresías)
+6. [ ] Limpiar imágenes viejas de /public/generated/ con cron periódico
+7. [ ] QA completo por plan: Trial → Starter → Pro → Agency
